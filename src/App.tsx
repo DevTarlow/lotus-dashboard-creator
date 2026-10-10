@@ -1,6 +1,7 @@
 import { AlertIcon, RefreshIcon } from '@/components/icons';
 import { Button } from '@/components/ui';
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary';
+import { StorageNotice } from '@/components/feedback/StorageNotice';
 import { ToastViewport } from '@/components/feedback/ToastViewport';
 import { DashboardCanvas, HeaderBar, ImportDropZone, StatusBar } from '@/components/layout';
 import {
@@ -62,6 +63,7 @@ export default function App() {
     >
       <div className="flex min-h-full flex-col bg-slate-50 dark:bg-slate-950">
         <HeaderBar />
+        <StorageNotice />
 
         <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 py-5 sm:px-6 lg:px-8">
           <ImportDropZone>

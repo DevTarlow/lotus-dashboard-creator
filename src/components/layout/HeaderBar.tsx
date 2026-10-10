@@ -25,6 +25,7 @@ import { useDashboardActions } from '@/hooks/useDashboardActions';
 import { useTheme } from '@/hooks/useTheme';
 import { useDashboardStore, selectCanRedo, selectCanUndo } from '@/store/dashboardStore';
 import { useUiStore } from '@/store/uiStore';
+import { isPersistentStorage } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 
 /** The app mark, exported at 96px so it stays crisp on high-density screens. */
@@ -272,13 +273,18 @@ export function StatusBar() {
   const activeBreakpoint = useDashboardStore((state) => state.activeBreakpoint);
   const locked = useDashboardStore((state) => state.locked);
   const openShortcuts = useUiStore((state) => state.openShortcuts);
+  // Constant for the lifetime of the page.
+  const persistent = isPersistentStorage();
 
   return (
     <footer className="border-t border-slate-200/80 bg-white/70 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/70">
       <div className="mx-auto flex max-w-[1800px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-[11px] text-slate-400 sm:px-6 lg:px-8 dark:text-slate-500">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-          Saved in this browser
+          <span
+            className={cn('h-1.5 w-1.5 rounded-full', persistent ? 'bg-emerald-500' : 'bg-amber-500')}
+            aria-hidden="true"
+          />
+          {persistent ? 'Saved in this browser' : 'Not saved — storage blocked'}
         </span>
         <span className="inline-flex items-center gap-1">
           <GridIcon className="h-3 w-3" />

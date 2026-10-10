@@ -14,9 +14,14 @@
     <script>
       // Apply the persisted colour scheme before first paint to avoid a flash of
       // the wrong theme. Kept tiny and dependency-free on purpose.
+      //
+      // The key is scoped by path when the page is opened from disk, because
+      // every `file://` document shares a single origin. Keep this in step with
+      // `src/lib/storageKeys.ts`.
       (function () {
         try {
-          var raw = localStorage.getItem('lotus-dashboard-creator:prefs/v1');
+          var scope = location.protocol === 'file:' ? ':' + location.pathname : '';
+          var raw = localStorage.getItem('lotus-dashboard-creator:prefs/v1' + scope);
           var mode = raw ? JSON.parse(raw).state.theme : 'system';
           var dark =
             mode === 'dark' ||

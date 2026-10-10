@@ -8,7 +8,7 @@
  */
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { LAYOUT_HISTORY_COALESCE_MS, MAX_HISTORY, SCHEMA_VERSION, STORAGE_KEYS } from '@/constants/app';
+import { LAYOUT_HISTORY_COALESCE_MS, MAX_HISTORY, SCHEMA_VERSION } from '@/constants/app';
 import { GRID_COLUMNS } from '@/constants/grid';
 import { createDashboardDocument } from '@/lib/document';
 import {
@@ -23,6 +23,7 @@ import {
 } from '@/lib/grid';
 import { buildDefaultWorkspace, DEFAULT_TEMPLATE_ID, getTemplate } from '@/lib/templates';
 import { zustandStorage } from '@/lib/storage';
+import { workspaceStorageKey } from '@/lib/storageKeys';
 import { asNumber, asString } from '@/lib/utils';
 import { validateDashboardDocument } from '@/lib/validation';
 import { DASHBOARD_FORMAT } from '@/types';
@@ -380,7 +381,7 @@ export const useDashboardStore = create<DashboardState>()(
       };
     },
     {
-      name: STORAGE_KEYS.workspace,
+      name: workspaceStorageKey(),
       version: SCHEMA_VERSION,
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state): PersistedWorkspace => ({

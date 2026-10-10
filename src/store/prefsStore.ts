@@ -3,8 +3,8 @@
  */
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { STORAGE_KEYS } from '@/constants/app';
 import { zustandStorage } from '@/lib/storage';
+import { prefsStorageKey } from '@/lib/storageKeys';
 import type { ThemeMode } from '@/types';
 
 export interface PrefsState {
@@ -41,7 +41,7 @@ export const usePrefsStore = create<PrefsState>()(
       setFinnhubKey: (finnhubKey) => set({ finnhubKey }),
     }),
     {
-      name: STORAGE_KEYS.prefs,
+      name: prefsStorageKey(),
       version: 1,
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({

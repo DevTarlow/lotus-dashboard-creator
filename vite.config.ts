@@ -13,7 +13,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    strictPort: false,
+    // Pinned: `localStorage` is partitioned per origin, so silently hopping to
+    // 5174 when 5173 is busy would show an empty dashboard and look like data
+    // loss. Fail loudly instead.
+    strictPort: true,
     open: false,
   },
   preview: {

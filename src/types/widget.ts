@@ -42,6 +42,20 @@ export interface SettingTextField extends SettingFieldBase {
   maxLength?: number;
 }
 
+/**
+ * A secret held in app preferences rather than widget config.
+ *
+ * `key` names a field on the preferences store (e.g. `finnhubKey`), so the value
+ * is entered once and shared by every widget instead of per instance.
+ */
+export interface SettingPasswordField extends SettingFieldBase {
+  type: 'password';
+  placeholder?: string;
+  maxLength?: number;
+  /** Optional `https:` link rendered under the control, e.g. a signup page. */
+  link?: { href: string; label: string };
+}
+
 export interface SettingTextareaField extends SettingFieldBase {
   type: 'textarea';
   placeholder?: string;
@@ -72,7 +86,8 @@ export type SettingField =
   | SettingTextareaField
   | SettingNumberField
   | SettingSwitchField
-  | SettingSelectField;
+  | SettingSelectField
+  | SettingPasswordField;
 
 /** A serialisable widget on the dashboard. */
 export interface WidgetInstance<C extends object = WidgetConfig> {

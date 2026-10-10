@@ -1,35 +1,49 @@
 /**
- * Simulated news / RSS feed.
+ * Simulated news / RSS feed — the offline fallback for the news widget.
  *
  * A rotating, deterministic feed built from a small pool of generic headlines.
- * It exists so the RSS widget is fully functional offline; the widget labels the
- * data as simulated and supports switching topic and page size.
+ * The widget renders live headlines from `@/lib/news` when a keyless provider
+ * answers and falls back to this feed, clearly labelled **Simulated**, when
+ * none does.
+ *
+ * The topic set mirrors the live providers exactly: every topic here has a
+ * source that needs no API key (see `@/lib/news`). There is deliberately no
+ * "markets" topic — no keyless, CORS-enabled equity or business-news feed
+ * exists, and inventing market headlines beside the live ticker would read as
+ * fact.
  */
 import { createSeededRandom, hashString } from '@/lib/utils';
 
-export type NewsTopic = 'technology' | 'markets' | 'product' | 'science' | 'world';
+export type NewsTopic = 'technology' | 'product' | 'science' | 'world';
 
 export interface NewsArticle {
   id: string;
   title: string;
   topic: NewsTopic;
   source: string;
-  summary: string;
+  /** Body copy shown when the row is expanded. Absent when the source has none. */
+  summary?: string;
   publishedAt: number;
-  readingMinutes: number;
+  /** Only set when the provider actually reports it — never estimated. */
+  readingMinutes?: number;
+  /** Canonical article URL. Absent for the simulated fallback. */
+  url?: string;
 }
 
 export const NEWS_TOPICS: readonly { id: NewsTopic; label: string }[] = [
   { id: 'technology', label: 'Technology' },
-  { id: 'markets', label: 'Markets' },
   { id: 'product', label: 'Product' },
   { id: 'science', label: 'Science' },
   { id: 'world', label: 'World' },
 ];
 
+/** `true` when an untrusted value is a topic this build can render. */
+export function isNewsTopic(value: unknown): value is NewsTopic {
+  return typeof value === 'string' && NEWS_TOPICS.some((topic) => topic.id === value);
+}
+
 const SOURCES: Record<NewsTopic, readonly string[]> = {
   technology: ['The Circuit', 'Stack Weekly', 'DevSignal'],
-  markets: ['Market Wire', 'The Ledger', 'Opening Bell'],
   product: ['Product Notes', 'Build Log', 'Ship It'],
   science: ['Orbital', 'Lab Notes', 'Field Report'],
   world: ['Atlas Daily', 'The Meridian', 'Northwind'],
@@ -69,31 +83,6 @@ const HEADLINES: readonly Headline[] = [
     topic: 'technology',
     title: 'Bundle budgets: the metric that finally stuck',
     summary: 'Teams report shipping less code after making payload size a reviewable, visible number.',
-  },
-  {
-    topic: 'markets',
-    title: 'Index futures drift higher as volatility cools',
-    summary: 'Traders point to a calmer rate outlook and steady earnings revisions.',
-  },
-  {
-    topic: 'markets',
-    title: 'Digital assets rally as on-chain activity picks up',
-    summary: 'Spot volumes rose for a third session while funding rates stayed neutral.',
-  },
-  {
-    topic: 'markets',
-    title: 'Earnings season: what to watch this week',
-    summary: 'Guidance matters more than the headline number for four of the largest reporters.',
-  },
-  {
-    topic: 'markets',
-    title: 'Energy leads sector rotation as crude steadies',
-    summary: 'Defensive names lagged while cyclicals caught a bid into the close.',
-  },
-  {
-    topic: 'markets',
-    title: 'Bond yields ease after a softer inflation print',
-    summary: 'Rate-sensitive sectors outperformed on the day.',
   },
   {
     topic: 'product',

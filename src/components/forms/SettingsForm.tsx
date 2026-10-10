@@ -1,7 +1,16 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Field, SelectInput, Switch, TextArea, TextInput } from '@/components/ui';
+import { usePrefsStore, type PrefsState } from '@/store/prefsStore';
 import { asBoolean, asNumber, asString } from '@/lib/utils';
 import type { SettingField, WidgetConfig, WidgetDefinition } from '@/types';
+
+/** Preference fields a widget setting is allowed to bind to. */
+const PREF_SECRET_KEYS = ['finnhubKey'] as const;
+type PrefSecretKey = (typeof PREF_SECRET_KEYS)[number];
+
+function isPrefSecretKey(key: string): key is PrefSecretKey {
+  return (PREF_SECRET_KEYS as readonly string[]).includes(key);
+}
 
 export interface SettingControlProps {
   field: SettingField;
@@ -9,9 +18,60 @@ export interface SettingControlProps {
   onChange: (value: unknown) => void;
 }
 
+/** External link with the app's link styling. */
+function InlineLink({ href, children }: { href: string; children: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="font-medium text-violet-600 underline underline-offset-2 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+    >
+      {children}
+    </a>
+  );
+}
+
 /** Renders a single schema field. */
 function SettingControl({ field, value, onChange }: SettingControlProps) {
+  // Secrets live in preferences, so they are read and written through that
+  // store rather than the widget's own config. The selector is memoised so the
+  // subscription picks only the key this control needs.
+  const isSecret = field.type === 'password' && isPrefSecretKey(field.key);
+  const selectSecret = useCallback(
+    (state: PrefsState) => (isSecret ? asString(state[field.key as PrefSecretKey], '') : ''),
+    [isSecret, field.key],
+  );
+  const secretValue = usePrefsStore(selectSecret);
+  // Written through `setState` rather than named setters: the key is schema
+  // driven, and the allow-list above keeps that from reaching arbitrary fields.
+  const setSecret = (next: string) => {
+    if (!isSecret) return;
+    usePrefsStore.setState({ [field.key]: next } as Pick<PrefsState, PrefSecretKey>);
+  };
+
   switch (field.type) {
+    case 'password':
+      return (
+        <Field label={field.label} help={field.help} htmlFor={`setting-${field.key}`}>
+          <TextInput
+            id={`setting-${field.key}`}
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={secretValue}
+            placeholder={field.placeholder}
+            maxLength={field.maxLength}
+            onChange={(event) => setSecret(event.target.value)}
+          />
+          {field.link ? (
+            <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <InlineLink href={field.link.href}>{field.link.label}</InlineLink>
+            </p>
+          ) : null}
+        </Field>
+      );
+
     case 'text':
       return (
         <Field label={field.label} help={field.help} htmlFor={`setting-${field.key}`}>

@@ -36,17 +36,21 @@ export function useNow(interval = 1000, enabled = true): Date {
 }
 
 /**
- * Monotonically increasing bucket counter — mock data providers use it as a
- * cheap "refresh key" so they only recompute when their window rolls over.
+ * Monotonically increasing bucket counter — data providers use it as a cheap
+ * "refresh key" so they only recompute when their window rolls over, and live
+ * providers use it to trigger exactly one request per window.
  *
  * `bucketMs` is expected to be a constant for the lifetime of the component.
+ * `tickMs` caps how often the counter is polled; the default of 5s suits short
+ * windows, while a longer window should pass its own length so a minute-long
+ * window does not tick every 5 seconds for nothing.
  */
-export function useTimeBucket(bucketMs: number, enabled = true): number {
+export function useTimeBucket(bucketMs: number, enabled = true, tickMs = 5000): number {
   const [bucket, setBucket] = useState(() => Math.floor(Date.now() / bucketMs));
 
   useInterval(
     () => setBucket(Math.floor(Date.now() / bucketMs)),
-    enabled && bucketMs > 0 ? Math.min(bucketMs, 5000) : null,
+    enabled && bucketMs > 0 ? Math.max(1000, Math.min(bucketMs, tickMs)) : null,
   );
 
   return bucket;

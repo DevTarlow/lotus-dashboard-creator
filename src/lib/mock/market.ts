@@ -10,6 +10,12 @@ import { createSeededRandom, hashString } from '@/lib/utils';
 
 export type AssetKind = 'crypto' | 'stock';
 
+/** Where a quote came from. */
+export type QuoteSource = 'live' | 'simulated';
+
+/** The window a quote's change is measured over. */
+export type ChangeWindow = '24h' | 'session';
+
 export interface AssetDefinition {
   symbol: string;
   name: string;
@@ -27,15 +33,19 @@ export interface Quote {
   kind: AssetKind;
   currency: string;
   price: number;
-  /** Absolute change since the start of the current UTC day. */
+  /** Absolute change over `changeWindow`. */
   changeAbs: number;
-  /** Percentage change since the start of the current UTC day. */
+  /** Percentage change over `changeWindow`. */
   changePercent: number;
+  /** What `changeAbs`/`changePercent` are measured over. */
+  changeWindow: ChangeWindow;
   /** Intraday range. */
   high: number;
   low: number;
   /** Normalised price history for the sparkline. */
   spark: readonly number[];
+  /** Where this quote came from — the UI labels live and simulated rows. */
+  source: QuoteSource;
   updatedAt: number;
 }
 
@@ -142,9 +152,12 @@ export function getQuote(symbol: string, now: number = Date.now(), sparkPoints =
     price,
     changeAbs,
     changePercent: open === 0 ? 0 : (changeAbs / open) * 100,
+    // Simulated change is measured from the start of the current UTC day.
+    changeWindow: 'session',
     high: Math.max(...daySamples, price),
     low: Math.min(...daySamples, price),
     spark: samples,
+    source: 'simulated',
     updatedAt: now,
   };
 }

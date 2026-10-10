@@ -8,7 +8,7 @@
  */
 import { createSeededRandom, hashString } from '@/lib/utils';
 
-export type WeatherCondition = 'clear' | 'partly-cloudy' | 'cloudy' | 'drizzle' | 'rain' | 'storm' | 'snow' | 'fog';
+export type WeatherCondition = 'clear' | 'partly-cloudy' | 'cloudy' | 'drizzle' | 'rain' | 'sleet' | 'storm' | 'snow' | 'fog';
 export type TemperatureUnit = 'metric' | 'imperial';
 
 export interface HourlyForecast {
@@ -21,6 +21,8 @@ export interface HourlyForecast {
 
 export interface WeatherSnapshot {
   city: string;
+  /** Resolved region/country, when the provider reports one. */
+  region?: string;
   condition: WeatherCondition;
   temperatureC: number;
   feelsLikeC: number;
@@ -33,7 +35,9 @@ export interface WeatherSnapshot {
   sunsetHour: number;
   hourly: HourlyForecast[];
   /** Always true — the UI labels simulated data honestly. */
-  simulated: true;
+  simulated: boolean;
+  /** Wall-clock reading time reported by a live provider, as it supplied it. */
+  observedAt?: string;
   updatedAt: number;
 }
 
@@ -43,6 +47,7 @@ export const CONDITION_LABELS: Record<WeatherCondition, string> = {
   cloudy: 'Overcast',
   drizzle: 'Light drizzle',
   rain: 'Rain showers',
+  sleet: 'Sleet',
   storm: 'Thunderstorms',
   snow: 'Snow',
   fog: 'Fog',

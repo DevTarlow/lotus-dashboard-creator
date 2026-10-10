@@ -43,6 +43,13 @@ const GLYPHS: Record<WeatherCondition, ReactNode> = {
       <path d="M9 20.5 8 23M13 20.5 12 23M17 20.5 16 23" />
     </>
   ),
+  sleet: (
+    <>
+      {CLOUD}
+      <path d="M9.5 20.5 8.5 23M16.5 20.5 15.5 23" />
+      <path d="M13 21.2h.01" />
+    </>
+  ),
   storm: (
     <>
       {CLOUD}

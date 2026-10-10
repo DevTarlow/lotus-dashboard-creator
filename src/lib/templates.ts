@@ -89,7 +89,9 @@ const TRADING_DESK: TemplateSpec = {
       y: 4,
       w: 4,
       h: 11,
-      config: { topic: 'markets', limit: 8 },
+      // No "markets" feed exists without a key, so a desk watching the tape gets
+      // the world desk's macro headlines instead of invented market copy.
+      config: { topic: 'world', limit: 8 },
     },
     {
       type: 'links',

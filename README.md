@@ -65,11 +65,11 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 | Widget | Highlights |
 | --- | --- |
 | **Clock** | Live time in any IANA time zone, 12/24h, optional seconds, day-progress bar. |
-| **Weather** | Simulated forecast (no API key, works offline) with hourly outlook and details. |
+| **Weather** | Live forecast from wttr.in (no API key) with hourly outlook and details, falling back to a locally simulated forecast offline. |
 | **Markdown notes** | Auto-saving scratchpad with edit / split / preview modes and a dependency-free markdown renderer. |
 | **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove. |
-| **Market ticker** | Deterministic simulated quotes for crypto and stocks with sparklines and per-symbol add/remove. |
-| **News feed** | Rotating simulated RSS-style headlines with topic filters and expandable summaries. |
+| **Market ticker** | Live crypto quotes (CoinGecko, keyless) and live stock quotes (Finnhub, your own free key) with sparklines and per-symbol add/remove. |
+| **News feed** | Live headlines from four keyless, CORS-enabled providers (Hacker News, DEV Community, Spaceflight News, Wikipedia's current-events desk) with topic filters, source links and expandable summaries; falls back to a labelled simulated feed offline. |
 
 **Polish**
 
@@ -101,14 +101,21 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (62 tests). |
+| `npm test` | Vitest unit suite (131 tests). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build. |
 
-The app is entirely client-side: no backend, no API keys, no network calls. The
-weather, market and news widgets generate their data locally and label it as
-simulated; the only optional network request is the favicon lookup for quick
-links, which falls back to an initials chip when it is unavailable.
+The app is entirely client-side: no backend, and no API key needed for anything
+except stock prices. Network calls happen in four places, and each degrades
+gracefully: the weather widget uses [wttr.in](https://wttr.in) and falls back to
+a simulated forecast, the market ticker prices crypto through
+[CoinGecko](https://www.coingecko.com/en/api) (keyless) and falls back to
+simulated crypto, the news feed reads four keyless providers and falls back to a
+simulated feed labelled **Simulated**, and the quick-links favicon lookup falls
+back to an initials chip. Stock quotes are the one thing that needs a key, from
+[Finnhub](https://finnhub.io/register) — a free key the user pastes into the
+widget's settings. Stock prices are **never simulated** — without a key they are
+shown as unavailable with a sign-up link (see the notes below).
 
 ## Project structure
 
@@ -126,8 +133,8 @@ src/
 │   │                           # TemplatesDialog, ImportDialog, ShortcutsDialog…
 │   └── ui/                     # Button, Modal, Drawer, Dropdown, Field, Markdown…
 ├── constants/                  # app + grid constants (breakpoints, row height…)
-├── hooks/                      # useInterval, useNow, useHotkeys, useTheme,
-│                               # useDebouncedCallback, useFocusTrap, useClickOutside…
+├── hooks/                      # useInterval, useNow, useWeather, useNews, useDebouncedValue,
+│                               # useHotkeys, useTheme, useDebouncedCallback, useFocusTrap…
 ├── lib/
 │   ├── grid.ts                 # pure layout maths (placement, packing, diffing)
 │   ├── markdown.ts             # tokenising markdown parser
@@ -135,11 +142,14 @@ src/
 │   ├── document.ts             # dashboard document building/serialising
 │   ├── templates.ts            # starter templates
 │   ├── storage.ts              # safe localStorage adapter (memory fallback)
+│   ├── weather.ts              # live wttr.in provider (fetch + condition mapping)
+│   ├── market.ts               # live providers: CoinGecko (crypto) + Finnhub (stocks)
+│   ├── news.ts                 # live providers: HN, DEV, Spaceflight News, Wikipedia
 │   ├── mock/                   # deterministic weather / market / news providers
 │   └── utils.ts                # cn(), formatting, ids, download helpers…
 ├── store/
 │   ├── dashboardStore.ts       # workspace, layouts, history, persistence
-│   ├── prefsStore.ts           # theme + preferences
+│   ├── prefsStore.ts           # theme, preferences + optional Finnhub key
 │   ├── toastStore.ts           # notifications
 │   └── uiStore.ts              # which overlay is open, drag payload
 ├── styles/index.css            # Tailwind v4 theme, animations, grid theming
@@ -160,7 +170,7 @@ src/
 | Store | Responsibility | Persisted |
 | --- | --- | --- |
 | `dashboardStore` | Dashboard title, widget instances, per-breakpoint layouts, lock flag, undo/redo | ✅ `localStorage` |
-| `prefsStore` | Theme mode, grid hints, delete confirmation | ✅ `localStorage` |
+| `prefsStore` | Theme mode, grid hints, delete confirmation, optional Finnhub key | ✅ `localStorage` |
 | `uiStore` | Open overlay, settings target, pending import, drag payload | ❌ |
 | `toastStore` | Transient notifications | ❌ |
 
@@ -350,7 +360,7 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 62 unit tests
+npm test          # 131 unit tests
 npm run verify    # typecheck + lint + unit tests + production build
 ```
 
@@ -362,6 +372,9 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/validation.test.ts` | Round-tripping an export, broken/empty/foreign files, newer schema versions, clamping, unknown widget types, default merging, duplicate ids. |
 | `lib/markdown.test.ts` | Headings, inline emphasis, task/ordered lists, code fences, quotes, and refusal of `javascript:`/`data:` links. |
 | `lib/widgets.test.ts` | Link normalisation, favicon/initials fallbacks, deterministic mock market/weather/news data, the widget factory. |
+| `lib/weather.test.ts` | The live wttr.in provider against a mocked `fetch`: the full published condition-code table, region/observation parsing, coordinate-derived slot placement, day rollover, host fallback, unknown-city and HTML responses, aborts, and malformed payloads. |
+| `lib/market.test.ts` | The live market providers: the curated symbol→id map (and its refusal to guess), 24h change maths, end-anchored sparkline resampling, CoinGecko batching and the empty-array-on-unknown-id trap, Finnhub field mapping and its zeroes-for-unknown-ticker quirk, missing/invalid key handling, both rate limits, and partial-success behaviour. |
+| `lib/news.test.ts` | The live news providers against a routed `fetch` stub: each provider's payload mapping and malformed-input tolerance, the wikitext-to-prose parser (wiki links, refs, templates, citation labels), nested-sub-bullet de-duplication, summary collapsing/capping, day-page URL building, round-robin merging so one provider cannot crowd out a topic, partial failure, total failure and cancellation. |
 | `lib/templates.test.ts` | Every template builds a self-consistent workspace on all five breakpoints with unique ids and registered widget types. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
 
@@ -385,7 +398,7 @@ be overlap-free at five viewport widths (1680 → 420 px).
 - Markdown is parsed in a `useMemo` and only re-parsed when the text changes.
 - `cn()` uses `tailwind-merge`, so component classes can be overridden safely
   without specificity tricks.
-- Production bundle: **~132 kB gzipped JS / ~12 kB gzipped CSS** (React 19 +
+- Production bundle: **~139 kB gzipped JS / ~12 kB gzipped CSS** (React 19 +
   zustand + react-grid-layout + the whole widget set, no icon or markdown
   dependency).
 
@@ -402,10 +415,66 @@ be overlap-free at five viewport widths (1680 → 420 px).
 
 ## Notes & limitations
 
-- Weather, market and news data is **simulated locally** and labelled as such in
-  the UI. The generators are deterministic functions of `(seed, timestamp)`, which
-  keeps them testable and avoids rate limits — swap `src/lib/mock/*` for real
-  providers behind the same interfaces if you need live data.
+- Weather is **live** from [wttr.in](https://wttr.in), which needs no API key or
+  signup and allows browser requests from any origin. It is a free community
+  service, so the widget refreshes on a 15 minute window, debounces typing, and
+  falls back to the deterministic simulated forecast (labelled **Simulated**)
+  whenever a lookup fails. wttr.in serves cached upstream readings, so the footer
+  shows the provider's own observation time rather than implying the numbers were
+  just measured; city names are resolved to the nearest sub-district, which the
+  optional "resolved location" line makes visible.
+- The market ticker prices **crypto live** from [CoinGecko](https://www.coingecko.com/en/api),
+  which is keyless and allows browser requests from any origin. Its keyless tier
+  is shared per IP and documented at roughly 10–30 calls/minute and "not suitable
+  for … scheduled polling", so live quotes refresh once a minute in a single
+  batched request and the widget names a rate limit rather than showing stale
+  numbers as fresh. Symbols are resolved through a curated, market-cap-validated
+  map (`src/lib/market.ts`) instead of a symbol search, because CoinGecko hosts
+  20k+ coins and a fuzzy match can silently return a bridged or scam token.
+- **Stock prices are never simulated.** A fabricated number beside a real ticker
+  is misleading however it is labelled, so a stock symbol either has a live quote
+  or is listed as unavailable with a link to get a free key. The key comes from
+  [Finnhub](https://finnhub.io/register) (free tier: US quotes, 60 requests/minute,
+  no card) and is pasted into the market widget's settings; it lives in
+  `localStorage` under the app's `prefs` entry, is sent only to Finnhub, and is
+  deliberately **excluded from dashboard exports** so sharing a workspace cannot
+  leak it. This is not optional for a reason: every keyless alternative was
+  tested and blocked — the unofficial Yahoo endpoints send no
+  `access-control-allow-origin` header (and 401 on `/v7/finance/quote`), Stooq
+  serves a JavaScript proof-of-work challenge, Nasdaq's API has no CORS header,
+  and Alpha Vantage, Finnhub, Twelve Data and FMP all reject keyless requests.
+  Equity data carries per-user exchange licensing fees, which is why a key (or a
+  server-side proxy) is unavoidable.
+- Live stock quotes carry **no sparkline**: Finnhub's free tier exposes no
+  intraday OHLC history, so those rows show an empty gap rather than an invented
+  line. The change percentage is also labelled per source — crypto reports 24
+  hours, stocks report the session against the previous close.
+- The news feed is **live**, from four providers chosen because they need no API
+  key, no signup and send an `access-control-allow-origin` header a browser will
+  accept: [Hacker News](https://hn.algolia.com/api) (technology),
+  [DEV Community](https://dev.to/api) (product),
+  [Spaceflight News](https://api.spaceflightnewsapi.net/v4/docs/) (science) and
+  [Wikipedia's current-events portal](https://en.wikipedia.org/wiki/Portal:Current_events)
+  (world, CC BY-SA, with each item's citing publisher shown as its source). Each
+  topic maps to exactly one provider, so the set of topics matches the set of
+  live sources. Every source was verified rather than assumed, and the rejects
+  are recorded in `src/lib/news.ts` so nobody retries them: Reddit's `.json`
+  endpoints answer 403 to browsers, Lobsters and most newspaper RSS feeds
+  (BBC, Google News) send no CORS header, the free CORS proxies are now gated or
+  dead (`corsproxy.io` returns 401, AllOrigins and codetabs time out), CoinGecko's
+  `/news` is PRO-only, GDELT throttles to one request every five seconds, and
+  NewsAPI's free tier only answers `localhost` origins, so it breaks as soon as
+  the dashboard is hosted. Wikipedia items are dated to the **day** they cover,
+  because that is the finest granularity the source publishes — the panel never
+  invents a time of day. Refreshes use a 15 minute window and the refresh button
+  bypasses it; if every provider for a topic fails, the widget says so and falls
+  back to the deterministic simulated feed under a **Simulated** badge.
+- There is deliberately **no "markets" news topic.** No keyless, CORS-enabled
+  business-news API exists, and inventing market headlines next to the live
+  ticker would read as fact. Market news needs a key (Finnhub's `/news`, which
+  the ticker's existing free key could serve) or a server-side proxy; a workspace
+  exported before this change that still asks for the old topic simply falls back
+  to **All topics**.
 - The notes widget stores its text in the workspace document (and therefore in
   `localStorage` and any export). It is a scratchpad, not an encrypted store.
 - Drag & drop inside the grid is disabled while the layout is locked, but the

@@ -32,16 +32,6 @@ function Icon({ className, children, filled = false }: SvgProps) {
   );
 }
 
-/* ------------------------------------------------------------------ brand */
-
-export const LotusIcon = ({ className }: IconProps) => (
-  <Icon className={cn('h-6 w-6', className)}>
-    <path d="M12 20c0-4 2.5-7 7-7 0 4-3 7-7 7Z" />
-    <path d="M12 20c0-4-2.5-7-7-7 0 4 3 7 7 7Z" />
-    <path d="M12 20c-2-3.5-2-7 0-11 2 4 2 7.5 0 11Z" />
-  </Icon>
-);
-
 /* ------------------------------------------------------------- navigation */
 
 export const PlusIcon = (props: IconProps) => (

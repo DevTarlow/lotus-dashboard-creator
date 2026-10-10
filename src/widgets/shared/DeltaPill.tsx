@@ -8,16 +8,19 @@ export interface DeltaPillProps {
   absolute?: string;
   className?: string;
   size?: 'sm' | 'md';
+  /** Tooltip text — used to name the window a change is measured over. */
+  title?: string;
 }
 
 /** Colour coded change indicator used by the market widget. */
-export function DeltaPill({ percent, absolute, className, size = 'sm' }: DeltaPillProps) {
+export function DeltaPill({ percent, absolute, className, size = 'sm', title }: DeltaPillProps) {
   const flat = Math.abs(percent) < 0.005;
   const up = percent > 0;
   const Icon = up ? ArrowUpIcon : ArrowDownIcon;
 
   return (
     <span
+      title={title}
       className={cn(
         'inline-flex items-center gap-1 rounded-full font-semibold tabular-nums',
         size === 'sm' ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-xs',

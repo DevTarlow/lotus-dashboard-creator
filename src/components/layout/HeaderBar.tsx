@@ -4,7 +4,6 @@ import {
   GridIcon,
   KeyboardIcon,
   LockIcon,
-  LotusIcon,
   MoonIcon,
   MoreIcon,
   PlusIcon,
@@ -27,6 +26,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { useDashboardStore, selectCanRedo, selectCanUndo } from '@/store/dashboardStore';
 import { useUiStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
+
+/** The app mark, exported at 96px so it stays crisp on high-density screens. */
+const LOGO_SRC = '/logo-96.png';
 
 /** Inline editable dashboard title. */
 function DashboardTitle() {
@@ -116,9 +118,9 @@ export function HeaderBar() {
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/80">
       <div className="mx-auto flex max-w-[1800px] flex-wrap items-center gap-2 px-4 py-2.5 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-500 text-white shadow-sm shadow-violet-600/30">
-            <LotusIcon className="h-5 w-5" />
-          </span>
+          {/* No background chip: the mark is a transparent PNG carrying its own
+              gradient, so it sits directly on either header theme. */}
+          <img src={LOGO_SRC} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 select-none" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <DashboardTitle />

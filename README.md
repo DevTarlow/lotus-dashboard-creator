@@ -105,6 +105,7 @@ Other scripts:
 | `npm test` | Vitest unit suite (174 tests). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
+| `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
 
 The app is entirely client-side: no backend, and no API key needed for anything
 except stock prices. Network calls happen in four places, and each degrades
@@ -122,7 +123,9 @@ shown as unavailable with a sign-up link (see the notes below).
 
 ```
 scripts/
-└── build-single-file.mjs       # inlines script/style/images into one HTML file
+├── build-single-file.mjs       # inlines script/style/images into one HTML file
+├── verify-browser.mjs          # real-Chrome checks for what unit tests cannot reach
+└── browser/                    # dependency-free CDP client + the checks themselves
 
 src/
 ├── App.tsx                     # shell: toolbar + canvas + status bar + overlays
@@ -439,14 +442,25 @@ file download) and JSON import (a real file upload, preview and apply) — with
 **zero console errors, warnings or uncaught exceptions**, and the grid verified to
 be overlap-free at five viewport widths (1680 → 420 px).
 
-The one-file promise is verified the same way, because it cannot be unit tested:
-the built `dist-single/index.html` is opened from `file://`, a clock setting is
-changed through the real settings dialog, **Save to file** is invoked, and the
-*downloaded* file is reopened from a different path. A different path means a
-different `localStorage` scope, so a setting that comes back can only have come
-from the embedded snapshot. That check caught a genuine bug — a string-level
-`</body>` insertion landing inside the minified bundle — which is why the snapshot
-is now written through the DOM.
+The one-file promise and the drag interactions cannot be unit tested — one needs
+DOM serialisation, the other genuine pointer events — so they are checked in a
+real browser instead, over the DevTools protocol, with no test-runner dependency:
+
+```bash
+npm run verify:browser            # builds dist-single and opens it from file://
+npm run verify:browser -- --dev   # also checks a server you already have running
+```
+
+It launches headless Chrome on a scratch profile with an OS-assigned debug port,
+so it never collides with a dev server and always starts from empty storage. The
+single-file checks need no server at all. 28 assertions cover rendering, assets,
+console cleanliness, storage-key scoping, drag-to-reorder persistence, settings
+surviving a refresh, and the save/reopen round trip — including the assertion that
+matters most: the saved file is reopened **from a different path**, so a different
+`localStorage` scope means a restored setting can only have come from the embedded
+snapshot. That check caught a genuine bug — a string-level `</body>` insertion
+landing inside the minified bundle — which is why the snapshot is now written
+through the DOM.
 
 ## Performance notes
 

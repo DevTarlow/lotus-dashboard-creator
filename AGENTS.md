@@ -26,6 +26,7 @@ the git policy.
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
 | `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
+| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (28 checks). Add `-- --dev` to also check a server you have running. Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~20 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 
@@ -39,8 +40,10 @@ Everything is fast here, so there is no excuse for committing a red tree.
 - **Add tests for pure logic** — `src/lib/**` (grid maths, validation, markdown,
   providers, templates) and `src/store/**`. Provider tests mock `fetch`; keep that
   pattern rather than adding network-dependent tests.
-- **UI changes** are verified by hand in the browser via `npm run dev`. README's
-  *Testing & verification* section describes the CDP-driven checks used to date.
+- **UI and interaction changes** are covered by `npm run verify:browser` instead
+  (see below) — it drives the built artifact in real Chrome. Run it when you touch
+  serialisation, drag/paste interactions, persistence, or the single-file build.
+  Add `-- --dev` to also exercise a server you have running on 5173.
 - Do not weaken `tsconfig.json` strictness to make something compile.
 
 ## Git policy
@@ -105,18 +108,21 @@ Things that must stay true:
   The minified bundle contains that literal sequence in its own source, so a
   string match lands *inside the script* and corrupts the file. This bug shipped
   once and was caught only by the browser round-trip check.
-- **New images belong in `src/assets/`, imported from JS/CSS** — not `public/`.
-  `public/` files are copied verbatim and cannot be inlined, which breaks the
-  one-file guarantee (`scripts/build-single-file.mjs` fails the build if any
-  local reference survives).
+- **New images belong in `src/assets/`, imported from JS/CSS.** There is no
+  `public/` directory any more: files there are copied verbatim and cannot be
+  inlined, which breaks the one-file guarantee (`scripts/build-single-file.mjs`
+  fails the build if any local reference survives).
 - **Saving from the dev server is not standalone** (the file references
   `/src/...` and the HMR client). The save action warns about this in DEV; the
   single-file build is the real deliverable.
 
 Pure logic here (`embedded.ts`, `singleFile.ts`, `storageKeys.ts`) is unit tested.
-`capturePageHtml` touches the real DOM, so it is verified by driving the built
-single file in Chrome — `npm run build:single`, open `dist-single/index.html`,
-change a setting, save, reopen the saved file, confirm the setting came back.
+`capturePageHtml` touches the real DOM, so it is covered by `npm run verify:browser`
+instead: it opens `dist-single/index.html` from disk, changes a setting, saves,
+reopens the saved file from a **different path** and asserts the setting came back.
+The different path is the whole point — it means a different `localStorage` scope,
+so only the embedded snapshot can explain the result. Keep that assertion honest if
+you refactor; it is the one that catches this class of bug.
 
 ## Environment note: git "dubious ownership"
 

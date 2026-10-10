@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run build:single"
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run build:single",
+    "verify:browser": "npm run build:single && node scripts/verify-browser.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

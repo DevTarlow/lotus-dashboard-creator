@@ -166,6 +166,23 @@ export function arraysEqual<T>(a: readonly T[], b: readonly T[]): boolean {
   return a.every((value, index) => value === b[index]);
 }
 
+/**
+ * Move one item to a new index, returning a new array.
+ *
+ * Out-of-range indices are clamped rather than throwing, and a move that does
+ * not change the order still returns a fresh array — callers decide whether to
+ * treat that as a change. Used by the drag-to-reorder lists (quick links).
+ */
+export function moveItem<T>(items: readonly T[], from: number, to: number): T[] {
+  const next = [...items];
+  if (from < 0 || from >= next.length) return next;
+  const target = clamp(to, 0, next.length - 1);
+  if (from === target) return next;
+  const [moved] = next.splice(from, 1);
+  next.splice(target, 0, moved);
+  return next;
+}
+
 /** Trigger a browser download for a text file. */
 export function downloadTextFile(filename: string, contents: string, mime = 'application/json'): void {
   const blob = new Blob([contents], { type: `${mime};charset=utf-8` });

@@ -67,7 +67,7 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 | **Clock** | Live time in any IANA time zone, 12/24h, optional seconds, day-progress bar. |
 | **Weather** | Live forecast from wttr.in (no API key) with hourly outlook and details, falling back to a locally simulated forecast offline. |
 | **Markdown notes** | Auto-saving scratchpad with edit / split / preview modes and a dependency-free markdown renderer. |
-| **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove. |
+| **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove, and drag — or ↑/↓ — to reorder. |
 | **Market ticker** | Live crypto quotes (CoinGecko, keyless) and live stock quotes (Finnhub, your own free key) with sparklines and per-symbol add/remove. |
 | **News feed** | Live headlines from four keyless, CORS-enabled providers (Hacker News, DEV Community, Spaceflight News, Wikipedia's current-events desk) with topic filters, source links and expandable summaries; falls back to a labelled simulated feed offline. |
 

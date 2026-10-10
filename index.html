@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/lotus.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="description"
+      content="Lotus Dashboard Creator — build, arrange and persist your own personal dashboard with draggable, resizable widgets."
+    />
+    <title>Lotus Dashboard Creator</title>
+    <script>
+      // Apply the persisted colour scheme before first paint to avoid a flash of
+      // the wrong theme. Kept tiny and dependency-free on purpose.
+      (function () {
+        try {
+          var raw = localStorage.getItem('lotus-dashboard-creator:prefs/v1');
+          var mode = raw ? JSON.parse(raw).state.theme : 'system';
+          var dark =
+            mode === 'dark' ||
+            ((!mode || mode === 'system') &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.classList.toggle('dark', dark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {
+          /* storage unavailable — fall back to the light theme */
+        }
+      })();
+    </script>
+  </head>
+  <body class="h-full">
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

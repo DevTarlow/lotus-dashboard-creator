@@ -18,13 +18,14 @@ the git policy.
 
 | Command | What it does | Typical time |
 | --- | --- | --- |
-| `npm run dev` | Vite dev server with HMR. | instant |
+| `npm run dev` | Vite dev server with HMR. Port **5173 is pinned** — if it is busy the server refuses to start rather than hopping to 5174, because `localStorage` is per-origin and a port change looks like data loss. | instant |
 | `npm run typecheck` | `tsc --noEmit`, strict. | ~2 s |
 | `npm run lint` | ESLint (flat config, TS + React hooks rules). | ~2 s |
-| `npm test` | Vitest, single run (131 tests, 9 files). | ~1 s |
+| `npm test` | Vitest, single run (174 tests, 14 files). | ~1 s |
 | `npm run test:watch` | Vitest watch mode — use while iterating on pure logic. | — |
-| `npm run build` | `tsc --noEmit` + production build to `dist/`. | ~2 s |
-| `npm run verify` | typecheck → lint → test → build. The full gate. | ~5 s |
+| `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
+| `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
+| `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 
@@ -77,6 +78,45 @@ Everything is fast here, so there is no excuse for committing a red tree.
   existing dark/light conventions (`dark:` variants, `cn()` helper).
 - **Update [`README.md`](./README.md)** whenever user-facing behaviour, scripts or
   the feature list changes — it is the project's front door and is kept current.
+
+## Persistence architecture — easy to break, please read
+
+Two storage layers, and the load-time rule that joins them:
+
+1. **`localStorage`** — the live workspace (`dashboardStore`) and preferences
+   (`prefsStore`), written as you edit.
+2. **The embedded snapshot** — the dashboard frozen into the HTML file itself, in
+   `<script type="application/json" id="lotus-embedded-workspace">`. Produced by
+   "Save to file"; see `src/lib/embedded.ts` and `src/lib/singleFile.ts`.
+
+On load, **whichever layer is newer wins** (`shouldPreferEmbedded`, compared via
+`savedAt` / `updatedAt`). Breaking that rule either loses unsaved edits or ignores
+a file the user was just sent.
+
+Things that must stay true:
+
+- **Key scoping.** `src/lib/storageKeys.ts` suffixes the keys with
+  `location.pathname` on `file:`, because every `file://` document shares one
+  origin. The inline theme script in `index.html` duplicates that expression
+  (it runs before the bundle) — change one and you must change the other.
+- **Never embed the Finnhub key.** `prefsStore` promises it stays in
+  `localStorage`; a saved file is shareable.
+- **Inject the snapshot through the DOM**, never with `html.replace(/<\/body>/, …)`.
+  The minified bundle contains that literal sequence in its own source, so a
+  string match lands *inside the script* and corrupts the file. This bug shipped
+  once and was caught only by the browser round-trip check.
+- **New images belong in `src/assets/`, imported from JS/CSS** — not `public/`.
+  `public/` files are copied verbatim and cannot be inlined, which breaks the
+  one-file guarantee (`scripts/build-single-file.mjs` fails the build if any
+  local reference survives).
+- **Saving from the dev server is not standalone** (the file references
+  `/src/...` and the HMR client). The save action warns about this in DEV; the
+  single-file build is the real deliverable.
+
+Pure logic here (`embedded.ts`, `singleFile.ts`, `storageKeys.ts`) is unit tested.
+`capturePageHtml` touches the real DOM, so it is verified by driving the built
+single file in Chrome — `npm run build:single`, open `dist-single/index.html`,
+change a setting, save, reopen the saved file, confirm the setting came back.
 
 ## Environment note: git "dubious ownership"
 

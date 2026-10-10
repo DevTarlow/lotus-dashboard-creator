@@ -41,13 +41,18 @@ export function serializeDashboardDocument(document: DashboardDocument): string 
   return `${JSON.stringify(document, null, 2)}\n`;
 }
 
-/** Turn a dashboard title into a safe, stable file name. */
-export function suggestedFileName(title: string, date: Date = new Date()): string {
-  const slug = title
+/** Lower-cased, hyphenated slug for a dashboard title (may be empty). */
+export function suggestedSlug(title: string): string {
+  return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40);
+}
+
+/** Turn a dashboard title into a safe, stable file name. */
+export function suggestedFileName(title: string, date: Date = new Date()): string {
+  const slug = suggestedSlug(title);
   const stamp = date.toISOString().slice(0, 10);
   return `${EXPORT_FILE_PREFIX}${slug ? `-${slug}` : ''}-${stamp}.json`;
 }

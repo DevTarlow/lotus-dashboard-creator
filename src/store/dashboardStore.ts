@@ -11,6 +11,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { LAYOUT_HISTORY_COALESCE_MS, MAX_HISTORY, SCHEMA_VERSION } from '@/constants/app';
 import { GRID_COLUMNS } from '@/constants/grid';
 import { createDashboardDocument } from '@/lib/document';
+import { readEmbeddedState, shouldPreferEmbedded } from '@/lib/embedded';
 import {
   cloneLayouts,
   layoutsEqual,
@@ -396,13 +397,19 @@ export const useDashboardStore = create<DashboardState>()(
        * Runs on every rehydration: layouts and widgets are reconciled against the
        * widgets that are actually installed, so a stale localStorage payload can
        * never produce a broken canvas.
+       *
+       * A single-file dashboard also carries a snapshot inside the HTML; whichever
+       * of that snapshot and the browser copy is newer wins (see `lib/embedded`).
        */
       merge: (persisted, current) => {
-        const workspace = sanitizeWorkspace(persisted);
+        const stored = persisted as { updatedAt?: unknown } | undefined;
+        const embedded = readEmbeddedState();
+        const seed = shouldPreferEmbedded(embedded, asNumber(stored?.updatedAt, 0)) ? embedded : null;
+        const workspace = sanitizeWorkspace(seed ? seed.workspace : persisted);
         return {
           ...current,
           ...workspace,
-          updatedAt: asNumber((persisted as { updatedAt?: unknown } | undefined)?.updatedAt, Date.now()),
+          updatedAt: seed ? seed.savedAt : asNumber(stored?.updatedAt, Date.now()),
           title: asString(workspace.title, current.title),
         };
       },

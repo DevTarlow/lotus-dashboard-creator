@@ -98,12 +98,13 @@ Other scripts:
 | --- | --- |
 | `npm run dev` | Vite dev server with HMR. |
 | `npm run build` | Type-checks (`tsc --noEmit`) and builds to `dist/`. |
+| `npm run build:single` | Type-checks and builds the portable **one-file** dashboard to `dist-single/index.html`. |
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (131 tests). |
+| `npm test` | Vitest unit suite (174 tests). |
 | `npm run test:watch` | Vitest in watch mode. |
-| `npm run verify` | typecheck → lint → test → build. |
+| `npm run verify` | typecheck → lint → test → build → build:single. |
 
 The app is entirely client-side: no backend, and no API key needed for anything
 except stock prices. Network calls happen in four places, and each degrades
@@ -120,11 +121,15 @@ shown as unavailable with a sign-up link (see the notes below).
 ## Project structure
 
 ```
+scripts/
+└── build-single-file.mjs       # inlines script/style/images into one HTML file
+
 src/
 ├── App.tsx                     # shell: toolbar + canvas + status bar + overlays
 ├── main.tsx                    # React root, global CSS imports
+├── assets/                     # logo + icons, imported so they can be inlined
 ├── components/
-│   ├── feedback/               # ErrorBoundary, ToastViewport
+│   ├── feedback/               # ErrorBoundary, StorageNotice, ToastViewport
 │   ├── forms/SettingsForm.tsx  # schema-driven settings renderer
 │   ├── icons.tsx               # ~35 inline SVG icons
 │   ├── layout/                 # HeaderBar, StatusBar, DashboardCanvas,
@@ -134,7 +139,7 @@ src/
 │   └── ui/                     # Button, Modal, Drawer, Dropdown, Field, Markdown…
 ├── constants/                  # app + grid constants (breakpoints, row height…)
 ├── hooks/                      # useInterval, useNow, useWeather, useNews, useDebouncedValue,
-│                               # useHotkeys, useTheme, useDebouncedCallback, useFocusTrap…
+│                               # useSaveDashboardFile, useHotkeys, useTheme, useFocusTrap…
 ├── lib/
 │   ├── grid.ts                 # pure layout maths (placement, packing, diffing)
 │   ├── markdown.ts             # tokenising markdown parser
@@ -142,6 +147,10 @@ src/
 │   ├── document.ts             # dashboard document building/serialising
 │   ├── templates.ts            # starter templates
 │   ├── storage.ts              # safe localStorage adapter (memory fallback)
+│   ├── storageKeys.ts          # per-document key scoping on file://
+│   ├── embedded.ts             # the snapshot carried inside a saved HTML file
+│   ├── singleFile.ts           # serialising the running app to one file
+│   ├── fileHandle.ts           # File System Access + remembered file handle
 │   ├── weather.ts              # live wttr.in provider (fetch + condition mapping)
 │   ├── market.ts               # live providers: CoinGecko (crypto) + Finnhub (stocks)
 │   ├── news.ts                 # live providers: HN, DEV, Spaceflight News, Wikipedia
@@ -208,7 +217,16 @@ the same behaviour.
 ### Persistence, migration and recovery
 
 `localStorage` is accessed through `src/lib/storage.ts`, which probes availability
-and silently degrades to an in-memory map when storage is blocked, full or absent.
+and degrades to an in-memory map when storage is blocked, full or absent. That
+fallback used to be invisible — the app looked fine until the next refresh wiped
+everything — so the shell now says so: a banner explains the risk and the status
+bar reads **Not saved — storage blocked** instead of claiming the opposite.
+
+Keys are namespaced per document when the page is opened from disk. Every
+`file://` document shares the single origin `file://`, so without that suffix two
+different dashboard files would read and overwrite each other's state. On the web
+the origin already separates apps and the keys are left alone.
+
 Every rehydration runs through the same validator as an import
 (`sanitizeWorkspace` → `validateDashboardDocument`), so a stale or hand-edited
 payload can never produce a broken canvas: unknown widget types are kept,
@@ -217,6 +235,37 @@ layout entries are dropped.
 
 Documents carry `format: "lotus-dashboard/v1"` and a `version`. Newer versions are
 rejected with a readable message; older ones are migrated with a warning.
+
+### Your dashboard is one file
+
+`npm run build:single` produces **a single `dist-single/index.html`** — the whole
+app, its styles and every image inlined into one portable file. There is nothing
+to install and no server to run: double-click it. Below is how your data travels
+with it.
+
+**Save to file** (`⌘/Ctrl + S`) writes the current dashboard *into that HTML*,
+as a JSON snapshot in a `<script type="application/json">` element. Opening the
+file again — on any machine, in any browser, offline — restores that exact
+dashboard. Where the [File System Access
+API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) is
+available (Chrome, Edge) the app remembers the file you chose and overwrites it in
+place, so saving is one keystroke; elsewhere it downloads a copy. **Export layout
+as JSON** (`⌘/Ctrl + Shift + S`) is still there for a plain, diffable backup.
+
+There are two layers, and it is worth knowing which is which:
+
+| Layer | Holds | Lifetime |
+| --- | --- | --- |
+| `localStorage` | the live workspace, updated as you edit | that browser, that origin |
+| the embedded snapshot | a point-in-time copy inside the HTML file | the file itself, forever |
+
+On load the app takes **whichever is newer**. So an edit you have not saved yet
+survives a refresh, and a file someone sends you is not ignored in favour of
+stale local state. Saving is what promotes your work into the durable layer.
+
+The Finnhub API key is deliberately **never** embedded: `prefsStore` promises it
+stays in `localStorage` and goes nowhere but Finnhub, and a file is shareable.
+Theme and the other preferences do travel with the file.
 
 ### Undo/redo
 
@@ -360,8 +409,8 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 131 unit tests
-npm run verify    # typecheck + lint + unit tests + production build
+npm test          # 174 unit tests
+npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
 The unit suite (Vitest, no DOM required) covers the parts where bugs are expensive:
@@ -376,7 +425,11 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/market.test.ts` | The live market providers: the curated symbol→id map (and its refusal to guess), 24h change maths, end-anchored sparkline resampling, CoinGecko batching and the empty-array-on-unknown-id trap, Finnhub field mapping and its zeroes-for-unknown-ticker quirk, missing/invalid key handling, both rate limits, and partial-success behaviour. |
 | `lib/news.test.ts` | The live news providers against a routed `fetch` stub: each provider's payload mapping and malformed-input tolerance, the wikitext-to-prose parser (wiki links, refs, templates, citation labels), nested-sub-bullet de-duplication, summary collapsing/capping, day-page URL building, round-robin merging so one provider cannot crowd out a topic, partial failure, total failure and cancellation. |
 | `lib/templates.test.ts` | Every template builds a self-consistent workspace on all five breakpoints with unique ids and registered widget types. |
+| `lib/embedded.test.ts` | The embedded snapshot: format marker, `</script>` escaping in a widget's text, foreign/corrupt payloads rejected without throwing, and the newer-wins precedence rule. |
+| `lib/storageKeys.test.ts` | Key scoping: untouched on the web, per-document on `file://`, and matching the expression the inline theme script evaluates. |
+| `lib/utils.test.ts` | `moveItem` — forward/backward moves, clamping, no-ops, and never mutating the input. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
+| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences; corrupt or foreign stored payloads fall back to defaults. |
 
 **Browser verification.** The app was driven through a real Chrome (DevTools
 protocol) in both dev and production builds: 39 assertions covering initial
@@ -385,6 +438,15 @@ result), resize, undo, theme switching, reload persistence, JSON export (a real
 file download) and JSON import (a real file upload, preview and apply) — with
 **zero console errors, warnings or uncaught exceptions**, and the grid verified to
 be overlap-free at five viewport widths (1680 → 420 px).
+
+The one-file promise is verified the same way, because it cannot be unit tested:
+the built `dist-single/index.html` is opened from `file://`, a clock setting is
+changed through the real settings dialog, **Save to file** is invoked, and the
+*downloaded* file is reopened from a different path. A different path means a
+different `localStorage` scope, so a setting that comes back can only have come
+from the embedded snapshot. That check caught a genuine bug — a string-level
+`</body>` insertion landing inside the minified bundle — which is why the snapshot
+is now written through the DOM.
 
 ## Performance notes
 

@@ -9,6 +9,7 @@ import {
   PlusIcon,
   RedoIcon,
   RefreshIcon,
+  SaveIcon,
   SunIcon,
   MonitorIcon,
   UndoIcon,
@@ -22,14 +23,18 @@ import { Badge, Button, Dropdown, IconButton } from '@/components/ui';
 import { GRID_COLUMNS } from '@/constants/grid';
 import { APP_NAME, IMPORT_ACCEPT } from '@/constants/app';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
+import { useSaveDashboardFile } from '@/hooks/useSaveDashboardFile';
 import { useTheme } from '@/hooks/useTheme';
 import { useDashboardStore, selectCanRedo, selectCanUndo } from '@/store/dashboardStore';
 import { useUiStore } from '@/store/uiStore';
 import { isPersistentStorage } from '@/lib/storage';
 import { cn } from '@/lib/utils';
+// Imported (not a `public/` string) so the bundler inlines it: a single-file
+// dashboard has no sibling asset files to load.
+import logo96 from '@/assets/logo-96.png';
 
 /** The app mark, exported at 96px so it stays crisp on high-density screens. */
-const LOGO_SRC = '/logo-96.png';
+const LOGO_SRC = logo96;
 
 /** Inline editable dashboard title. */
 function DashboardTitle() {
@@ -95,6 +100,7 @@ function DashboardTitle() {
 /** Sticky application toolbar. */
 export function HeaderBar() {
   const actions = useDashboardActions();
+  const { save } = useSaveDashboardFile();
   const { theme, resolved, setTheme } = useTheme();
   const widgetCount = useDashboardStore((state) => state.widgets.length);
   const locked = useDashboardStore((state) => state.locked);
@@ -205,10 +211,19 @@ export function HeaderBar() {
               },
               { id: 'sep-1', separator: true },
               {
+                id: 'save-file',
+                label: 'Save to file',
+                icon: <SaveIcon className="h-4 w-4" />,
+                shortcut: '⌘S',
+                onSelect: () => {
+                  void save();
+                },
+              },
+              {
                 id: 'export',
                 label: 'Export layout as JSON',
                 icon: <DownloadIcon className="h-4 w-4" />,
-                shortcut: '⌘S',
+                shortcut: '⌘⇧S',
                 onSelect: actions.exportJson,
               },
               {

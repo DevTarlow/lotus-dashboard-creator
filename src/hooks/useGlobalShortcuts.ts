@@ -1,5 +1,6 @@
 import { useDashboardActions } from './useDashboardActions';
 import { useHotkeys, type HotkeyDefinition } from './useHotkeys';
+import { useSaveDashboardFile } from './useSaveDashboardFile';
 import { useTheme } from './useTheme';
 import { useUiStore } from '@/store/uiStore';
 
@@ -11,6 +12,7 @@ import { useUiStore } from '@/store/uiStore';
  */
 export function useGlobalShortcuts(): void {
   const actions = useDashboardActions();
+  const { save } = useSaveDashboardFile();
   const { toggleTheme } = useTheme();
   const openAddWidget = useUiStore((state) => state.openAddWidget);
   const openShortcuts = useUiStore((state) => state.openShortcuts);
@@ -46,6 +48,15 @@ export function useGlobalShortcuts(): void {
     },
     {
       combo: 'mod+s',
+      handler: (event) => {
+        event.preventDefault();
+        // Saving the dashboard file is what users expect from ⌘S; the JSON
+        // export keeps a shortcut of its own on ⌘⇧S.
+        void save();
+      },
+    },
+    {
+      combo: 'mod+shift+s',
       handler: (event) => {
         event.preventDefault();
         actions.exportJson();

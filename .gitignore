@@ -12,6 +12,7 @@ node_modules
 .npm-cache
 .scratch
 dist
+dist-single
 dist-ssr
 *.local
 

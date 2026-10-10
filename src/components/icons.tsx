@@ -169,6 +169,15 @@ export const UploadIcon = (props: IconProps) => (
   </Icon>
 );
 
+/** Floppy disk — the "save the dashboard to its file" action. */
+export const SaveIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M5 4h10.5L20 8.5V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" />
+    <path d="M8 4v5h6.5V4" />
+    <path d="M7.5 20v-5.5h9V20" />
+  </Icon>
+);
+
 export const LockIcon = (props: IconProps) => (
   <Icon {...props}>
     <rect x="5" y="11" width="14" height="9" rx="2" />

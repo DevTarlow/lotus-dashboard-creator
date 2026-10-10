@@ -11,12 +11,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:single": "tsc --noEmit && vite build --mode single && node scripts/build-single-file.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm run test && vite build"
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run build:single"
   },
   "dependencies": {
     "react": "^19.3.0",

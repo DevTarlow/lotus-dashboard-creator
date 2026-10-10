@@ -1,8 +1,12 @@
 import { defineConfig, mergeConfig } from 'vitest/config';
 import viteConfig from './vite.config.ts';
 
+// `vite.config.ts` is a function (it branches on `mode` for the single-file
+// build), so resolve it before merging.
+const resolved = typeof viteConfig === 'function' ? viteConfig({ command: 'serve', mode: 'test' }) : viteConfig;
+
 export default mergeConfig(
-  viteConfig,
+  resolved,
   defineConfig({
     test: {
       environment: 'node',

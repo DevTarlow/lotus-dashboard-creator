@@ -198,20 +198,25 @@ export function EarthquakeWidget({ config }: WidgetProps<EarthquakeConfig>) {
   });
 
   const state = data;
+  const feedQuakes = state?.feed?.quakes;
 
   /** Sorted, distance-annotated and filtered for the current settings. */
   const quakes = useMemo(() => {
-    const raw = state?.feed?.quakes ?? [];
+    const raw = feedQuakes ?? [];
     if (state?.nearOnly && state.place) {
       return withinRadius(withDistance(raw, state.place), radiusKm);
     }
     // Worldwide: distances belong to a place the user asked about, so there are none.
     return sortQuakes(raw);
-  }, [state, radiusKm]);
+  }, [state, feedQuakes, radiusKm]);
 
-  const top = useMemo(() => strongest(quakes), [quakes]);
   const shown = quakes.slice(0, limit);
   const count = quakes.length;
+  const strongestHere = useMemo(() => strongest(quakes), [quakes]);
+  // An empty radius still has something worth showing: the strongest quake of the
+  // whole feed, labelled as out of range so it never reads as local.
+  const beyondRadius = count === 0 && nearOnly && feedQuakes !== undefined && feedQuakes.length > 0;
+  const top = beyondRadius ? strongest(feedQuakes) : strongestHere;
   const topFelt = top === null ? null : feltLabel(top);
 
   if (nearOnly && city === '') {
@@ -299,60 +304,67 @@ export function EarthquakeWidget({ config }: WidgetProps<EarthquakeConfig>) {
         </p>
       ) : null}
 
-      {shown.length === 0 ? (
-        <p className="flex min-h-0 flex-1 items-center justify-center px-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          {data.nearOnly
-            ? `Nothing above ${FEED_LABEL(feedChoice)} within ${formatDistance(radiusKm)} of ${data.place?.name ?? city} in the ${WINDOW_LABEL(served.window)} — widen the radius or lower the threshold.`
-            : `Nothing at ${FEED_LABEL(feedChoice)} in the ${WINDOW_LABEL(served.window)} — lower the threshold.`}
-        </p>
-      ) : (
-        <ul role="list" className="min-h-0 flex-1 overflow-y-auto">
-          {/* The strongest quake gets a highlighted row at the top of the list:
-              it scrolls with the rest rather than pushing the list (and the
-              footer under it) out of a short widget. */}
-          {top === null ? null : (
-            <li className="mb-1 rounded-lg bg-slate-50 px-2 py-1 dark:bg-slate-800/60">
-              <div className="flex items-baseline gap-1.5">
-                <span className={cn('text-lg font-semibold leading-none tabular-nums', TONE_TEXT[magnitudeBand(top.magnitude).tone])}>
-                  {top.magnitude === null ? '—' : `M${top.magnitude.toFixed(1)}`}
-                </span>
-                <Badge tone={magnitudeBand(top.magnitude).tone}>Strongest · {magnitudeBand(top.magnitude).label}</Badge>
-                {top.tsunami ? <Badge tone="sky">Tsunami</Badge> : null}
-              </div>
-              <p className="mt-0.5 truncate text-[11px] font-medium text-slate-700 dark:text-slate-200" title={top.place}>
-                {top.place || 'Unknown location'}
-              </p>
-              <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">
-                {[
-                  depthLabel(top.depthKm),
-                  formatRelativeTime(top.time, now),
-                  topFelt,
-                  top.distanceKm === undefined ? null : `${formatDistance(top.distanceKm)} away`,
-                ]
-                  .filter((part): part is string => Boolean(part))
-                  .join(' · ')}
-              </p>
-            </li>
-          )}
-          {shown.map((quake) => (
-            <QuakeRow key={quake.id} quake={quake} now={now} />
-          ))}
-        </ul>
-      )}
+      {/* One scroll area holds the list and the highlighted strongest quake, so
+          the count hint and the footer below keep their place however short the
+          widget is — a plain `flex-1` area cannot shrink below its content. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        {shown.length === 0 ? (
+          <p className="flex flex-1 items-center justify-center px-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
+            {data.nearOnly
+              ? `Nothing above ${FEED_LABEL(feedChoice)} within ${formatDistance(radiusKm)} of ${data.place?.name ?? city} in the ${WINDOW_LABEL(served.window)} — widen the radius or lower the threshold.`
+              : `Nothing at ${FEED_LABEL(feedChoice)} in the ${WINDOW_LABEL(served.window)} — lower the threshold.`}
+          </p>
+        ) : (
+          <ul role="list">
+            {shown.map((quake) => (
+              <QuakeRow key={quake.id} quake={quake} now={now} />
+            ))}
+          </ul>
+        )}
+
+        {/* The strongest quake of the set, and when nothing is inside the radius
+            the strongest of the whole feed — labelled, never implied to be near. */}
+        {top === null ? null : (
+          <div className="rounded-lg bg-slate-50 px-2 py-1 dark:bg-slate-800/60">
+            <div className="flex items-baseline gap-1.5">
+              <span className={cn('text-lg font-semibold leading-none tabular-nums', TONE_TEXT[magnitudeBand(top.magnitude).tone])}>
+                {top.magnitude === null ? '—' : `M${top.magnitude.toFixed(1)}`}
+              </span>
+              <Badge tone={magnitudeBand(top.magnitude).tone}>
+                {beyondRadius ? 'Outside the radius' : 'Strongest'} · {magnitudeBand(top.magnitude).label}
+              </Badge>
+              {top.tsunami ? <Badge tone="sky">Tsunami</Badge> : null}
+            </div>
+            <p className="mt-0.5 truncate text-[11px] font-medium text-slate-700 dark:text-slate-200" title={top.place}>
+              {top.place || 'Unknown location'}
+            </p>
+            <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">
+              {[
+                depthLabel(top.depthKm),
+                formatRelativeTime(top.time, now),
+                topFelt,
+                top.distanceKm === undefined ? null : `${formatDistance(top.distanceKm)} away`,
+              ]
+                .filter((part): part is string => Boolean(part))
+                .join(' · ')}
+            </p>
+          </div>
+        )}
+      </div>
 
       {count > shown.length ? (
-        <p className="text-[10px] text-slate-400 dark:text-slate-500">
+        <p className="shrink-0 text-[10px] text-slate-400 dark:text-slate-500">
           Showing the {shown.length} most recent of {count}.
         </p>
       ) : null}
 
-      <div className="mt-auto flex items-center justify-between gap-2 text-[10px] text-slate-400 dark:text-slate-500">
+      <div className="flex shrink-0 items-center justify-between gap-2 text-[10px] text-slate-400 dark:text-slate-500">
         <SourceBadge input={{ pending, error, errorCode, status: errorStatus, fromCache }} />
         {/* The feed's own generation time: it is what makes every "4m ago" honest. */}
         <span className="truncate text-right">
-          {feedResult?.generatedAt === null || feedResult === null
-            ? 'feed time unknown'
-            : `feed built ${formatRelativeTime(feedResult.generatedAt, now)}`}
+          {feedResult !== null && typeof feedResult.generatedAt === 'number' && Number.isFinite(feedResult.generatedAt)
+            ? `feed built ${formatRelativeTime(feedResult.generatedAt, now)}`
+            : 'feed time unknown'}
         </span>
       </div>
     </div>

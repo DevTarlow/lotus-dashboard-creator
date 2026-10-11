@@ -1,9 +1,10 @@
 # Lotus Dashboard Creator
 
-A modular, drag-and-drop dashboard builder for the browser. Arrange, resize and
-persist your own workspace of widgets — live clock, weather, markdown scratchpad,
-quick links, market ticker and a news feed — with a plugin architecture that
-makes adding a seventh widget a single file.
+A modular, drag-and-drop dashboard builder for the browser. Nineteen widgets —
+clocks and daylight, weather and air quality, tasks, habits and a focus timer,
+a calendar, markets, news and history, a currency converter, a device panel —
+drop onto a responsive 12-column grid, with a plugin architecture that makes
+adding the twentieth a single file.
 
 Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zustand 5
 · react-grid-layout 2**.
@@ -46,6 +47,9 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 - Lock the layout to stop accidental drags, or hit **Tidy up** to close every
   gap.
 - Add, duplicate, rename, reconfigure and remove individual widgets.
+- A first visit preloads a **complete sixteen-panel workspace** instead of an
+  empty canvas; *Reset dashboard* brings it back, and five more templates cover
+  calmer or more specialised desks.
 
 **Persistence & portability**
 
@@ -58,18 +62,60 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 - Undo/redo (`⌘/Ctrl + Z`) for every structural change: adding, removing,
   duplicating, dragging, resizing, tidying, applying templates, importing and
   resetting. Rapid edits are coalesced into a single history step.
-- Four starter templates, plus a one-click reset to the default workspace.
+- Six starter templates — the complete workspace, a markets desk, a wellness
+  week, an engineer desk, a focus desk and a minimal pair — plus a one-click
+  reset to the default workspace.
 
 **Widgets**
+
+**Essentials**
 
 | Widget | Highlights |
 | --- | --- |
 | **Clock** | Live time in any IANA time zone, 12/24h, optional seconds, day-progress bar. |
 | **Weather** | Live forecast from wttr.in (no API key) with hourly outlook and details, falling back to a locally simulated forecast offline. |
+
+**Productivity**
+
+| Widget | Highlights |
+| --- | --- |
+| **Tasks** | A checklist with priorities, due dates, ↑/↓ reordering, a progress bar and "clear completed"; every edit is one undo step. |
+| **Focus timer** | Pomodoro and stopwatch in one card. Derived from timestamps, so a throttled tab cannot drift and a reload resumes a running phase; sessions are logged with a daily total. |
+| **Habit streaks** | Today's ticks, current and best streaks, and a four-to-twelve week heatmap. A habit you have not done *yet* today never breaks its streak, and weekends are skipped when the schedule says so. |
+| **Calendar** | A month grid with ISO week numbers, local events per day (edited inline) and optional public holidays from Nager.Date — plus the next holiday and how far away it is. |
+| **Countdown** | The dates worth waiting for, with annual rollover (29 February waits for the next leap year) and a ring for the next one. |
 | **Markdown notes** | Multi-note editor with a left file panel (create, switch, delete with confirmation), draggable dividers between the panel and both panes, auto-save with edit / split / preview modes and a dependency-free markdown renderer. |
 | **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove, and drag — or ↑/↓ — to reorder. |
+
+**Markets**
+
+| Widget | Highlights |
+| --- | --- |
 | **Market ticker** | Live crypto quotes (CoinGecko, keyless) and live stock quotes (Finnhub, your own free key) with sparklines and per-symbol add/remove. |
+
+**News**
+
+| Widget | Highlights |
+| --- | --- |
 | **News feed** | Live headlines from four keyless, CORS-enabled providers (Hacker News, DEV Community, Spaceflight News, Wikipedia's current-events desk) with topic filters, source links and expandable summaries; falls back to a labelled simulated feed offline. |
+| **On this day** | Curated highlights, events, births or deaths for today's date, from the Wikimedia feeds, with thumbnails, article links and the CC BY-SA attribution the licence requires. |
+
+**Environment**
+
+| Widget | Highlights |
+| --- | --- |
+| **Sun & moon** | Sunrise, sunset, solar noon, golden hour, civil twilight and the day's change in daylight — computed locally from a NOAA solar model, with the moon phase beside it. Nothing about it needs the network. |
+| **Air quality & UV** | US AQI with its band wording, a twelve-hour strip, the UV index and peak, and pollen where the model covers it (Open-Meteo, keyless). |
+| **Seismic watch** | Recent earthquakes from the USGS feeds, by magnitude threshold and window, optionally filtered to a radius around a city, with the feed's own generation time so the timestamps stay honest. |
+
+**Utilities**
+
+| Widget | Highlights |
+| --- | --- |
+| **World clock** | Several time zones at once, with each zone's offset, date rollover, office-hours tint and a 24-hour strip showing the windows you share. |
+| **Converter** | Eleven categories of unit conversion (with affine temperature scales) and currency at the ECB reference rate, with a 30-day rate history. |
+| **System & device** | Connection, battery, browser storage, screen, platform and uptime, read locally — plus an opt-in public-address lookup that tells you exactly what it sends. |
+| **Repository** | Stars, forks, issues, the latest release and the newest workflow run for a GitHub repository, with the hourly quota shown and an optional token for a higher limit. |
 
 **Polish**
 
@@ -108,16 +154,27 @@ Other scripts:
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
 
 The app is entirely client-side: no backend, and no API key needed for anything
-except stock prices. Network calls happen in four places, and each degrades
-gracefully: the weather widget uses [wttr.in](https://wttr.in) and falls back to
-a simulated forecast, the market ticker prices crypto through
-[CoinGecko](https://www.coingecko.com/en/api) (keyless) and falls back to
-simulated crypto, the news feed reads four keyless providers and falls back to a
-simulated feed labelled **Simulated**, and the quick-links favicon lookup falls
-back to an initials chip. Stock quotes are the one thing that needs a key, from
-[Finnhub](https://finnhub.io/register) — a free key the user pastes into the
-widget's settings. Stock prices are **never simulated** — without a key they are
-shown as unavailable with a sign-up link (see the notes below).
+except stock prices and an optional GitHub token. Every network call degrades
+gracefully: the weather widget uses
+[wttr.in](https://wttr.in) and falls back to a simulated forecast, the market
+ticker prices crypto through [CoinGecko](https://www.coingecko.com/en/api)
+(keyless) and falls back to simulated crypto, the news feed reads four keyless
+providers and falls back to a simulated feed labelled **Simulated**, and the
+quick-links favicon lookup falls back to an initials chip. The newer panels use
+keyless, CORS-enabled sources and — deliberately — **no simulated fallback at
+all**: cities are resolved by
+[Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), air quality
+and UV by [Open-Meteo](https://open-meteo.com/en/docs/air-quality-api), currency
+by [Frankfurter](https://frankfurter.dev) (ECB reference rates), holidays by
+[Nager.Date](https://date.nager.at), earthquakes by the
+[USGS feeds](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) and
+"on this day" by the [Wikimedia feeds](https://api.wikimedia.org/). When one of
+those fails the panel says so and offers a retry, because a made-up reading in a
+card that looks live is worse than an empty one. Stock quotes are the one thing
+that *needs* a key, from [Finnhub](https://finnhub.io/register) — a free key the
+user pastes into the widget's settings — and GitHub takes an optional token to
+raise its anonymous limit. Neither is ever simulated or embedded in a saved file
+(see the notes below).
 
 ## Project structure
 
@@ -134,35 +191,55 @@ src/
 ├── components/
 │   ├── feedback/               # ErrorBoundary, StorageNotice, ToastViewport
 │   ├── forms/SettingsForm.tsx  # schema-driven settings renderer
-│   ├── icons.tsx               # ~35 inline SVG icons
+│   ├── icons.tsx               # ~57 inline SVG icons
 │   ├── layout/                 # HeaderBar, StatusBar, DashboardCanvas,
 │   │                           # WidgetFrame, ImportDropZone
 │   ├── modals/                 # AddWidgetDrawer, WidgetSettingsModal,
 │   │                           # TemplatesDialog, ImportDialog, ShortcutsDialog…
-│   └── ui/                     # Button, Modal, Drawer, Dropdown, Field, Markdown…
+│   └── ui/                     # Button, Modal, Drawer, Dropdown, Field, Markdown,
+│                               # Ring, ProgressBar, StatTile, SourceBadge, tone…
 ├── constants/                  # app + grid constants (breakpoints, row height…)
-├── hooks/                      # useInterval, useNow, useWeather, useNews, useDebouncedValue,
-│                               # useSaveDashboardFile, useHotkeys, useTheme, useFocusTrap…
+├── hooks/                      # useInterval, useNow, useResource, useWeather, useNews,
+│                               # useQuotes, useDebouncedValue, useSaveDashboardFile,
+│                               # useHotkeys, useTheme, useFocusTrap…
 ├── lib/
 │   ├── grid.ts                 # pure layout maths (placement, packing, diffing)
 │   ├── markdown.ts             # tokenising markdown parser
 │   ├── validation.ts           # import/export validation & normalisation
 │   ├── document.ts             # dashboard document building/serialising
-│   ├── templates.ts            # starter templates
+│   ├── templates.ts            # six starter templates
 │   ├── storage.ts              # safe localStorage adapter (memory fallback)
 │   ├── storageKeys.ts          # per-document key scoping on file://
 │   ├── embedded.ts             # the snapshot carried inside a saved HTML file
 │   ├── singleFile.ts           # serialising the running app to one file
 │   ├── fileHandle.ts           # File System Access + remembered file handle
+│   ├── http.ts                 # shared fetch: de-duplication, TTL cache, queue
+│   ├── resourceStatus.ts       # Live / Cached / Offline / Key required vocabulary
+│   ├── prefs.ts                # the shareable preference slice (never a key)
+│   ├── time.ts                 # DST-safe calendar maths, day keys, zone offsets
+│   ├── solar.ts / moon.ts      # NOAA sun times and the lunar cycle (offline)
+│   ├── geo.ts / geocode.ts     # haversine distance, city → coordinates
+│   ├── units.ts                # the unit catalogue and its conversions
+│   ├── currency.ts             # Frankfurter (ECB reference rates)
 │   ├── weather.ts              # live wttr.in provider (fetch + condition mapping)
 │   ├── market.ts               # live providers: CoinGecko (crypto) + Finnhub (stocks)
 │   ├── news.ts                 # live providers: HN, DEV, Spaceflight News, Wikipedia
+│   ├── air.ts / holidays.ts    # Open-Meteo air quality; Nager.Date holidays
+│   ├── earthquake.ts           # the USGS GeoJSON feeds
+│   ├── onthisday.ts            # the Wikimedia "on this day" feeds
+│   ├── github.ts               # repository, release and workflow stats
+│   ├── system.ts               # battery, storage, connection and device readings
+│   ├── sun.ts                  # assembling a place's day: labels, deltas, moon
+│   ├── tasks.ts / habits.ts    # checklist model; streaks and the habit grid
+│   ├── timer.ts / countdown.ts # the pomodoro state machine; event rollover
+│   ├── calendar.ts             # month cells, week starts, local events
+│   ├── worldclock.ts           # zone rows, business hours, overlap windows
 │   ├── notes.ts                # notes model: migration, titles, add/update/remove
 │   ├── mock/                   # deterministic weather / market / news providers
 │   └── utils.ts                # cn(), formatting, ids, download helpers…
 ├── store/
 │   ├── dashboardStore.ts       # workspace, layouts, history, persistence
-│   ├── prefsStore.ts           # theme, preferences + optional Finnhub key
+│   ├── prefsStore.ts           # theme, preferences + optional Finnhub/GitHub keys
 │   ├── toastStore.ts           # notifications
 │   └── uiStore.ts              # which overlay is open, drag payload
 ├── styles/index.css            # Tailwind v4 theme, animations, grid theming
@@ -171,8 +248,10 @@ src/
 │   ├── define.ts               # plugin authoring helper (typed boundary)
 │   ├── factory.ts              # instance factory
 │   ├── registry.ts             # the widget registry (single source of truth)
-│   ├── shared/                 # Sparkline, DeltaPill, WeatherGlyph
-│   ├── clock/ weather/ notes/ links/ market/ news/
+│   ├── shared/                 # Sparkline, DeltaPill, WeatherGlyph, Heatmap
+│   ├── clock/ weather/ sun/ worldclock/ tasks/ timer/ habits/ calendar/
+│   ├── countdown/ notes/ links/ market/ news/ onthisday/ air/ earthquake/
+│   ├── converter/ system/ github/
 └── test/setup.ts               # in-memory localStorage for the unit suite
 ```
 
@@ -197,11 +276,39 @@ hot-reload friendly.
 
 A widget is a `WidgetDefinition`: metadata, a default footprint on the 12-column
 reference grid, a default config, an optional settings schema, and a React
-component. `src/widgets/registry.ts` is the only place that knows the full list,
-and everything else — the gallery, the settings modal, import validation,
-persistence rehydration, templates — is driven by that registry. A widget type
-that is not installed is kept in the document (with a warning) and rendered as an
-“unavailable plugin” card instead of being silently dropped.
+component. `src/widgets/registry.ts` is the only place that knows the full list of
+**nineteen**, and everything else — the gallery, the settings modal, import
+validation, persistence rehydration, templates — is driven by that registry. A
+widget type that is not installed is kept in the document (with a warning) and
+rendered as an “unavailable plugin” card instead of being silently dropped.
+
+### One data layer for every live panel
+
+Sixteen panels on a screen would fire sixteen requests on load if each of them
+fetched for itself, and a couple of them usually want the *same* thing — two air
+quality cards for one city, or three panels resolving the same city name. So the
+live widgets share one layer instead:
+
+- **`src/lib/http.ts`** is the only thing that calls `fetch`. It de-duplicates
+  identical requests in flight, keeps a TTL cache per resource (so a refresh that
+  lands early never touches the network), caps concurrency at four so a cold
+  sixteen-panel boot starts as a queue rather than a stampede, adds a timeout and
+  one retry on a 429 or a 5xx, and turns every failure into an `HttpError` with a
+  code the widgets can explain.
+- **`src/hooks/useResource.ts`** is what the widgets use. It refreshes on a
+  window (1 minute for quotes, 5 for the earthquake feeds, 15 for air and
+  currency, an hour for Wikimedia, a day for geocoding), aborts on unmount,
+  ignores a reply that arrives after the settings changed, pauses while the tab
+  is hidden, and keeps the last good value on screen when a refresh fails.
+- **`src/lib/resourceStatus.ts`** owns the vocabulary in the footer of every
+  live card — *Live*, *Cached*, *Offline*, *Timed out*, *Rate limited*, *Key
+  required*, *Unavailable* — so "cached" never pretends to be "live" and a
+  missing API key is not mistaken for an outage.
+
+The rule that goes with it: **the new panels never invent data.** Weather, the
+crypto ticker and the news feed keep their labelled **Simulated** fallbacks,
+which were there first; everything added since shows an explanatory empty state
+with a retry instead.
 
 ### Layout maths is pure and unit tested
 
@@ -413,7 +520,7 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 174 unit tests
+npm test          # 808 unit tests
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -434,6 +541,25 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/utils.test.ts` | `moveItem` — forward/backward moves, clamping, no-ops, and never mutating the input. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
 | `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences; corrupt or foreign stored payloads fall back to defaults. |
+| `lib/http.test.ts` | The shared fetch layer: in-flight de-duplication, TTL reuse and expiry, the concurrency cap, timeouts, offline fast-fail, one retry on a 429/5xx, and that a failure is never cached. |
+| `lib/time.test.ts` | Day keys and day counting across DST changes, month matrices (leap years, either week start), ISO week numbers, zone offsets across a transition, duration formatting. |
+| `lib/solar.test.ts`, `lib/moon.test.ts` | Sunrise, sunset, twilight and golden hour against published USNO values in both hemispheres, polar day and night, and the lunar cycle's periodicity and illumination. |
+| `lib/geo.test.ts`, `lib/geocode.test.ts` | Haversine distances, coordinate formatting and clamping; city lookup mapping, "no match", query encoding and cache sharing between panels. |
+| `lib/units.test.ts` | The unit catalogue's invariants and fifty-odd reference conversions, affine temperature scales included. |
+| `lib/air.test.ts` | Air-quality mapping, the AQI, UV and pollen band boundaries, and the hourly strip. |
+| `lib/currency.test.ts` | Frankfurter mapping, the `base === quote` shortcut, malformed payloads and unknown symbols. |
+| `lib/holidays.test.ts` | Nager.Date mapping, a 404 for an unsupported country, and next-holiday selection. |
+| `lib/earthquake.test.ts` | The USGS GeoJSON mapping — including the `[longitude, latitude, depth]` trap — radius filtering and magnitude bands. |
+| `lib/onthisday.test.ts` | The Wikimedia feeds, HTML stripping and the year phrasing. |
+| `lib/github.test.ts` | Repository mapping, optional release and workflow sections, slug normalisation and the bearer header. |
+| `lib/system.test.ts` | Battery, storage and device readings that most browsers do not expose, and the opt-in address lookup. |
+| `lib/tasks.test.ts` | Checklist normalisation, ranking, caps, due states and reordering. |
+| `lib/timer.test.ts` | The pomodoro state machine derived from timestamps: pause and resume, phase transitions, session logging, reload resume. |
+| `lib/habits.test.ts` | Streak maths (a pending today never breaks a run), schedules, completion rates and the rolling grid. |
+| `lib/countdown.test.ts` | Annual rollover including 29 February, all-day versus timed events, and countdown formatting. |
+| `lib/sun.test.ts`, `lib/calendar.test.ts`, `lib/worldclock.test.ts` | Place-local labels and the polar wording; month cells, week numbers and week starts; zone offsets, business hours and overlap windows. |
+| `lib/resourceStatus.test.ts`, `lib/prefs.test.ts` | The Live/Cached/Offline vocabulary and the pending derivation; the proof that an API key cannot reach a saved file. |
+| `widgets/registry.test.tsx` | Registry invariants: unique, well-formed metadata; settings fields that write somewhere real; and a server render of every registered widget from its own defaults. |
 
 **Browser verification.** The app was driven through a real Chrome (DevTools
 protocol) in both dev and production builds: 39 assertions covering initial
@@ -454,7 +580,7 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 16 assertions there — 62 with a server —
+single-file checks need no server at all. 41 assertions there — 87 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, the notes file panel (create, autosave across a reload, delete
 confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
@@ -468,6 +594,17 @@ snapshot. That check caught a genuine bug — a string-level `</body>` insertion
 landing inside the minified bundle — which is why the snapshot is now written
 through the DOM.
 
+The catalogue has its own group, driven against the built file with **no network
+at all** — which is the point: every provider-backed panel is exercised while it
+is failing. It asserts that a first visit preloads sixteen panels, that the
+workspace is overlap-free at five widths from 1680 px down to 420 px, that a task
+typed into the list survives a reload with its completed state, that a running
+focus timer is still running after one, that a habit and its one-day streak come
+back, and that the seeded countdown and the calendar's seven columns render. Zero
+console errors and zero uncaught exceptions across the whole group is asserted
+separately, because a panel that throws while its provider is unreachable is
+exactly the failure this layer exists to prevent.
+
 ## Performance notes
 
 - Widget children of the grid are memoised by identity, so dragging or resizing
@@ -480,9 +617,14 @@ through the DOM.
 - Markdown is parsed in a `useMemo` and only re-parsed when the text changes.
 - `cn()` uses `tailwind-merge`, so component classes can be overridden safely
   without specificity tricks.
-- Production bundle: **~139 kB gzipped JS / ~12 kB gzipped CSS** (React 19 +
-  zustand + react-grid-layout + the whole widget set, no icon or markdown
-  dependency).
+- Production bundle: **~196 kB gzipped JS / ~14 kB gzipped CSS** for all nineteen
+  widgets (React 19 + zustand + react-grid-layout, with no icon, chart, markdown
+  or QR dependency). The single-file build — bundle, styles and images inlined —
+  is ~247 kB gzipped.
+- A screen full of live panels still makes **one request per provider per
+  refresh window**, not one per widget: identical requests are de-duplicated in
+  flight and cached across the session, at most four are open at once, and a
+  hidden tab stops refreshing until it is shown again.
 
 ## Accessibility
 
@@ -551,6 +693,73 @@ through the DOM.
   invents a time of day. Refreshes use a 15 minute window and the refresh button
   bypasses it; if every provider for a topic fails, the widget says so and falls
   back to the deterministic simulated feed under a **Simulated** badge.
+- The **sun, moon, calendar, tasks, habits, timer, countdown, world clock and
+  unit-conversion** panels need no provider at all. Sun times come from a NOAA
+  solar model in `src/lib/solar.ts` and the lunar phase from the mean synodic
+  month in `src/lib/moon.ts`, both checked against published USNO values in the
+  unit suite (the polar cases included: Tromsø reports "Midnight sun" in June and
+  "No daylight" — with civil twilight — in December, which is what the almanac
+  says too). Nothing there is fetched, so those panels work on a plane.
+- The **environment panels share one geocoder.** Open-Meteo's geocoding service
+  turns a city into coordinates *and* into that place's own time zone, which is
+  what makes "sunrise at 07:41" mean sunrise where the place is rather than where
+  the viewer is. A city that does not resolve says so instead of guessing, and
+  the lookup is cached for a day, so three panels pointed at Lisbon ask once.
+- **Air quality and pollen** come from Open-Meteo, keyless and CORS-enabled. The
+  numbers are theirs; the band wording is ours (EPA AQI breakpoints, the WHO UV
+  scale, Open-Meteo's pollen scale), kept in `src/lib/air.ts` so it can be
+  tested. Pollen is only modelled in some regions and only in season, so an
+  absent pollen row is normal and is never drawn as zero.
+- **Currency** is the ECB reference rate through
+  [Frankfurter](https://frankfurter.dev): about thirty currencies, published on
+  working days around 16:00 CET. The widget shows the rate's own date and says
+  "not a trading rate" in as many words, because a daily reference rate dressed
+  as a live quote would be misleading. Crypto is not covered by it at all.
+  Frankfurter now marks `/v1` as deprecated in favour of a `/v2` that blends 223
+  currencies from 104 providers — no longer "the ECB reference rate", and not a
+  drop-in — so the widget stays on v1, which the vendor documents as remaining
+  available.
+- **Seismic watch** reads the USGS GeoJSON feeds — static, CDN-cached files, so
+  the widget is cheap to keep open — and reports the feed's own generation time
+  next to the quakes, since "4m ago" is only honest if you know when the list was
+  built. The feed and the window are both the user's choice, and "near a place"
+  filters by haversine distance once the city resolves.
+- **"On this day"** is the Wikimedia feed, CC BY-SA, and the widget carries the
+  attribution the licence requires. The feed's `displaytitle` is HTML, so the
+  markup is stripped before display and a missing thumbnail simply leaves the row
+  shorter. Days are addressed in the viewer's local calendar, so the panel rolls
+  over at the viewer's midnight.
+- **Holidays** are Nager.Date's, for about twenty curated countries. The API does
+  not cover every country; an unsupported code says "no holiday data" rather than
+  rendering an empty month that would look like a bug.
+- The two optional keys are **never needed**. Stock quotes use the Finnhub key
+  (below); the repository panel adds its own optional
+  [token](https://github.com/settings/tokens) because anonymous `api.github.com`
+  calls are capped at **60 per hour per address** — the widget shows the
+  remaining quota from the `x-ratelimit-remaining` header and says when it has
+  run out, and its own refresh window is one request per repository per quarter
+  hour. Both keys live in `localStorage` only, are sent only to their own
+  provider, and are excluded from exports and from the snapshot embedded in a
+  saved file **by construction** (`src/lib/prefs.ts` projects the shareable slice
+  and has a test that a secret cannot slip through it).
+- **System & device** reads only what the browser exposes, and says so when it
+  exposes nothing: battery, processor count and connection details are
+  Chromium-only, and each such row reads "—" rather than a zero. Its one network
+  call — the public address lookup — is **off by default** and labelled with
+  exactly what it sends, because it is the only panel in the app whose data
+  leaves the machine by design.
+- The panels added since the news feed **do not simulate anything**. Offline, or
+  with a provider refusing, they show an explanatory empty state with a retry;
+  the weather, crypto and news widgets keep the labelled **Simulated** fallbacks
+  they always had. The new widgets also never write to their configuration on a
+  tick — a running timer or a ticking clock keeps that state in the component, so
+  a dashboard sitting on a desk does not churn `localStorage` or the undo stack.
+- Providers that were **tested and rejected** while building these panels, so
+  nobody retries them: `dictionaryapi.dev` times out; OpenAQ's v3 API answers
+  `401` without a key; ZenQuotes sends no CORS header; CoinCap's API is
+  unreachable; the SpaceX Data API answered `525`; and `api.nasa.gov` refuses
+  anonymously (`403`, and a `500` on its shared `DEMO_KEY`), so anything from
+  NASA needs a free key of its own.
 - There is deliberately **no "markets" news topic.** No keyless, CORS-enabled
   business-news API exists, and inventing market headlines next to the live
   ticker would read as fact. Market news needs a key (Finnhub's `/news`, which

@@ -21,12 +21,12 @@ the git policy.
 | `npm run dev` | Vite dev server with HMR. Port **5173 is pinned** — if it is busy the server refuses to start rather than hopping to 5174, because `localStorage` is per-origin and a port change looks like data loss. | instant |
 | `npm run typecheck` | `tsc --noEmit`, strict. | ~2 s |
 | `npm run lint` | ESLint (flat config, TS + React hooks rules). | ~2 s |
-| `npm test` | Vitest, single run (810 tests, 40 files). | ~2 s |
+| `npm test` | Vitest, single run (817 tests, 40 files). | ~2 s |
 | `npm run test:watch` | Vitest watch mode — use while iterating on pure logic. | — |
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
 | `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
-| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (34 checks; 81 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~20 s |
+| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (44 checks; 91 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~20 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 

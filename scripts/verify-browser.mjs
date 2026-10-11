@@ -26,6 +26,7 @@ import {
   runNotesResizeChecks,
   runReorderChecks,
   runSingleFileChecks,
+  runSystemChecks,
   runWorkspaceChecks,
 } from './browser/checks.mjs';
 
@@ -135,6 +136,17 @@ try {
     });
   } catch (error) {
     report.check('workspace checks completed', false, error.message);
+  }
+
+  report.startGroup('system & device widget (file://)');
+  try {
+    await runSystemChecks({
+      port: chrome.port,
+      appUrl: `file://${options.single}`,
+      report,
+    });
+  } catch (error) {
+    report.check('system checks completed', false, error.message);
   }
 
   if (options.dev && (await isReachable(options.devUrl))) {

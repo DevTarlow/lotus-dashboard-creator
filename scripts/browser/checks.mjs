@@ -1046,3 +1046,145 @@ export async function runWorkspaceChecks({ port, appUrl, report }) {
     await page.close();
   }
 }
+
+/* ------------------------------------------------ the System & device widget */
+
+/**
+ * Replace the stored workspace with a single widget of `type`, so a check sees a
+ * card it fully controls instead of hunting for it inside the preloaded template.
+ */
+const seedSoleWidget = (type, config, size = { w: 4, h: 12, minW: 3, minH: 4 }) => `(() => {
+  const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+  if (!key) return false;
+  const parsed = JSON.parse(localStorage.getItem(key));
+  const state = parsed.state;
+  const id = 'check-${type}';
+  state.widgets = [{ id, type: ${JSON.stringify(type)}, config: ${JSON.stringify(config)}, createdAt: new Date().toISOString() }];
+  for (const breakpoint of Object.keys(state.layouts ?? {})) {
+    state.layouts[breakpoint] = [{ i: id, x: 0, y: 0, ...${JSON.stringify(size)} }];
+  }
+  state.updatedAt = Date.now();
+  localStorage.setItem(key, JSON.stringify(parsed));
+  return true;
+})()`;
+
+/**
+ * Fail the opt-in address lookup from the very first line of the document, so the
+ * "the provider did not answer" path is exercised without touching the network.
+ */
+const FAIL_IP_LOOKUP = `(() => {
+  const real = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (url.includes('ipwho.is')) return Promise.reject(new TypeError('Failed to fetch'));
+    return real(input, init);
+  };
+})()`;
+
+/** Report connectivity the way the browser does: flip `onLine` and fire the event. */
+const setOnline = (online) => `(() => {
+  Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => ${online} });
+  window.dispatchEvent(new Event(${online ? "'online'" : "'offline'"}));
+  return navigator.onLine;
+})()`;
+
+/**
+ * The System & device panel, which is the one widget whose readings come from
+ * browser APIs the Node test environment does not have at all. Three of its
+ * behaviours can only be caught here:
+ *
+ * - `navigator.storage.estimate()` must be called on its owner. Detached, Chrome
+ *   throws "Illegal invocation" and the widget quietly reported no storage —
+ *   a plain-object unit mock cannot see the difference.
+ * - The online badge must follow `online`/`offline`; it used to be read once.
+ * - The local downlink/latency rows must survive a failed address lookup.
+ */
+export async function runSystemChecks({ port, appUrl, report }) {
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    await page.session.send('Emulation.setDeviceMetricsOverride', {
+      width: 1000,
+      height: 1200,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await page.session.send('Page.addScriptToEvaluateOnNewDocument', { source: FAIL_IP_LOOKUP });
+
+    // A cold start leaves a stored workspace for the seeds below to rewrite.
+    await page.session.navigate(appUrl);
+    await page.session.evaluate('localStorage.clear()');
+    await page.session.navigate(appUrl);
+    await wait(700);
+
+    const seeded = await page.session.evaluate(
+      seedSoleWidget('system', {
+        showNetwork: false,
+        showBattery: false,
+        showStorage: true,
+        showDevice: false,
+      }),
+    );
+    report.check('a system widget can be seeded', seeded === true);
+    await page.session.navigate(appUrl);
+    await wait(900);
+
+    const text = (await page.session.evaluate(cardText('system'))) ?? '';
+    const flat = text.replace(/\n+/g, ' · ');
+    report.check('the system widget renders', /System & device/.test(text), flat.slice(0, 48));
+    report.check(
+      'storage reports a real usage figure',
+      /STORAGE/.test(text) && !/not available here/.test(text) && /\d[\d.,]*\s?(B|kB|MB|GB)/.test(text),
+      flat.slice(0, 90),
+    );
+    report.check(
+      'uptime reads as a duration, not a relative timestamp',
+      /\b\d+s\b/.test(text) && !/just now/.test(text),
+      flat.slice(0, 60),
+    );
+
+    // The badge has to follow the browser's own connectivity events.
+    await page.session.evaluate(setOnline(false));
+    await wait(300);
+    const offline = (await page.session.evaluate(cardText('system'))) ?? '';
+    report.check('going offline flips the status badge', /(^|\n)Offline(\n|$)/.test(offline), offline.replace(/\n+/g, ' · ').slice(0, 40));
+
+    await page.session.evaluate(setOnline(true));
+    await wait(300);
+    const online = (await page.session.evaluate(cardText('system'))) ?? '';
+    report.check('coming back online flips it back', /(^|\n)Online(\n|$)/.test(online), online.replace(/\n+/g, ' · ').slice(0, 40));
+
+    // The local readings are read on the machine, so a dead provider must not
+    // take them off the card with it.
+    await page.session.evaluate(
+      seedSoleWidget('system', {
+        showNetwork: true,
+        showBattery: false,
+        showStorage: false,
+        showDevice: false,
+      }),
+    );
+    await page.session.navigate(appUrl);
+    await wait(1400);
+    const failed = (await page.session.evaluate(cardText('system'))) ?? '';
+    const failedFlat = failed.replace(/\n+/g, ' · ');
+    report.check(
+      'a failed address lookup still shows the local connection readings',
+      /Downlink/.test(failed) && /Latency/.test(failed),
+      failedFlat.slice(0, 90),
+    );
+    report.check('the failed lookup offers a retry', /Retry/.test(failed), failedFlat.slice(0, 60));
+  } finally {
+    report.check(
+      'no console errors from the system widget',
+      problems.consoleErrors.length === 0,
+      problems.consoleErrors.slice(0, 3).join(' | '),
+    );
+    report.check(
+      'no uncaught exceptions from the system widget',
+      problems.exceptions.length === 0,
+      problems.exceptions.slice(0, 2).join(' | '),
+    );
+    await page.close();
+  }
+}

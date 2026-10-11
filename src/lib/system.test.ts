@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetHttp } from '@/lib/http';
 import {
-  batteryStatus,
+  batteryManager,
+  batteryStatusEqual,
   browserNavigator,
   browserWindow,
   deviceStatus,
   fetchPublicIp,
   formatBytes,
   formatSeconds,
+  mapBatteryStatus,
   mapPublicIp,
   networkStatus,
   storageStatus,
+  storageStatusEqual,
 } from '@/lib/system';
 
 beforeEach(() => {
@@ -89,14 +92,35 @@ describe('deviceStatus', () => {
   it('notices a touch screen', () => {
     expect(deviceStatus({ maxTouchPoints: 5 }, {}, 'UTC').touch).toBe(true);
   });
+
+  it('prefers the modern platform name over the deprecated one', () => {
+    // Android reports "Linux armv8l" through `navigator.platform`.
+    const status = deviceStatus({ platform: 'Linux armv8l', userAgentData: { platform: 'Android' } }, {}, 'UTC');
+    expect(status.platform).toBe('Android');
+  });
+
+  it('falls back to `navigator.platform` when the modern name is missing or empty', () => {
+    expect(deviceStatus({ platform: 'Win32', userAgentData: {} }, {}, 'UTC').platform).toBe('Win32');
+    expect(deviceStatus({ platform: 'Win32', userAgentData: { platform: '' } }, {}, 'UTC').platform).toBe('Win32');
+  });
 });
 
-describe('batteryStatus', () => {
-  it('reads a battery that exists', async () => {
-    const status = await batteryStatus({
-      getBattery: () => Promise.resolve({ level: 0.62, charging: true, chargingTime: 1800, dischargingTime: Infinity }),
-    });
-    expect(status).toEqual({
+describe('batteryManager', () => {
+  it('hands back the live manager so a caller can subscribe to it', async () => {
+    const manager = { level: 0.5 };
+    expect(await batteryManager({ getBattery: () => Promise.resolve(manager) })).toBe(manager);
+  });
+
+  it('reports an absent or failing Battery API as null', async () => {
+    expect(await batteryManager({})).toBeNull();
+    expect(await batteryManager(undefined)).toBeNull();
+    expect(await batteryManager({ getBattery: () => Promise.reject(new Error('nope')) })).toBeNull();
+  });
+});
+
+describe('mapBatteryStatus', () => {
+  it('reads a battery that exists', () => {
+    expect(mapBatteryStatus({ level: 0.62, charging: true, chargingTime: 1800, dischargingTime: Infinity })).toEqual({
       supported: true,
       level: 0.62,
       charging: true,
@@ -105,15 +129,21 @@ describe('batteryStatus', () => {
     });
   });
 
-  it('clamps a level outside 0…1', async () => {
-    const status = await batteryStatus({ getBattery: () => Promise.resolve({ level: 7 }) });
-    expect(status.level).toBe(1);
+  it('clamps a level outside 0…1', () => {
+    expect(mapBatteryStatus({ level: 7 }).level).toBe(1);
+    expect(mapBatteryStatus({ level: -1 }).level).toBe(0);
   });
 
-  it('reports absence and failure as unsupported', async () => {
-    expect((await batteryStatus({})).supported).toBe(false);
-    expect((await batteryStatus(undefined)).supported).toBe(false);
-    expect((await batteryStatus({ getBattery: () => Promise.reject(new Error('nope')) })).supported).toBe(false);
+  it('treats a missing manager as unsupported', () => {
+    const unsupported = {
+      supported: false,
+      level: null,
+      charging: null,
+      chargingTimeSeconds: null,
+      dischargingTimeSeconds: null,
+    };
+    expect(mapBatteryStatus(null)).toEqual(unsupported);
+    expect(mapBatteryStatus(undefined)).toEqual(unsupported);
   });
 });
 
@@ -123,10 +153,43 @@ describe('storageStatus', () => {
     expect(status).toEqual({ supported: true, usageBytes: 1_500_000, quotaBytes: 120_000_000 });
   });
 
+  it('calls the estimate on its owner, not detached', async () => {
+    // Chrome throws "Illegal invocation" for a bare `StorageManager.estimate()`,
+    // which made every real browser report storage as unsupported while the
+    // plain-object mock above stayed green.
+    const storage = {
+      estimate(this: unknown) {
+        if (this !== storage) throw new TypeError("Failed to execute 'estimate' on 'StorageManager': Illegal invocation");
+        return Promise.resolve({ usage: 42, quota: 1024 });
+      },
+    };
+    await expect(storageStatus({ storage })).resolves.toEqual({ supported: true, usageBytes: 42, quotaBytes: 1024 });
+  });
+
   it('reports absence and failure as unsupported', async () => {
     expect((await storageStatus({})).supported).toBe(false);
     expect((await storageStatus({ storage: {} })).supported).toBe(false);
     expect((await storageStatus({ storage: { estimate: () => Promise.reject(new Error('blocked')) } })).supported).toBe(false);
+  });
+});
+
+describe('reading equality', () => {
+  it('compares battery readings field by field', () => {
+    const reading = mapBatteryStatus({ level: 0.5, charging: false });
+    expect(batteryStatusEqual(reading, mapBatteryStatus({ level: 0.5, charging: false }))).toBe(true);
+    expect(batteryStatusEqual(reading, mapBatteryStatus({ level: 0.6, charging: false }))).toBe(false);
+    expect(batteryStatusEqual(reading, mapBatteryStatus({ level: 0.5, charging: true }))).toBe(false);
+    expect(batteryStatusEqual(null, null)).toBe(true);
+    expect(batteryStatusEqual(reading, null)).toBe(false);
+  });
+
+  it('compares storage readings field by field', () => {
+    const reading = { supported: true, usageBytes: 10, quotaBytes: 100 };
+    expect(storageStatusEqual(reading, { supported: true, usageBytes: 10, quotaBytes: 100 })).toBe(true);
+    expect(storageStatusEqual(reading, { supported: true, usageBytes: 11, quotaBytes: 100 })).toBe(false);
+    expect(storageStatusEqual(reading, { supported: true, usageBytes: 10, quotaBytes: 200 })).toBe(false);
+    expect(storageStatusEqual(null, null)).toBe(true);
+    expect(storageStatusEqual(reading, null)).toBe(false);
   });
 });
 

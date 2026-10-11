@@ -580,7 +580,7 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 34 assertions there — 81 with a server —
+single-file checks need no server at all. 44 assertions there — 91 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, the notes file panel (create, autosave across a reload, delete
 confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
@@ -744,7 +744,11 @@ exactly the failure this layer exists to prevent.
   and has a test that a secret cannot slip through it).
 - **System & device** reads only what the browser exposes, and says so when it
   exposes nothing: battery, processor count and connection details are
-  Chromium-only, and each such row reads "—" rather than a zero. Its one network
+  Chromium-only, and each such row reads "—" rather than a zero. The connection,
+  battery and visibility readings follow the browser's own events (`online` /
+  `offline`, `levelchange` / `chargingchange`, `visibilitychange`) rather than
+  being sampled once, and a failed address lookup still leaves the locally read
+  downlink and latency on the card. Its one network
   call — the public address lookup — is **off by default** and labelled with
   exactly what it sends, because it is the only panel in the app whose data
   leaves the machine by design.

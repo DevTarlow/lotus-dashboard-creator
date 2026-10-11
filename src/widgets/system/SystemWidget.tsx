@@ -1,24 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BatteryIcon, MonitorIcon, RefreshIcon, SystemIcon, WifiIcon } from '@/components/icons';
 import { Badge, Button, ProgressBar, SourceBadge, StatTile } from '@/components/ui';
-import { useInterval } from '@/hooks/useInterval';
+import {
+  useBatteryStatus,
+  useDocumentVisibility,
+  useNetworkStatus,
+  useStorageStatus,
+} from '@/hooks/useSystemReadings';
 import { useNow } from '@/hooks/useNow';
 import { useResource } from '@/hooks/useResource';
-import { formatRelativeTime } from '@/lib/utils';
 import {
-  batteryStatus,
   browserNavigator,
   browserWindow,
   deviceStatus,
   fetchPublicIp,
   formatBytes,
   formatSeconds,
-  networkStatus,
-  storageStatus,
   type BatteryStatus,
   type PublicIpInfo,
-  type StorageStatus,
 } from '@/lib/system';
+import { formatDuration } from '@/lib/time';
 import type { SettingField, WidgetProps } from '@/types';
 import { defineWidget } from '@/widgets/define';
 
@@ -75,14 +76,26 @@ function SectionTitle({ children, icon }: { children: React.ReactNode; icon: Rea
   );
 }
 
+/** "charging · 1h 20m to full" / "on battery · 45m left" / "charging state unknown". */
+function batteryCaption(battery: BatteryStatus): string {
+  if (battery.charging === null) return 'charging state unknown';
+  if (battery.charging) {
+    const untilFull = formatSeconds(battery.chargingTimeSeconds);
+    return untilFull === '—' ? 'charging' : `charging · ${untilFull} to full`;
+  }
+  const left = formatSeconds(battery.dischargingTimeSeconds);
+  return left === '—' ? 'on battery' : `on battery · ${left} left`;
+}
+
 /** Read-only view of the browser, the device and the connection it is on. */
 export function SystemWidget({ config }: WidgetProps<SystemConfig>) {
   const now = useNow(30_000);
-  const [battery, setBattery] = useState<BatteryStatus | null>(null);
-  const [storage, setStorage] = useState<StorageStatus | null>(null);
+  const network = useNetworkStatus();
+  const battery = useBatteryStatus(config.showBattery);
+  const storage = useStorageStatus(config.showStorage);
+  const visible = useDocumentVisibility();
   const [mountedAt] = useState(() => Date.now());
 
-  const network = useMemo(() => networkStatus(browserNavigator()), []);
   const timeZone = useMemo(() => {
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
@@ -94,36 +107,6 @@ export function SystemWidget({ config }: WidgetProps<SystemConfig>) {
     () => deviceStatus(browserNavigator(), browserWindow(), timeZone),
     [timeZone],
   );
-
-  // Battery and storage are both async and both optional. They are read once on
-  // mount and then on a slow tick; a reading is only stored when it actually
-  // changed, so an idle card does not re-render every minute.
-  useEffect(() => {
-    let active = true;
-    const read = () => {
-      void batteryStatus(browserNavigator()).then((next) => {
-        if (!active) return;
-        setBattery((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
-      });
-      void storageStatus(browserNavigator()).then((next) => {
-        if (!active) return;
-        setStorage((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next));
-      });
-    };
-    read();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useInterval(() => {
-    void batteryStatus(browserNavigator()).then((next) =>
-      setBattery((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next)),
-    );
-    void storageStatus(browserNavigator()).then((next) =>
-      setStorage((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next)),
-    );
-  }, 60_000);
 
   const {
     data: publicIp,
@@ -158,13 +141,21 @@ export function SystemWidget({ config }: WidgetProps<SystemConfig>) {
       </div>
 
       <div className="grid grid-cols-2 gap-1.5">
-        <StatTile label="Uptime" value={formatRelativeTime(mountedAt, now.getTime()).replace(' ago', '')} hint="this page" />
-        <StatTile
-          label="Storage"
-          value={storage?.supported ? formatBytes(storage.usageBytes) : '—'}
-          hint={storage?.supported ? `of ${formatBytes(storage.quotaBytes)}` : 'not available here'}
-          tone="sky"
-        />
+        <StatTile label="Uptime" value={formatDuration(now.getTime() - mountedAt)} hint="this page" />
+        {config.showStorage ? (
+          <StatTile
+            label="Storage"
+            value={storage?.supported ? formatBytes(storage.usageBytes) : '—'}
+            hint={
+              storage === null
+                ? 'reading…'
+                : storage.supported
+                  ? `of ${formatBytes(storage.quotaBytes)}`
+                  : 'not available here'
+            }
+            tone="sky"
+          />
+        ) : null}
       </div>
 
       {config.showStorage && storageRatio !== null ? (
@@ -180,19 +171,15 @@ export function SystemWidget({ config }: WidgetProps<SystemConfig>) {
       {config.showBattery ? (
         <>
           <SectionTitle icon={<BatteryIcon className="h-3.5 w-3.5" />}>Battery</SectionTitle>
-          {battery?.supported ? (
+          {battery === null ? (
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Reading battery state…</p>
+          ) : battery.supported ? (
             <>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-semibold tabular-nums">
                   {battery.level === null ? '—' : `${Math.round(battery.level * 100)}%`}
                 </span>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                  {battery.charging === null
-                    ? 'charging state unknown'
-                    : battery.charging
-                      ? `charging${battery.chargingTimeSeconds !== null ? ` · ${formatSeconds(battery.chargingTimeSeconds)} to full` : ''}`
-                      : `on battery${battery.dischargingTimeSeconds !== null ? ` · ${formatSeconds(battery.dischargingTimeSeconds)} left` : ''}`}
-                </span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">{batteryCaption(battery)}</span>
               </div>
               {battery.level !== null ? (
                 <ProgressBar
@@ -240,13 +227,21 @@ export function SystemWidget({ config }: WidgetProps<SystemConfig>) {
                 title={publicIp.info.region ?? undefined}
               />
               <Row label="Provider" value={publicIp.info.org ?? '—'} />
-              {network.downlinkMbps !== null ? <Row label="Downlink" value={`~${network.downlinkMbps} Mbps`} /> : null}
-              {network.rttMs !== null ? <Row label="Latency" value={`~${network.rttMs} ms`} /> : null}
             </dl>
           ) : null}
           {publicIp && publicIp.info === null ? (
             <p className="text-[11px] text-slate-400 dark:text-slate-500">
               The lookup answered without an address (a private or filtered network).
+            </p>
+          ) : null}
+          {/* Read locally, so they are shown whether or not the lookup worked. */}
+          <dl className="space-y-0">
+            {network.downlinkMbps !== null ? <Row label="Downlink" value={`~${network.downlinkMbps} Mbps`} /> : null}
+            {network.rttMs !== null ? <Row label="Latency" value={`~${network.rttMs} ms`} /> : null}
+          </dl>
+          {!network.detailed ? (
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              This browser does not expose connection details.
             </p>
           ) : null}
         </>
@@ -263,16 +258,8 @@ export function SystemWidget({ config }: WidgetProps<SystemConfig>) {
             <Row label="Pixel ratio" value={device.pixelRatio === null ? '—' : `${device.pixelRatio}×`} />
             <Row label="Language" value={device.language} />
             <Row label="Time zone" value={device.timeZone.replace(/_/g, ' ')} />
-            <Row
-              label="Page shown"
-              value={typeof document === 'undefined' || document.visibilityState === 'hidden' ? 'Hidden' : 'Visible'}
-            />
+            <Row label="Page shown" value={visible ? 'Visible' : 'Hidden'} />
           </dl>
-          {!network.detailed ? (
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">
-              This browser does not expose connection details.
-            </p>
-          ) : null}
         </>
       ) : null}
     </div>
@@ -297,7 +284,9 @@ export const systemWidget = defineWidget<SystemConfig>({
       config.showStorage ? 'storage' : null,
       config.showNetwork ? 'network' : null,
     ].filter((part): part is string => part !== null);
-    return parts.length === 0 ? 'Everything hidden' : parts.join(' · ');
+    // The status chips and the uptime tile are always on, so "everything hidden"
+    // is never quite true — say what is actually left instead.
+    return parts.length === 0 ? 'Status and uptime' : parts.join(' · ');
   },
   component: SystemWidget,
 });

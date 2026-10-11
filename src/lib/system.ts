@@ -18,6 +18,9 @@ export interface NetworkInformationLike {
   downlink?: number;
   rtt?: number;
   saveData?: boolean;
+  /** `NetworkInformation` is an `EventTarget` that fires `change`. */
+  addEventListener?: (type: 'change', listener: () => void) => void;
+  removeEventListener?: (type: 'change', listener: () => void) => void;
 }
 
 /** The subset of the Battery Status API this widget reads. */
@@ -26,6 +29,9 @@ export interface BatteryManagerLike {
   charging?: boolean;
   chargingTime?: number;
   dischargingTime?: number;
+  /** The manager is live: it fires `levelchange`, `chargingchange`, … */
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
 }
 
 export interface NavigatorLike {
@@ -33,7 +39,10 @@ export interface NavigatorLike {
   language?: string;
   hardwareConcurrency?: number;
   deviceMemory?: number;
+  /** Legacy `navigator.platform`; kept as the fallback for non-Chromium. */
   platform?: string;
+  /** Modern (Chromium) platform name, e.g. `macOS` or `Android`. */
+  userAgentData?: { platform?: string };
   maxTouchPoints?: number;
   connection?: NetworkInformationLike;
   getBattery?: () => Promise<BatteryManagerLike>;
@@ -120,6 +129,11 @@ function numberOrNull(value: unknown): number | null {
   return isNumber(value) ? value : null;
 }
 
+/** The Battery API's way of saying "not applicable" is `Infinity`. */
+function secondsOrNull(value: unknown): number | null {
+  return isNumber(value) && value !== Infinity ? value : null;
+}
+
 export function networkStatus(nav: NavigatorLike | undefined): NetworkStatus {
   const connection = nav?.connection;
   return {
@@ -137,8 +151,11 @@ export function networkStatus(nav: NavigatorLike | undefined): NetworkStatus {
 export function deviceStatus(nav: NavigatorLike | undefined, win: WindowLike | undefined, timeZone: string): DeviceStatus {
   const screenWidth = win?.screen?.width;
   const screenHeight = win?.screen?.height;
+  // `navigator.platform` is deprecated and misleading on mobile (Android reports
+  // "Linux armv8l"), so the modern name wins wherever the browser offers it.
+  const platform = nav?.userAgentData?.platform || nav?.platform;
   return {
-    platform: nav?.platform ?? 'Unknown',
+    platform: platform !== undefined && platform !== '' ? platform : 'Unknown',
     cores: numberOrNull(nav?.hardwareConcurrency),
     memoryGb: numberOrNull(nav?.deviceMemory),
     language: nav?.language ?? 'Unknown',
@@ -157,34 +174,67 @@ const UNSUPPORTED_BATTERY: BatteryStatus = {
   dischargingTimeSeconds: null,
 };
 
-export async function batteryStatus(nav: NavigatorLike | undefined): Promise<BatteryStatus> {
-  if (typeof nav?.getBattery !== 'function') return UNSUPPORTED_BATTERY;
+/**
+ * Map a live `BatteryManager` (or its absence) to a reading.
+ *
+ * Split out from {@link batteryManager} so a subscriber can re-map the same
+ * manager on every `levelchange` without asking the browser for it again.
+ */
+export function mapBatteryStatus(manager: BatteryManagerLike | null | undefined): BatteryStatus {
+  if (!manager) return UNSUPPORTED_BATTERY;
+  const level = numberOrNull(manager.level);
+  return {
+    supported: true,
+    level: level === null ? null : Math.min(1, Math.max(0, level)),
+    charging: typeof manager.charging === 'boolean' ? manager.charging : null,
+    chargingTimeSeconds: secondsOrNull(manager.chargingTime),
+    dischargingTimeSeconds: secondsOrNull(manager.dischargingTime),
+  };
+}
+
+/** The live `BatteryManager`, or `null` when this browser has no Battery API. */
+export async function batteryManager(nav: NavigatorLike | undefined): Promise<BatteryManagerLike | null> {
+  if (typeof nav?.getBattery !== 'function') return null;
   try {
-    const battery = await nav.getBattery();
-    const level = numberOrNull(battery.level);
-    return {
-      supported: true,
-      level: level === null ? null : Math.min(1, Math.max(0, level)),
-      charging: typeof battery.charging === 'boolean' ? battery.charging : null,
-      // `Infinity` is the API's way of saying "not applicable".
-      chargingTimeSeconds: isNumber(battery.chargingTime) && battery.chargingTime !== Infinity ? battery.chargingTime : null,
-      dischargingTimeSeconds:
-        isNumber(battery.dischargingTime) && battery.dischargingTime !== Infinity ? battery.dischargingTime : null,
-    };
+    return await nav.getBattery();
   } catch {
-    return UNSUPPORTED_BATTERY;
+    return null;
   }
 }
 
+const UNSUPPORTED_STORAGE: StorageStatus = { supported: false, usageBytes: null, quotaBytes: null };
+
 export async function storageStatus(nav: NavigatorLike | undefined): Promise<StorageStatus> {
-  const estimate = nav?.storage?.estimate;
-  if (typeof estimate !== 'function') return { supported: false, usageBytes: null, quotaBytes: null };
+  const manager = nav?.storage;
+  if (typeof manager?.estimate !== 'function') return UNSUPPORTED_STORAGE;
   try {
-    const result = await estimate();
+    // Called on its owner, not detached: Chrome throws "Illegal invocation" for a
+    // bare `estimate()`, which silently reported storage as unsupported.
+    const result = await manager.estimate();
     return { supported: true, usageBytes: numberOrNull(result.usage), quotaBytes: numberOrNull(result.quota) };
   } catch {
-    return { supported: false, usageBytes: null, quotaBytes: null };
+    return UNSUPPORTED_STORAGE;
   }
+}
+
+/** Field-wise equality, so an unchanged reading does not re-render a card. */
+export function batteryStatusEqual(a: BatteryStatus | null, b: BatteryStatus | null): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  return (
+    a.supported === b.supported &&
+    a.level === b.level &&
+    a.charging === b.charging &&
+    a.chargingTimeSeconds === b.chargingTimeSeconds &&
+    a.dischargingTimeSeconds === b.dischargingTimeSeconds
+  );
+}
+
+/** Field-wise equality, so an unchanged reading does not re-render a card. */
+export function storageStatusEqual(a: StorageStatus | null, b: StorageStatus | null): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  return a.supported === b.supported && a.usageBytes === b.usageBytes && a.quotaBytes === b.quotaBytes;
 }
 
 const BYTE_UNITS = ['B', 'kB', 'MB', 'GB', 'TB', 'PB'] as const;

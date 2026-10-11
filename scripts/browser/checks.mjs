@@ -501,6 +501,24 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
         clickCount: type === 'mouseMoved' ? 0 : 1,
       });
 
+    /** A single-pane view: does the one visible pane reach the widget body's edge? */
+    const singlePane = (pane) => `(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const body = item && item.querySelector('.overflow-auto.p-3');
+      const target = item && item.querySelector(${JSON.stringify(pane)});
+      if (!body || !target) return null;
+      // The root row inside the padded body is the area a pane has to fill; the
+      // body itself is wider by its padding.
+      const row = body.firstElementChild;
+      const rowRect = row.getBoundingClientRect();
+      const rect = target.getBoundingClientRect();
+      return {
+        trailingSpace: Math.round(rowRect.right - rect.right),
+        share: rect.width / rowRect.width,
+        separators: item.querySelectorAll('[role="separator"]').length,
+      };
+    })()`;
+
     /** Drag the divider by `dx` device pixels, in a few steps. */
     const drag = async (dx) => {
       const before = await page.session.evaluate(geometry);
@@ -603,8 +621,58 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
     report.check('the notes widget switches to edit view', switched);
     await wait(400);
 
+    const editPane = await page.session.evaluate(singlePane('textarea'));
+    report.check(
+      'edit view gives the editor the whole pane area',
+      editPane !== null && editPane.trailingSpace <= 0 && editPane.share > 0.99 && editPane.separators === 0,
+      JSON.stringify(editPane),
+    );
+    report.check(
+      'edit view offers no divider (and no empty preview track)',
+      (await page.session.evaluate(`(() => {
+        const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+        return item.querySelectorAll('[role="separator"][aria-label="Resize the editor and preview"]').length === 0;
+      })()`)) === true,
+    );
+
+    // The preview-only view behaves the same way: no empty editor track beside
+    // it, and nothing to drag.
+    const previewSwitched = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const preview = item && [...item.querySelectorAll('[role="radio"]')].find((b) => (b.innerText || '').trim() === 'Preview');
+      if (!preview) return false;
+      preview.click();
+      return true;
+    })()`);
+    report.check('the notes widget switches to preview view', previewSwitched);
+    await wait(400);
+    const previewPane = await page.session.evaluate(singlePane('div[class*="overflow-y-auto"]'));
+    report.check(
+      'preview view gives the preview the whole pane area',
+      previewPane !== null && previewPane.trailingSpace <= 0 && previewPane.share > 0.99 && previewPane.separators === 0,
+      JSON.stringify(previewPane),
+    );
+    report.check(
+      'preview view offers no divider (and no empty editor track)',
+      (await page.session.evaluate(`(() => {
+        const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+        return item.querySelectorAll('[role="separator"][aria-label="Resize the editor and preview"]').length === 0;
+      })()`)) === true,
+    );
+
+    // Back to Split: the panel divider only exists when both panes do, which is
+    // also where it gets exercised.
+    await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const split = item && [...item.querySelectorAll('[role="radio"]')].find((b) => (b.innerText || '').trim() === 'Split');
+      if (split) split.click();
+      return Boolean(split);
+    })()`);
+    await wait(400);
+
     const sidebarBefore = await page.session.evaluate(sidebarGeometry);
     const sidebarStoredBefore = await page.session.evaluate(readSidebarRatio);
+    report.check('the notes panel divider is present in split view', sidebarBefore !== null);
     await mouse('mousePressed', sidebarBefore.x, sidebarBefore.y, 1);
     await wait(60);
     for (let step = 1; step <= 5; step += 1) {
@@ -616,7 +684,7 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
     const sidebarAfter = await page.session.evaluate(sidebarGeometry);
     const sidebarStoredAfter = await page.session.evaluate(readSidebarRatio);
     report.check(
-      'the notes panel is resizable in edit view too',
+      'the notes panel can be resized against the panes',
       sidebarStoredBefore !== null &&
         sidebarStoredAfter > sidebarStoredBefore &&
         sidebarAfter.renderedShare > sidebarBefore.renderedShare + 0.02,

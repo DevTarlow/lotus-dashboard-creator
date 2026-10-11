@@ -28,11 +28,12 @@ export interface NotesResizablePanesProps {
   /** Rendered in the right (or bottom) pane. */
   children: ReactNode;
   /**
-   * Whether the divider is shown at all. The widget renders the same layout in
-   * the single-pane modes, and a separator between one pane and nothing would be
-   * a dead control.
+   * Whether a second pane exists at all.
+   *
+   * `false` elsewhere: the one pane then takes the whole area, instead of leaving
+   * a divider and an empty track beside it.
    */
-  resizable?: boolean;
+  split?: boolean;
   /**
    * Layout classes for the container. Whatever is passed has to stack the panes
    * *below* the `stackedAt` width and lay them out in a row above it, because
@@ -65,6 +66,10 @@ export interface NotesResizablePanesProps {
  * along different axes: `flex-basis` is its width in a row and its height in a
  * column, and a stacked pane wants the full width instead.
  *
+ * With one pane there is nothing to size against, so the caller sets {@link
+ * NotesResizablePanesProps.split} to `false` and leaves the aside empty: the
+ * survivor takes the whole area, with no divider and no empty track.
+ *
  * Listeners live on `window`, not the divider: once the two panes resize under
  * the pointer, the divider element moves out from under it, and a gesture bound
  * to the element would stop following the cursor.
@@ -77,7 +82,7 @@ export function NotesResizablePanes({
   label,
   aside,
   children,
-  resizable = true,
+  split = true,
   className,
   stacked = false,
 }: NotesResizablePanesProps) {
@@ -188,16 +193,18 @@ export function NotesResizablePanes({
         className,
       )}
     >
-      <div
-        className={cn('min-h-0 min-w-0', stacked ? 'w-full' : 'flex-none shrink-0')}
-        // `flex-basis` is the *main axis*: the width in a row, the height in a
-        // column. Stacked panes take the full width and share the height instead.
-        style={stacked ? undefined : { flexBasis: `${displayed}%` }}
-      >
-        {aside}
-      </div>
+      {split ? (
+        <div
+          className={cn('min-h-0 min-w-0', stacked ? 'w-full' : 'flex-none shrink-0')}
+          // `flex-basis` is the *main axis*: the width in a row, the height in a
+          // column. Stacked panes take the full width and share the height instead.
+          style={stacked ? undefined : { flexBasis: `${displayed}%` }}
+        >
+          {aside}
+        </div>
+      ) : null}
 
-      {resizable ? (
+      {split ? (
         <div
           role="separator"
           aria-orientation="vertical"

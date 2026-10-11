@@ -454,13 +454,14 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 16 assertions there — 56 with a server —
+single-file checks need no server at all. 16 assertions there — 62 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, the notes file panel (create, autosave across a reload, delete
-confirmation, and a pre-panel scratchpad migrating into a note), dragging both
-notes dividers (editor/preview and the notes panel, including their keyboard
-equivalents), settings surviving a refresh, and the save/reopen round trip —
-including the assertion that
+confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
+filling the width whenever only one of them shows, dragging both notes dividers
+(editor/preview and the notes panel, including their keyboard equivalents),
+settings surviving a refresh, and the save/reopen round trip — including the
+assertion that
 matters most: the saved file is reopened **from a different path**, so a different
 `localStorage` scope means a restored setting can only have come from the embedded
 snapshot. That check caught a genuine bug — a string-level `</body>` insertion
@@ -561,10 +562,12 @@ through the DOM.
   the widget's own config, not an encrypted store: deleting a note is undoable
   with ⌘/Ctrl + Z, and a note deleted before the last export is gone from the file
   you saved. A scratchpad saved before the panel existed opens with its text as
-  the first note. Both divider positions are kept as percentages, so they mean
-  the same thing after the widget is resized (or on another screen) rather than
-  sliding as the pixel width changes; the editor keeps at least 15% and the notes
-  panel between 15% and 60%, so a pane can never be dragged shut.
+  the first note. A divider only exists where two panes do: in the edit and
+  preview views the visible pane spans the widget and there is nothing to drag.
+  Both divider positions are kept as percentages, so they mean the same thing
+  after the widget is resized (or on another screen) rather than sliding as the
+  pixel width changes; the editor keeps at least 15% and the notes panel between
+  15% and 60%, so a pane can never be dragged shut.
 - Drag & drop inside the grid is disabled while the layout is locked, but the
   template/import/reset flows still work — the lock only guards accidental moves.
 - The exported JSON contains everything, so treat a shared file as you would a

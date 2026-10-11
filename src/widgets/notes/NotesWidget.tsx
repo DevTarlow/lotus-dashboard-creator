@@ -216,6 +216,77 @@ export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps
 
   const showEditor = mode !== 'preview';
   const showPreview = mode !== 'edit';
+  /**
+   * Whether the editor and preview share the pane area. In the single-pane modes
+   * the visible one renders on its own, so it spans the whole widget instead of
+   * leaving an empty track beside it.
+   */
+  const splitPanes = showEditor && showPreview;
+
+  const editorPane =
+    activeNote && showEditor ? (
+      <textarea
+        ref={editorRef}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        spellCheck
+        placeholder="Write markdown here…"
+        aria-label={`Note ${deriveNoteTitle(activeNote.text)}`}
+        className={cn(
+          PANE_BASE,
+          'w-full resize-none bg-slate-50/60 font-mono leading-relaxed text-slate-700',
+          'placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20',
+          'dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200 dark:placeholder:text-slate-600',
+          'dark:focus:border-violet-500/50 dark:focus:bg-slate-950/70',
+          FONT_SIZES[fontSize],
+        )}
+      />
+    ) : null;
+
+  const previewPane =
+    activeNote && showPreview ? (
+      <div
+        className={cn(
+          PANE_BASE,
+          'overflow-y-auto border-slate-100 bg-white/60 dark:border-slate-800 dark:bg-slate-950/20',
+        )}
+      >
+        <Markdown source={value} placeholder="Your preview appears here." />
+      </div>
+    ) : null;
+
+  /** The editor/preview area: a split when both are visible, otherwise one pane. */
+  const panes =
+    activeNote === null ? (
+      <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+        <EmptyState
+          size="sm"
+          icon={<NotesIcon className="h-4 w-4" />}
+          title="No notes yet"
+          description="Create a note to start writing."
+          action={
+            <Button size="sm" variant="primary" onClick={createNewNote}>
+              New note
+            </Button>
+          }
+        />
+      </div>
+    ) : splitPanes ? (
+      <NotesResizablePanes
+        ratio={editorRatio}
+        onRatioChange={(next) => updateConfig({ editorRatio: next })}
+        min={MIN_EDITOR_RATIO}
+        max={MAX_EDITOR_RATIO}
+        label="Resize the editor and preview"
+        stacked={stackEditorAndPreview}
+        aside={editorPane}
+      >
+        {previewPane}
+      </NotesResizablePanes>
+    ) : (
+      (editorPane ?? previewPane)
+    );
 
   return (
     <div className="flex h-full min-h-0 gap-3">
@@ -225,7 +296,10 @@ export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps
         min={MIN_SIDEBAR_RATIO}
         max={MAX_SIDEBAR_RATIO}
         label="Resize the notes panel"
-        resizable={sidebarOpen}
+        // The panel only divides the area when there are two panes to divide it
+        // between. In the single-pane views it simply sits beside the one pane,
+        // which is then free to run to the widget's right edge.
+        split={sidebarOpen && splitPanes}
         stacked={stackSidebar}
         aside={
           sidebarOpen ? (
@@ -271,63 +345,7 @@ export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps
             </span>
           </div>
 
-          {activeNote === null ? (
-            <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-              <EmptyState
-                size="sm"
-                icon={<NotesIcon className="h-4 w-4" />}
-                title="No notes yet"
-                description="Create a note to start writing."
-                action={
-                  <Button size="sm" variant="primary" onClick={createNewNote}>
-                    New note
-                  </Button>
-                }
-              />
-            </div>
-          ) : (
-            <NotesResizablePanes
-              ratio={editorRatio}
-              onRatioChange={(next) => updateConfig({ editorRatio: next })}
-              min={MIN_EDITOR_RATIO}
-              max={MAX_EDITOR_RATIO}
-              label="Resize the editor and preview"
-              resizable={showEditor && showPreview}
-              stacked={stackEditorAndPreview}
-              aside={
-                showEditor ? (
-                  <textarea
-                    ref={editorRef}
-                    value={value}
-                    onChange={onChange}
-                    onKeyDown={onKeyDown}
-                    spellCheck
-                    placeholder="Write markdown here…"
-                    aria-label={`Note ${deriveNoteTitle(activeNote.text)}`}
-                    className={cn(
-                      PANE_BASE,
-                      'w-full resize-none bg-slate-50/60 font-mono leading-relaxed text-slate-700',
-                      'placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20',
-                      'dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200 dark:placeholder:text-slate-600',
-                      'dark:focus:border-violet-500/50 dark:focus:bg-slate-950/70',
-                      FONT_SIZES[fontSize],
-                    )}
-                  />
-                ) : null
-              }
-            >
-              {showPreview ? (
-                <div
-                  className={cn(
-                    PANE_BASE,
-                    'overflow-y-auto border-slate-100 bg-white/60 dark:border-slate-800 dark:bg-slate-950/20',
-                  )}
-                >
-                  <Markdown source={value} placeholder="Your preview appears here." />
-                </div>
-              ) : null}
-            </NotesResizablePanes>
-          )}
+          {panes}
 
           <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">
             <span className="truncate">{activeNote ? deriveNoteTitle(activeNote.text) : 'No note selected'}</span>

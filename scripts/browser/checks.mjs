@@ -49,6 +49,52 @@ const closeDialog = `(() => {
   return Boolean(done);
 })()`;
 
+/* ------------------------------------------------------------- first run */
+
+/**
+ * The welcome panel, as the running page reports it.
+ *
+ * A cold start (nothing stored for this document) opens it, so every group that
+ * begins from `localStorage.clear()` has to deal with it before it can drive the
+ * app — exactly as a first-time user would.
+ */
+const describeWelcome = `(() => {
+  const steps = [...document.querySelectorAll('[role="dialog"] button')].map((b) => (b.innerText || '').trim());
+  const heading = document.querySelector('[role="dialog"] h2');
+  return {
+    open: Boolean(heading && /welcome/i.test(heading.innerText || '')),
+    buttons: steps,
+  };
+})()`;
+
+/** Dismiss the welcome the way a user who wants to look around first would. */
+const dismissWelcome = `(() => {
+  const later = [...document.querySelectorAll('[role="dialog"] button')]
+    .find((b) => /maybe later/i.test(b.innerText || ''));
+  if (!later) return false;
+  later.click();
+  return true;
+})()`;
+
+/** Take the welcome's offer of a full example (the sixteen-panel showcase). */
+const showExampleFromWelcome = `(() => {
+  const button = [...document.querySelectorAll('[role="dialog"] button')]
+    .find((b) => /show me an example/i.test(b.innerText || ''));
+  if (!button) return false;
+  button.click();
+  return true;
+})()`;
+
+/** Clear stored state and reload, then get the welcome out of the way. */
+async function coldStart(page, appUrl, { example = false } = {}) {
+  await page.session.navigate(appUrl);
+  await page.session.evaluate('localStorage.clear()');
+  await page.session.navigate(appUrl);
+  await wait(700);
+  await page.session.evaluate(example ? showExampleFromWelcome : dismissWelcome);
+  await wait(500);
+}
+
 /* ---------------------------------------------------------------- theming */
 
 /**
@@ -85,7 +131,7 @@ const describeTheme = `(() => {
 /** Open the header's "Colour theme" menu. */
 const openThemeMenu = `(() => {
   const trigger = [...document.querySelectorAll('button[aria-label]')]
-    .find((b) => (b.getAttribute('aria-label') || '') === 'Colour theme');
+    .find((b) => (b.getAttribute('aria-label') || '') === 'Themes & colours');
   if (!trigger) return false;
   trigger.click();
   return true;
@@ -200,10 +246,9 @@ export async function runSingleFileChecks({ port, singleFile, downloadDir, repor
       downloadPath: downloadDir,
     });
 
-    // A clean slate, so "default" and "saved" are distinguishable below.
-    await page.session.navigate(singleFileUrl);
-    await page.session.evaluate('localStorage.clear()');
-    await page.session.navigate(singleFileUrl);
+    // A clean slate, so "default" and "saved" are distinguishable below. A
+    // genuinely cold document opens the welcome, which a user dismisses.
+    await coldStart(page, singleFileUrl);
 
     const booted = await page.session.evaluate(describePage);
     report.check('single file boots from file://', booted.widgetCount > 0, `${booted.widgetCount} widgets`);
@@ -332,7 +377,7 @@ export async function runSingleFileChecks({ port, singleFile, downloadDir, repor
       })()`);
       report.check(
         'a saved dashboard picked for import is explained, not called bad JSON',
-        Boolean(importDialog) && /saved dashboard/i.test(importDialog) && !/not valid JSON/i.test(importDialog),
+        Boolean(importDialog) && /not a backup/i.test(importDialog) && !/not valid JSON/i.test(importDialog),
         importDialog ? importDialog.split('\\n')[0] : 'no dialog',
       );
     }
@@ -343,12 +388,223 @@ export async function runSingleFileChecks({ port, singleFile, downloadDir, repor
   }
 }
 
+/**
+ * The first run, as a person meets it.
+ *
+ * Everything here is what someone who was handed the HTML file has to be able to
+ * work out for themselves: what the page is, what the starter dashboard contains,
+ * where their work is kept, and how to get back to the explanation later.
+ */
+export async function runOnboardingChecks({ port, singleFile, report }) {
+  const appUrl = `file://${singleFile}`;
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    await page.session.send('Emulation.setDeviceMetricsOverride', {
+      width: 1400,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+
+    await page.session.navigate(appUrl);
+    await page.session.evaluate('localStorage.clear()');
+    await page.session.navigate(appUrl);
+    await wait(900);
+
+    // 1. A cold document explains itself.
+    const welcome = await page.session.evaluate(describeWelcome);
+    const welcomeText = await page.session.evaluate(
+      `document.querySelector('[role="dialog"]')?.innerText || ''`,
+    );
+    report.check('a first visit opens the welcome', welcome.open, welcome.buttons.join(', '));
+    for (const [label, pattern] of [
+      ['adding a widget', /Add widget/i],
+      ['moving and resizing', /resize/i],
+      ['keeping the work', /Save to file/i],
+    ]) {
+      report.check(`the welcome explains ${label}`, pattern.test(welcomeText));
+    }
+
+    // 2. What it starts from: six panels, and no invented city.
+    const starter = await page.session.evaluate(describeWorkspace);
+    report.check('a first visit starts on six panels', starter.count === 6, `${starter.count} panels`);
+    report.check(
+      'the starter is the essentials, not the showcase',
+      ['clock', 'weather', 'links', 'tasks', 'calendar', 'notes'].every((type) => starter.types.includes(type)),
+      starter.types.join(', '),
+    );
+
+    const weather = await page.session.evaluate(cardText('weather'));
+    report.check(
+      'the weather panel asks for a city instead of assuming one',
+      /which city/i.test(weather ?? ''),
+      (weather ?? '').replace(/\n+/g, ' · ').slice(0, 50),
+    );
+
+    // 3. The footer says where the work is, and the tab names the dashboard.
+    const chrome = await page.session.evaluate(`(() => ({
+      footer: (document.querySelector('footer')?.innerText || '').replace(/\\n+/g, ' | '),
+      title: document.title,
+      header: (document.querySelector('header')?.innerText || '').replace(/\\n+/g, ' | '),
+    }))()`);
+    report.check(
+      'the footer says how to keep the file up to date',
+      /save to file/i.test(chrome.footer) && /saved in this browser/i.test(chrome.footer),
+      chrome.footer.slice(0, 90),
+    );
+    report.check('the tab is named after the dashboard', /My dashboard · Lotus/.test(chrome.title), chrome.title);
+    report.check(
+      'no grid vocabulary in the header',
+      !/cols|breakpoint|localStorage/i.test(chrome.header),
+      chrome.header.slice(0, 70),
+    );
+
+    // 4. Controls that were hover-only are visible at rest.
+    const affordances = await page.session.evaluate(`(() => {
+      const card = document.querySelector('.react-grid-item');
+      const gear = [...(card?.querySelectorAll('button') ?? [])]
+        .find((b) => /^Settings for /.test(b.getAttribute('aria-label') || ''));
+      const handle = card?.querySelector('.react-resizable-handle');
+      return {
+        gear: gear ? getComputedStyle(gear).opacity : null,
+        resize: handle ? getComputedStyle(handle).opacity : null,
+      };
+    })()`);
+    report.check('the settings gear is visible without hovering', affordances.gear === '1', String(affordances.gear));
+    report.check(
+      'the resize corner is visible without hovering',
+      affordances.resize !== null && Number(affordances.resize) > 0,
+      String(affordances.resize),
+    );
+
+    // 5. Removing a widget asks first, and the question survives being answered.
+    await page.session.evaluate(dismissWelcome);
+    await wait(400);
+    await page.session.evaluate(`(() => {
+      const button = [...document.querySelectorAll('.react-grid-item button')]
+        .find((b) => /^Actions for /.test(b.getAttribute('aria-label') || ''));
+      if (button) button.click();
+    })()`);
+    await wait(400);
+    await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('[role="menuitem"]')]
+        .find((el) => /remove widget/i.test(el.innerText || ''));
+      if (item) item.click();
+    })()`);
+    await wait(500);
+    const asked = await page.session.evaluate(
+      `(() => { const d = document.querySelector('[role="dialog"]'); return d ? d.innerText : null; })()`,
+    );
+    const beforeSwitch = await page.session.evaluate(`document.querySelectorAll('.react-grid-item').length`);
+    report.check('removing a widget asks first', Boolean(asked) && /remove/i.test(asked), (asked ?? '').slice(0, 45));
+
+    await page.session.evaluate(`(() => {
+      const sw = document.querySelector('[role="dialog"] [role="switch"]');
+      if (sw) sw.click();
+    })()`);
+    await wait(500);
+    const afterSwitch = await page.session.evaluate(`document.querySelectorAll('.react-grid-item').length`);
+    report.check(
+      'answering "stop asking" does not delete anything by itself',
+      afterSwitch === beforeSwitch,
+      `${beforeSwitch} → ${afterSwitch}`,
+    );
+    await page.session.evaluate(`(() => {
+      const cancel = [...document.querySelectorAll('[role="dialog"] button')]
+        .find((b) => (b.innerText || '').trim() === 'Cancel');
+      if (cancel) cancel.click();
+    })()`);
+    await wait(400);
+
+    // 6. Dismissed once, and reachable again from Help.
+    await page.session.navigate(appUrl);
+    await wait(900);
+    const afterReload = await page.session.evaluate(describeWelcome);
+    report.check('the welcome does not come back on its own', afterReload.open === false);
+
+    await page.session.evaluate(`(() => {
+      const help = [...document.querySelectorAll('footer button')]
+        .find((b) => /help/i.test(b.innerText || ''));
+      if (help) help.click();
+    })()`);
+    await wait(500);
+    const helpText = await page.session.evaluate(
+      `(() => { const d = document.querySelector('[role="dialog"]'); return d ? d.innerText : null; })()`,
+    );
+    report.check('Help brings the guidance back', /getting started/i.test(helpText ?? ''), (helpText ?? '').slice(0, 45));
+    report.check(
+      'Help carries the shortcut sheet too',
+      /keyboard|shortcut|⌘/i.test(helpText ?? ''),
+      (helpText ?? '').split('\n').slice(-1)[0],
+    );
+    await page.session.evaluate(closeDialog);
+    await wait(300);
+
+    // 7. The blank canvas the app could not previously reach.
+    await page.session.evaluate(`(() => {
+      const trigger = [...document.querySelectorAll('button')]
+        .find((b) => (b.getAttribute('aria-label') || '').startsWith('Dashboard actions'));
+      if (trigger) trigger.click();
+    })()`);
+    await wait(300);
+    await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('[role="menuitem"]')]
+        .find((el) => /templates/i.test(el.innerText || ''));
+      if (item) item.click();
+    })()`);
+    await wait(500);
+    const blanked = await page.session.evaluate(`(() => {
+      const button = [...document.querySelectorAll('[role="dialog"] button')]
+        .find((b) => /start blank/i.test(b.innerText || ''));
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    await wait(600);
+    const emptied = await page.session.evaluate(describeWorkspace);
+    const emptyState = await page.session.evaluate(`(() => {
+      const button = [...document.querySelectorAll('button')]
+        .find((b) => /add your first widget/i.test(b.innerText || ''));
+      return Boolean(button);
+    })()`);
+    report.check('the templates panel offers a blank canvas', blanked);
+    report.check('a blank canvas is really empty', emptied.count === 0, `${emptied.count} panels`);
+    report.check('and it says what to do next', emptyState);
+
+    // 8. The file explains itself even with JavaScript switched off.
+    const html = await readFile(singleFile, 'utf8');
+    report.check(
+      'the built file carries a readable note about itself',
+      /your dashboard is this one file/i.test(html),
+      'notice comment',
+    );
+    report.check(
+      'the notice sits after the doctype, so the page is not in quirks mode',
+      html.indexOf('<!doctype') === 0 && html.indexOf('your dashboard is this one file') > html.indexOf('<!doctype'),
+    );
+    report.check('the file has a no-JavaScript fallback', /<noscript>[\s\S]*needs JavaScript/i.test(html));
+  } finally {
+    report.check(
+      'no console errors on a first visit',
+      problems.consoleErrors.length === 0,
+      problems.consoleErrors.slice(0, 3).join(' | '),
+    );
+    report.check('no uncaught exceptions on a first visit', problems.exceptions.length === 0, problems.exceptions.slice(0, 2).join(' | '));
+    await page.close();
+  }
+}
+
 /** Server-side checks. `appUrl` must already be reachable. */
 export async function runAppChecks({ port, appUrl, report }) {
   const page = await openPage(port, 'about:blank');
   const problems = watchForProblems(page.session);
   try {
     await page.session.navigate(appUrl);
+    await wait(600);
+    // A dev origin with no stored workspace shows the welcome; get it out of the way.
+    await page.session.evaluate(dismissWelcome);
+    await wait(400);
     const health = await page.session.evaluate(describePage);
     report.check('app renders', health.widgetCount > 0, `${health.widgetCount} widgets`);
     report.check('app assets resolve', health.logoLoaded === true);
@@ -1088,11 +1344,11 @@ export async function runWorkspaceChecks({ port, appUrl, report }) {
       mobile: false,
     });
 
-    // A cold start: no stored workspace, so the default template is what loads.
-    await page.session.navigate(appUrl);
-    await page.session.evaluate('localStorage.clear()');
-    await page.session.navigate(appUrl);
-    await wait(900);
+    // A cold start leaves the six-panel starter. This group is about the full
+    // catalogue, which the welcome offers as an example — the same click a user
+    // makes — so the sixteen-panel assertions below stay meaningful.
+    await coldStart(page, appUrl, { example: true });
+    await wait(600);
 
     const first = await page.session.evaluate(describeWorkspace);
     report.check('a first visit preloads sixteen panels', first.count === 16, `${first.count} panels`);
@@ -1846,10 +2102,7 @@ export async function runThemeChecks({ port, appUrl, report }) {
   const problems = watchForProblems(page.session);
   try {
     // A clean slate: presets left behind by another check must not leak in.
-    await page.session.navigate(appUrl);
-    await page.session.evaluate('localStorage.clear()');
-    await page.session.navigate(appUrl);
-    await wait(600);
+    await coldStart(page, appUrl);
 
     const fresh = await page.session.evaluate(describeTheme);
     report.check(
@@ -1922,7 +2175,7 @@ export async function runThemeChecks({ port, appUrl, report }) {
 
     // A typed accent colour is honoured, and the preset stays selected.
     const hexSet = await page.session.evaluate(
-      setInputValue('input[aria-label="Accent colour hex value"]', '#00ffcc'),
+      setInputValue('input[aria-label^="Accent colour value"]', '#00ffcc'),
     );
     await wait(400);
     const custom = await page.session.evaluate(describeTheme);

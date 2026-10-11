@@ -23,6 +23,7 @@ import { isReachable, launchChrome } from './browser/cdp.mjs';
 import {
   runAppChecks,
   runNotesChecks,
+  runOnboardingChecks,
   runNotesResizeChecks,
   runReorderChecks,
   runSingleFileChecks,
@@ -127,8 +128,23 @@ try {
     report.check('single-file checks completed', false, error.message);
   }
 
-  // The preloaded catalogue, driven offline: sixteen panels, no overlaps at any
-  // width, and the local widgets holding their state across a reload.
+  // The first run: the welcome, the six-panel starter, where the work is kept,
+  // and the way back to the guidance. This is the group that guards the promise
+  // that someone handed the file can work it out unaided.
+  report.startGroup('first run & the file itself (file://)');
+  try {
+    await runOnboardingChecks({
+      port: chrome.port,
+      singleFile: options.single,
+      report,
+    });
+  } catch (error) {
+    report.check('onboarding checks completed', false, error.message);
+  }
+
+  // The full catalogue, driven offline: sixteen panels (taken from the welcome's
+  // example, the click a user makes), no overlaps at any width, and the local
+  // widgets holding their own state across a reload.
   report.startGroup('complete workspace (file://)');
   try {
     await runWorkspaceChecks({

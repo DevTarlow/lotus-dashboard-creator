@@ -1208,3 +1208,497 @@ export async function runSystemChecks({ port, appUrl, report }) {
     await page.close();
   }
 }
+
+/* ------------------------------------------------------- the sticky notes widget */
+
+/** Three notes: one pinned, so pinned-first ordering is observable. */
+const STICKY_SEED_NOTES = [
+  { id: 'check-a', text: 'First note', color: 'yellow', pinned: false, createdAt: 1, updatedAt: 1 },
+  { id: 'check-b', text: 'Pinned note', color: 'blue', pinned: true, createdAt: 2, updatedAt: 2 },
+  { id: 'check-c', text: 'Third note', color: 'pink', pinned: false, createdAt: 3, updatedAt: 3 },
+];
+
+/** The sticky cards, in the order they are rendered, and their pinned flags. */
+const STICKY_ORDER = `[...document.querySelectorAll('[data-widget-type="sticky"] [data-sticky-id]')]
+  .map((el) => el.getAttribute('data-sticky-id'))`;
+
+const STICKY_STORED = `(() => {
+  const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+  if (!key) return null;
+  const widget = JSON.parse(localStorage.getItem(key)).state.widgets.find((w) => w.type === 'sticky');
+  if (!widget) return null;
+  return {
+    ids: (widget.config.notes || []).map((n) => n.id),
+    texts: (widget.config.notes || []).map((n) => n.text),
+    pinned: (widget.config.notes || []).filter((n) => n.pinned).map((n) => n.id),
+    colors: (widget.config.notes || []).map((n) => n.color),
+    pinnedIsBoolean: (widget.config.notes || []).every((n) => typeof n.pinned === 'boolean'),
+    fontSize: widget.config.fontSize,
+  };
+})()`;
+
+/** Click a button by its accessible label inside one sticky card. */
+const STICKY_CLICK = (id, label) => `(() => {
+  const card = document.querySelector('[data-widget-type="sticky"] [data-sticky-id=${JSON.stringify(id)}]');
+  const button = card && card.querySelector('button[aria-label=${JSON.stringify(label)}]');
+  if (!button) return false;
+  button.click();
+  return true;
+})()`;
+
+/**
+ * WCAG contrast between an element's text and the surface it actually sits on.
+ *
+ * Two details make this honest:
+ *
+ * - Colours are resolved through a 1×1 canvas, because Chrome computes Tailwind
+ *   v4 colours as `oklch()`/`oklab()` and composited `color-mix()` results that
+ *   string parsing would get wrong.
+ * - Translucent backgrounds are composited from the page down to the element, so
+ *   a `bg-white/70` over a tinted card is measured as the pixel the text really
+ *   lands on.
+ *
+ * This exists because a `focus:bg-*` beats a `dark:bg-*` on specificity — it
+ * carries a pseudo-class the `:where()`-wrapped dark variant does not — so the
+ * editor used to turn white behind near-white text the moment it was focused in
+ * the dark theme. A ratio is the assertion that cannot be fooled by that.
+ */
+const CONTRAST_PROBE = (selector) => `(() => {
+  const el = document.querySelector(${JSON.stringify(selector)});
+  if (!el) return null;
+  const toRgba = (css) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = css;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+    return [r, g, b, a / 255];
+  };
+  const over = (top, bottom) => {
+    const alpha = top[3];
+    return [0, 1, 2].map((index) => top[index] * alpha + bottom[index] * (1 - alpha));
+  };
+  const chain = [];
+  for (let node = el; node; node = node.parentElement) {
+    chain.push(node);
+    if (node.tagName === 'BODY') break;
+  }
+  let backdrop = [255, 255, 255];
+  for (const node of chain.reverse()) backdrop = over(toRgba(getComputedStyle(node).backgroundColor), backdrop);
+  const text = over(toRgba(getComputedStyle(el).color), backdrop);
+  const channel = (value) => {
+    const v = value / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const luminance = (rgba) => 0.2126 * channel(rgba[0]) + 0.7152 * channel(rgba[1]) + 0.0722 * channel(rgba[2]);
+  const a = luminance(text);
+  const b = luminance(backdrop);
+  return {
+    ratio: Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100,
+    color: getComputedStyle(el).color,
+    background: getComputedStyle(el).backgroundColor,
+    focused: document.activeElement === el,
+  };
+})()`;
+
+/**
+ * The sticky notes panel: pinned notes grouped on top, copy to the clipboard,
+ * inline editing that autosaves, deletion with an undo toast, and a hand-edited
+ * config being repaired in place.
+ *
+ * Clipboard writes are stubbed rather than granted: the assertion wanted here is
+ * *what* the widget tried to copy, and a stub answers that in every Chrome, on
+ * `file://` included, without a permission prompt.
+ */
+export async function runStickyChecks({ port, appUrl, report }) {
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    await page.session.send('Emulation.setDeviceMetricsOverride', {
+      width: 1100,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    /**
+     * A headless page is never "focused", so `:focus` styles never match and a
+     * focused-state bug is invisible. Forcing it is what makes the readability
+     * checks below able to fail.
+     */
+    await page.session.send('Emulation.setFocusEmulationEnabled', { enabled: true });
+
+    await page.session.navigate(appUrl);
+    await page.session.evaluate('localStorage.clear()');
+    await page.session.navigate(appUrl);
+    await wait(600);
+
+    // A hand-edited config on purpose: a blank id, a junk colour and a duplicate
+    // id have to be repaired without losing a note.
+    const seeded = await page.session.evaluate(
+      seedSoleWidget(
+        'sticky',
+        {
+          notes: [
+            ...STICKY_SEED_NOTES,
+            { id: 'check-a', text: 'Duplicate id', color: 'chartreuse', pinned: 'yes', createdAt: 'nope' },
+            { id: '  ', text: '', color: 'blue', pinned: false, createdAt: 4, updatedAt: 4 },
+          ],
+          fontSize: 'md',
+          defaultColor: 'yellow',
+        },
+        { w: 6, h: 14, minW: 3, minH: 4 },
+      ),
+    );
+    report.check('a sticky notes widget can be seeded', seeded === true);
+    await page.session.navigate(appUrl);
+    await wait(800);
+
+    const repaired = await page.session.evaluate(STICKY_STORED);
+    report.check(
+      'a hand-edited config is repaired without dropping a note',
+      repaired?.ids.length === 5 && new Set(repaired.ids).size === 5 && repaired.ids.every((id) => id.trim() !== ''),
+      JSON.stringify(repaired?.ids),
+    );
+    report.check(
+      'junk colours fall back to the configured default',
+      repaired?.colors[3] === 'yellow' && repaired?.pinnedIsBoolean === true,
+      JSON.stringify(repaired?.colors),
+    );
+
+    // Reset to the clean three-note fixture for the interaction checks.
+    await page.session.evaluate(
+      seedSoleWidget(
+        'sticky',
+        { notes: STICKY_SEED_NOTES, fontSize: 'md', defaultColor: 'yellow' },
+        { w: 6, h: 14, minW: 3, minH: 4 },
+      ),
+    );
+    await page.session.navigate(appUrl);
+    await wait(700);
+
+    const initial = await page.session.evaluate(STICKY_ORDER);
+    report.check(
+      'the pinned note is rendered above the rest',
+      JSON.stringify(initial) === JSON.stringify(['check-b', 'check-a', 'check-c']),
+      JSON.stringify(initial),
+    );
+    const sections = await page.session.evaluate(`(() => {
+      const pinned = document.querySelector('[data-widget-type="sticky"] section[aria-label="Pinned notes"]');
+      return {
+        hasPinned: pinned !== null,
+        // Rendered upper-case by the section label's styling.
+        labels: [...document.querySelectorAll('[data-widget-type="sticky"] h4')].map((h) =>
+          (h.innerText || '').trim().toLowerCase(),
+        ),
+      };
+    })()`);
+    report.check(
+      'the pinned group is labelled',
+      sections?.hasPinned === true && sections.labels.includes('pinned') && sections.labels.includes('notes'),
+      JSON.stringify(sections?.labels),
+    );
+
+    // Pin an unpinned note: it has to lift to the top of the pinned group and stick.
+    const pinClicked = await page.session.evaluate(STICKY_CLICK('check-a', 'Pin note'));
+    await wait(400);
+    const afterPin = await page.session.evaluate(STICKY_ORDER);
+    report.check(
+      'pinning lifts a note to the top of the group',
+      pinClicked && JSON.stringify(afterPin) === JSON.stringify(['check-a', 'check-b', 'check-c']),
+      JSON.stringify(afterPin),
+    );
+    await page.session.navigate(appUrl);
+    await wait(700);
+    const pinnedAfterReload = await page.session.evaluate(STICKY_STORED);
+    report.check(
+      'the pin survives a reload',
+      JSON.stringify(pinnedAfterReload?.pinned) === JSON.stringify(['check-a', 'check-b']),
+      JSON.stringify(pinnedAfterReload?.pinned),
+    );
+
+    // Unpinning drops it to the first unpinned slot.
+    const unpinned = await page.session.evaluate(STICKY_CLICK('check-a', 'Unpin note'));
+    await wait(400);
+    const afterUnpin = await page.session.evaluate(STICKY_ORDER);
+    report.check(
+      'unpinning drops the note back below the pinned group',
+      unpinned && JSON.stringify(afterUnpin) === JSON.stringify(['check-b', 'check-a', 'check-c']),
+      JSON.stringify(afterUnpin),
+    );
+
+    // Clipboard: a stub records what the widget tried to write.
+    await page.session.evaluate(`(() => {
+      window.__copied = null;
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        get: () => ({ writeText: (text) => { window.__copied = text; return Promise.resolve(); } }),
+      });
+      return true;
+    })()`);
+    const copyClicked = await page.session.evaluate(STICKY_CLICK('check-c', 'Copy note'));
+    await wait(400);
+    const copied = await page.session.evaluate(`window.__copied`);
+    report.check('copying a note writes its text to the clipboard', copyClicked && copied === 'Third note', String(copied));
+    const copiedState = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="sticky"] [data-sticky-id="check-c"]');
+      return card ? card.querySelector('button[aria-label="Copied"]') !== null : false;
+    })()`);
+    report.check('the copy button reports Copied', copiedState === true);
+    await wait(1400);
+    const copiedReset = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="sticky"] [data-sticky-id="check-c"]');
+      return card ? card.querySelector('button[aria-label="Copy note"]') !== null : false;
+    })()`);
+    report.check('the Copied state clears itself', copiedReset === true);
+
+    // Inline editing autosaves, and the new colour travels with it.
+    const editClicked = await page.session.evaluate(STICKY_CLICK('check-c', 'Edit note'));
+    await wait(300);
+    const typed = await page.session.evaluate(`(() => {
+      const area = document.querySelector('[data-widget-type="sticky"] [data-sticky-id="check-c"] textarea');
+      if (!area) return false;
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(area, 'Edited from the check');
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await wait(700);
+    const edited = await page.session.evaluate(STICKY_STORED);
+    report.check(
+      'typing in a note autosaves it',
+      editClicked && typed && edited?.texts.includes('Edited from the check') === true,
+      JSON.stringify(edited?.texts),
+    );
+    const recolourClicked = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="sticky"] [data-sticky-id="check-c"]');
+      const dot = card && card.querySelector('button[aria-label="Colour green"]');
+      if (!dot) return false;
+      dot.click();
+      return true;
+    })()`);
+    await wait(400);
+    const recoloured = await page.session.evaluate(STICKY_STORED);
+    const greenIndex = recoloured?.ids.indexOf('check-c') ?? -1;
+    report.check(
+      'a note can be recoloured while editing',
+      recolourClicked && greenIndex !== -1 && recoloured.colors[greenIndex] === 'green',
+      JSON.stringify(recoloured?.colors),
+    );
+    // Escape (and blur) end the edit without losing the text.
+    const saved = await page.session.evaluate(STICKY_CLICK('check-c', 'Save note'));
+    await wait(400);
+    const savedState = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="sticky"] [data-sticky-id="check-c"]');
+      return { textarea: card ? card.querySelector('textarea') !== null : true, text: card ? (card.innerText || '') : '' };
+    })()`);
+    report.check(
+      'saving closes the editor and keeps the note',
+      saved && savedState.textarea === false && /Edited from the check/.test(savedState.text),
+      JSON.stringify(savedState).slice(0, 80),
+    );
+
+    // Delete, then put it back from the toast.
+    const deleteClicked = await page.session.evaluate(STICKY_CLICK('check-c', 'Delete note'));
+    await wait(500);
+    const afterDelete = await page.session.evaluate(STICKY_STORED);
+    const toastText = await page.session.evaluate(`(() => {
+      const toast = [...document.querySelectorAll('[role="status"], [role="alert"]')].map((el) => el.innerText || '');
+      return toast.join(' | ');
+    })()`);
+    report.check(
+      'deleting removes the note',
+      deleteClicked && afterDelete?.ids.includes('check-c') === false && afterDelete.texts.length === 2,
+      JSON.stringify(afterDelete?.ids),
+    );
+    report.check('the delete is announced with an undo action', /Note deleted/.test(toastText) && /Undo/.test(toastText), toastText.replace(/\n+/g, ' · ').slice(0, 80));
+    const undone = await page.session.evaluate(`(() => {
+      const button = [...document.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'Undo');
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    await wait(600);
+    const restored = await page.session.evaluate(STICKY_STORED);
+    report.check(
+      'Undo puts the note back where it was',
+      undone && JSON.stringify(restored?.ids) === JSON.stringify(['check-b', 'check-a', 'check-c']),
+      JSON.stringify(restored?.ids),
+    );
+
+    // A new note opens in edit mode and survives a reload.
+    const added = await page.session.evaluate(`(() => {
+      const button = [...document.querySelectorAll('[data-widget-type="sticky"] button')].find((b) => (b.innerText || '').trim() === 'New note');
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    await wait(400);
+    const fresh = await page.session.evaluate(`(() => {
+      const area = document.querySelector('[data-widget-type="sticky"] textarea[aria-label^="Note text:"]');
+      return { hasEditor: area !== null, count: document.querySelectorAll('[data-widget-type="sticky"] [data-sticky-id]').length };
+    })()`);
+    report.check('New note opens an editor for it', added && fresh.hasEditor === true && fresh.count === 4, JSON.stringify(fresh));
+    await page.session.evaluate(`(() => {
+      const area = document.querySelector('[data-widget-type="sticky"] textarea[aria-label^="Note text:"]');
+      if (!area) return false;
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(area, 'Bought during the check');
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await wait(700);
+    await page.session.navigate(appUrl);
+    await wait(800);
+    const persisted = await page.session.evaluate(STICKY_STORED);
+    const rendered = await page.session.evaluate(cardText('sticky'));
+    report.check(
+      'a new note is saved and comes back after a reload',
+      persisted?.texts.length === 4 && persisted.texts.includes('Bought during the check') && /Bought during the check/.test(rendered ?? ''),
+      JSON.stringify(persisted?.texts),
+    );
+
+    // Deleting every note leaves the empty state alone (no re-seeding on read).
+    const emptied = await page.session.evaluate(`(() => {
+      const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+      const parsed = JSON.parse(localStorage.getItem(key));
+      const widget = parsed.state.widgets.find((w) => w.type === 'sticky');
+      widget.config.notes = [];
+      localStorage.setItem(key, JSON.stringify(parsed));
+      return true;
+    })()`);
+    await page.session.navigate(appUrl);
+    await wait(700);
+    const emptyState = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="sticky"]');
+      return {
+        empty: card ? (card.innerText || '').includes('No notes yet') : false,
+        notes: (() => {
+          const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+          const widget = JSON.parse(localStorage.getItem(key)).state.widgets.find((w) => w.type === 'sticky');
+          return widget.config.notes.length;
+        })(),
+      };
+    })()`);
+    report.check(
+      'an emptied widget shows its empty state instead of re-seeding',
+      emptied && emptyState.empty === true && emptyState.notes === 0,
+      JSON.stringify(emptyState),
+    );
+
+    // The text size is a real setting, kept in the workspace like the others.
+    await page.session.evaluate(
+      seedSoleWidget(
+        'sticky',
+        { notes: STICKY_SEED_NOTES, fontSize: 'lg', defaultColor: 'green' },
+        { w: 6, h: 14, minW: 3, minH: 4 },
+      ),
+    );
+    await page.session.navigate(appUrl);
+    await wait(700);
+    const settings = await page.session.evaluate(STICKY_STORED);
+    const largeText = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="sticky"] [data-sticky-id="check-a"]');
+      const preview = card && card.querySelector('button[aria-label^="Edit note:"]');
+      return preview ? preview.className : null;
+    })()`);
+    report.check(
+      'the text size setting reaches the note',
+      settings?.fontSize === 'lg' && typeof largeText === 'string' && largeText.includes('text-sm'),
+      `${settings?.fontSize} · ${String(largeText).slice(0, 60)}`,
+    );
+
+    /**
+     * Readability while typing, in both themes.
+     *
+     * The editor is focused on purpose: the regression this guards against only
+     * existed in the focused state (a `focus:bg-white` out-specifying the dark
+     * variant), so a probe of the unfocused editor would have passed happily.
+     */
+    const editorSelector = '[data-sticky-id="check-a"] textarea';
+    const previewSelector = '[data-sticky-id="check-b"] button[aria-label^="Edit note:"]';
+    const setTheme = (dark) => `(() => {
+      document.documentElement.classList.toggle('dark', ${dark});
+      return document.documentElement.className;
+    })()`;
+
+    const focused = await page.session.evaluate(`(() => {
+      const area = document.querySelector('[data-sticky-id="check-a"] button[aria-label="Edit note"]');
+      if (area) area.click();
+      return true;
+    })()`);
+    await wait(400);
+    const focusProbe = await page.session.evaluate(`(() => {
+      const area = document.querySelector(${JSON.stringify(editorSelector)});
+      if (!area) return false;
+      area.focus();
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(area, 'Readable while typing');
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await wait(300);
+
+    // Each theme is set explicitly: this Chrome can boot in either, so relying on
+    // the environment default would read the same theme twice.
+    await page.session.evaluate(setTheme(false));
+    await wait(300);
+    const lightEditor = await page.session.evaluate(CONTRAST_PROBE(editorSelector));
+    const lightPreview = await page.session.evaluate(CONTRAST_PROBE(previewSelector));
+    report.check(
+      'the editor is readable on a sticky note in the light theme',
+      focused && focusProbe && lightEditor?.focused === true && lightEditor.ratio >= 4.5,
+      JSON.stringify(lightEditor),
+    );
+    report.check(
+      'the note text is readable in the light theme',
+      lightPreview !== null && lightPreview.ratio >= 4.5,
+      JSON.stringify(lightPreview),
+    );
+
+    await page.session.evaluate(setTheme(true));
+    await wait(300);
+    const darkEditor = await page.session.evaluate(CONTRAST_PROBE(editorSelector));
+    const darkPreview = await page.session.evaluate(CONTRAST_PROBE(previewSelector));
+    report.check(
+      'the focused editor stays readable in the dark theme',
+      darkEditor?.focused === true && darkEditor.ratio >= 4.5,
+      JSON.stringify(darkEditor),
+    );
+    report.check(
+      'the note text is readable in the dark theme',
+      darkPreview !== null && darkPreview.ratio >= 4.5,
+      JSON.stringify(darkPreview),
+    );
+    /**
+     * The assertion that names the reported bug: the two themes must actually
+     * paint different editor surfaces. It fails if the dark read silently
+     * measured a white background (as `focus:bg-white` used to make it), and it
+     * also catches a probe that forgot to switch theme at all.
+     */
+    report.check(
+      'the editor surface differs between the two themes, never white on white',
+      darkEditor !== null &&
+        lightEditor !== null &&
+        darkEditor.background !== lightEditor.background &&
+        darkEditor.ratio >= 4.5,
+      `light ${lightEditor?.background} → dark ${darkEditor?.background}`,
+    );
+    await page.session.evaluate(setTheme(false));
+    await wait(200);
+  } finally {
+    report.check(
+      'no console errors from the sticky notes widget',
+      problems.consoleErrors.length === 0,
+      problems.consoleErrors.slice(0, 3).join(' | '),
+    );
+    report.check(
+      'no uncaught exceptions from the sticky notes widget',
+      problems.exceptions.length === 0,
+      problems.exceptions.slice(0, 2).join(' | '),
+    );
+    await page.close();
+  }
+}

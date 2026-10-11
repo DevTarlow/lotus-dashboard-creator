@@ -320,6 +320,22 @@ export const NotesIcon = (props: IconProps) => (
   </Icon>
 );
 
+/** A post-it: a square with one folded corner. */
+export const StickyNoteIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4.5 4.5h15v9.5l-5.5 5.5h-9.5z" />
+    <path d="M19.5 14h-5.5v5.5" />
+  </Icon>
+);
+
+/** A pushpin, drawn upright so it still reads at 14px. */
+export const PinIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M9 4h6l-.8 4.2 3.3 3.3H6.5l3.3-3.3z" />
+    <path d="M12 11.5V20" />
+  </Icon>
+);
+
 export const LinksIcon = (props: IconProps) => (
   <Icon {...props}>
     <rect x="3" y="4" width="18" height="6" rx="2" />

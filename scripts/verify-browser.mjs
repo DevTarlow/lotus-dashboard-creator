@@ -26,6 +26,7 @@ import {
   runNotesResizeChecks,
   runReorderChecks,
   runSingleFileChecks,
+  runStickyChecks,
   runSystemChecks,
   runWorkspaceChecks,
 } from './browser/checks.mjs';
@@ -147,6 +148,19 @@ try {
     });
   } catch (error) {
     report.check('system checks completed', false, error.message);
+  }
+
+  // Pinned-first ordering, clipboard copy, inline editing, delete-with-undo and
+  // the repair of a hand-edited config — all offline, against the built file.
+  report.startGroup('sticky notes widget (file://)');
+  try {
+    await runStickyChecks({
+      port: chrome.port,
+      appUrl: `file://${options.single}`,
+      report,
+    });
+  } catch (error) {
+    report.check('sticky notes checks completed', false, error.message);
   }
 
   if (options.dev && (await isReachable(options.devUrl))) {

@@ -1,10 +1,10 @@
 # Lotus Dashboard Creator
 
-A modular, drag-and-drop dashboard builder for the browser. Nineteen widgets —
+A modular, drag-and-drop dashboard builder for the browser. Twenty widgets —
 clocks and daylight, weather and air quality, tasks, habits and a focus timer,
-a calendar, markets, news and history, a currency converter, a device panel —
-drop onto a responsive 12-column grid, with a plugin architecture that makes
-adding the twentieth a single file.
+quick sticky notes, a calendar, markets, news and history, a currency converter,
+a device panel — drop onto a responsive 12-column grid, with a plugin
+architecture that makes adding the twenty-first a single file.
 
 Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zustand 5
 · react-grid-layout 2**.
@@ -85,6 +85,7 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 | **Calendar** | A month grid with ISO week numbers, local events per day (edited inline) and optional public holidays from Nager.Date — plus the next holiday and how far away it is. |
 | **Countdown** | The dates worth waiting for, with annual rollover (29 February waits for the next leap year) and a ring for the next one. |
 | **Markdown notes** | Multi-note editor with a left file panel (create, switch, delete with confirmation), draggable dividers between the panel and both panes, auto-save with edit / split / preview modes and a dependency-free markdown renderer. |
+| **Sticky notes** | Quick post-it notes in five colours: pin the ones you need to the top, copy one — or the whole list — to the clipboard, edit inline with auto-save, and remove with an undo toast. |
 | **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove, and drag — or ↑/↓ — to reorder. |
 
 **Markets**
@@ -148,7 +149,7 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (824 tests, 40 files). |
+| `npm test` | Vitest unit suite (859 tests, 41 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
@@ -235,6 +236,7 @@ src/
 │   ├── calendar.ts             # month cells, week starts, local events
 │   ├── worldclock.ts           # zone rows, business hours, overlap windows
 │   ├── notes.ts                # notes model: migration, titles, add/update/remove
+│   ├── stickyNotes.ts          # post-it model: pin ordering, clipboard text, repair
 │   ├── mock/                   # deterministic weather / market / news providers
 │   └── utils.ts                # cn(), formatting, ids, download helpers…
 ├── store/
@@ -250,7 +252,8 @@ src/
 │   ├── registry.ts             # the widget registry (single source of truth)
 │   ├── shared/                 # Sparkline, DeltaPill, WeatherGlyph, Heatmap
 │   ├── clock/ weather/ sun/ worldclock/ tasks/ timer/ habits/ calendar/
-│   ├── countdown/ notes/ links/ market/ news/ onthisday/ air/ earthquake/
+│   ├── countdown/ notes/ sticky/ links/ market/ news/ onthisday/ air/
+│   ├── earthquake/
 │   ├── converter/ system/ github/
 └── test/setup.ts               # in-memory localStorage for the unit suite
 ```
@@ -277,7 +280,7 @@ hot-reload friendly.
 A widget is a `WidgetDefinition`: metadata, a default footprint on the 12-column
 reference grid, a default config, an optional settings schema, and a React
 component. `src/widgets/registry.ts` is the only place that knows the full list of
-**nineteen**, and everything else — the gallery, the settings modal, import
+**twenty**, and everything else — the gallery, the settings modal, import
 validation, persistence rehydration, templates — is driven by that registry. A
 widget type that is not installed is kept in the document (with a warning) and
 rendered as an “unavailable plugin” card instead of being silently dropped.
@@ -527,7 +530,7 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 824 unit tests, 40 files
+npm test          # 859 unit tests, 41 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -561,6 +564,7 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/github.test.ts` | Repository mapping, optional release and workflow sections, slug normalisation and the bearer header. |
 | `lib/system.test.ts` | Battery, storage and device readings that most browsers do not expose, and the opt-in address lookup. |
 | `lib/tasks.test.ts` | Checklist normalisation, ranking, caps, due states and reordering. |
+| `lib/stickyNotes.test.ts` | The post-it model: pinned-first ordering and the move a pin makes, unpinning back to the first free slot, the clipboard blob, the text cap, colour and font fallbacks, id repair, and the mount-time migration a hand-edited config needs. |
 | `lib/timer.test.ts` | The pomodoro state machine derived from timestamps: pause and resume, phase transitions, session logging, reload resume. |
 | `lib/habits.test.ts` | Streak maths (a pending today never breaks a run), schedules, completion rates and the rolling grid. |
 | `lib/countdown.test.ts` | Annual rollover including 29 February, all-day versus timed events, and countdown formatting. |
@@ -587,7 +591,7 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 45 assertions there — 92 with a server —
+single-file checks need no server at all. 73 assertions there — 120 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, the notes file panel (create, autosave across a reload, delete
 confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
@@ -614,6 +618,36 @@ console errors and zero uncaught exceptions across the whole group is asserted
 separately, because a panel that throws while its provider is unreachable is
 exactly the failure this layer exists to prevent.
 
+The **sticky notes** group also runs against the built file with no server. It
+seeds a deliberately hand-edited config (a blank id, a duplicate id, a junk
+colour, a non-boolean pin) and asserts it is repaired without losing a note;
+pins a note and checks it lifts to the top of the pinned group and survives a
+reload; unpins it and checks it drops back below the group; stubs
+`navigator.clipboard` to assert *what* a copy button writes, and that its
+`Copied` state clears itself; types into a note and checks the auto-save lands in
+`localStorage`; recolours one mid-edit and saves with the check button; deletes a
+note and restores it from the toast's **Undo**; adds a note, reloads and checks
+it came back; empties the widget and checks it shows the empty state rather than
+re-seeding itself; and confirms the text-size setting reaches the rendered note.
+The clipboard is stubbed rather than granted because the assertion wanted is what
+the widget tried to write — the same answer in every Chrome, `file://` included,
+with no permission prompt.
+
+That group also measures **readability** while typing, in both themes, because a
+contrast bug there is invisible to every other kind of test. Two details make it
+honest: the page is put into a genuinely focused state
+(`Emulation.setFocusEmulationEnabled`), since a headless page never matches
+`:focus` and the bug it guards against only existed while the editor was focused;
+and the colours are resolved through a 1×1 canvas with translucent backgrounds
+composited from the page down to the element, because Chrome computes Tailwind v4
+colours as `oklch()`/`oklab()` and string parsing would get them wrong. The
+assertion is a WCAG contrast ratio, so it cannot be fooled by the specificity
+trap that caused it: a `focus:bg-white` carries a pseudo-class the
+`:where()`-wrapped dark variant does not, so it wins in the dark theme and paints
+a white editor behind near-white text (ratio 1.1, i.e. invisible). Measured now:
+14.6 in the light theme and 16.3 in the dark, plus an assertion that the two
+surfaces actually differ.
+
 ## Performance notes
 
 - Widget children of the grid are memoised by identity, so dragging or resizing
@@ -626,7 +660,7 @@ exactly the failure this layer exists to prevent.
 - Markdown is parsed in a `useMemo` and only re-parsed when the text changes.
 - `cn()` uses `tailwind-merge`, so component classes can be overridden safely
   without specificity tricks.
-- Production bundle: **~196 kB gzipped JS / ~14 kB gzipped CSS** for all nineteen
+- Production bundle: **~196 kB gzipped JS / ~14 kB gzipped CSS** for all twenty
   widgets (React 19 + zustand + react-grid-layout, with no icon, chart, markdown
   or QR dependency). The single-file build — bundle, styles and images inlined —
   is ~247 kB gzipped.
@@ -790,6 +824,24 @@ exactly the failure this layer exists to prevent.
   after the widget is resized (or on another screen) rather than sliding as the
   pixel width changes; the editor keeps at least 15% and the notes panel between
   15% and 60%, so a pane can never be dragged shut.
+- **Sticky notes** are the quick sibling of that panel: plain text, no markdown,
+  five colours and a pin. They live in the widget config the same way, so they
+  persist, export and travel inside a saved file with no extra storage layer, and
+  every change — including a pin and a delete — is one undo step (a delete also
+  offers an immediate **Undo** in its toast, which puts the note back at the index
+  it came from). The caps are 60 notes of 2,000 characters each; the character cap
+  is only reachable by a paste, and "New note" is disabled — with the reason on
+  the card — once the count is reached, rather than silently dropping notes on the
+  floor. Pinned notes are stored grouped at the front of the list, and the view is
+  a stable pinned-first partition, so a note that arrived scattered by a
+  hand-edited import is still shown under **Pinned**. Such a config is repaired in
+  place on mount instead of trusted: a blank or duplicated id gets a fresh one and
+  an unknown colour falls back to the widget's configured default. The editor's
+  surface is opaque and theme-aware and deliberately never changes colour on
+  focus — a `focus:bg-*` out-specifies the `:where()`-wrapped dark variant and
+  would paint white behind the dark theme's near-white text — so only the ring and
+  the border react to focus, and the browser checks assert the resulting contrast
+  ratio in both themes.
 - Drag & drop inside the grid is disabled while the layout is locked, but the
   template/import/reset flows still work — the lock only guards accidental moves.
 - The exported JSON contains everything, so treat a shared file as you would a

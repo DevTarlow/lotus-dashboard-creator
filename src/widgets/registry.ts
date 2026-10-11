@@ -19,6 +19,7 @@ import { marketWidget } from './market';
 import { newsWidget } from './news';
 import { notesWidget } from './notes';
 import { onThisDayWidget } from './onthisday';
+import { stickyNotesWidget } from './sticky';
 import { sunWidget } from './sun';
 import { systemWidget } from './system';
 import { tasksWidget } from './tasks';
@@ -46,6 +47,7 @@ export const WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
   calendarWidget,
   countdownWidget,
   notesWidget,
+  stickyNotesWidget,
   linksWidget,
 
   // Markets and news.

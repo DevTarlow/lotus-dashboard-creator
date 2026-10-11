@@ -249,6 +249,197 @@ export async function runAppChecks({ port, appUrl, report }) {
 }
 
 /**
+ * The notes file-manager panel: create, autosave across a reload, delete behind
+ * the confirm dialog, and — the regression that matters most — a workspace saved
+ * before the panel existed opening with its text as the first note.
+ */
+export async function runNotesChecks({ port, appUrl, report }) {
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    await page.session.navigate(appUrl);
+    await page.session.evaluate(
+      `localStorage.removeItem(Object.keys(localStorage).find((k) => k.includes('workspace')) ?? '')`,
+    );
+    await page.session.navigate(appUrl);
+    await wait(400);
+
+    // A workspace saved before the panel existed stores one `text` string. It has
+    // to open as the first note, and the legacy key has to be migrated away.
+    const legacyText = '# Legacy scratchpad\n\nwritten before the panel existed';
+    const seeded = await page.session.evaluate(`(() => {
+      const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+      if (!key) return false;
+      const persisted = JSON.parse(localStorage.getItem(key));
+      const widget = persisted.state.widgets.find((w) => w.type === 'notes');
+      if (!widget) return false;
+      widget.config = { text: ${JSON.stringify(legacyText)}, mode: 'split', fontSize: 'md' };
+      localStorage.setItem(key, JSON.stringify(persisted));
+      return true;
+    })()`);
+    report.check('a pre-panel workspace can be seeded', seeded === true);
+    await page.session.navigate(appUrl);
+    await wait(500);
+    const migrated = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      if (!item) return null;
+      const editor = item.querySelector('textarea[aria-label^="Note "]');
+      const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+      const widget = JSON.parse(localStorage.getItem(key)).state.widgets.find((w) => w.type === 'notes');
+      return {
+        value: editor ? editor.value : null,
+        rows: item.querySelectorAll('ul[aria-label="Your notes"] > li').length,
+        notes: Array.isArray(widget.config.notes) ? widget.config.notes.length : null,
+        legacyKey: Object.prototype.hasOwnProperty.call(widget.config, 'text'),
+      };
+    })()`);
+    report.check(
+      'a pre-panel scratchpad opens as the first note',
+      migrated?.value === legacyText && migrated.rows === 1 && migrated.notes === 1,
+      JSON.stringify(migrated),
+    );
+    report.check('the migrated workspace drops the legacy "text" key', migrated?.legacyKey === false);
+
+    await page.session.evaluate(
+      `localStorage.removeItem(Object.keys(localStorage).find((k) => k.includes('workspace')) ?? '')`,
+    );
+    await page.session.navigate(appUrl);
+    await wait(400);
+
+    const panel = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      if (!item) return null;
+      const create = [...item.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'New note');
+      const rows = item.querySelectorAll('ul[aria-label="Your notes"] > li');
+      const editor = item.querySelector('textarea[aria-label^="Note "]');
+      return { rows: rows.length, hasEditor: Boolean(editor), hasCreate: Boolean(create) };
+    })()`);
+    report.check('the notes panel lists notes next to the editor', panel?.rows >= 1 && panel?.hasEditor === true, JSON.stringify(panel));
+    if (!panel) return;
+
+    const created = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const button = item && [...item.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'New note');
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    await wait(350);
+    const typed = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const editor = item && item.querySelector('textarea[aria-label^="Note "]');
+      if (!editor) return false;
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(editor, '# Browser note\\n\\nsaved from the panel check');
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    report.check('a new note can be created and typed into', created && typed);
+    await wait(600);
+    const savedIndicator = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      return (item?.innerText || '').includes('Saved');
+    })()`);
+    report.check('the autosave indicator reports Saved', savedIndicator === true);
+
+    const stored = `(() => {
+      const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+      if (!key) return null;
+      const widget = JSON.parse(localStorage.getItem(key)).state.widgets.find((w) => w.type === 'notes');
+      return {
+        texts: widget.config.notes.map((n) => n.text),
+        ids: widget.config.notes.map((n) => n.id),
+        legacyKey: Object.prototype.hasOwnProperty.call(widget.config, 'text'),
+        activeNoteId: widget.config.activeNoteId,
+      };
+    })()`;
+    const before = await page.session.evaluate(stored);
+    const browserNoteId = `# Browser note\n\nsaved from the panel check`;
+    report.check(
+      'the new note is persisted with its own id',
+      before?.texts.includes(browserNoteId) === true && before.ids.length === 2,
+      JSON.stringify(before?.ids?.length),
+    );
+    // The welcome note stays where it was; the new note is the active one.
+    const welcome = before?.texts.findIndex((text) => text.startsWith('# Welcome to Lotus')) ?? -1;
+    report.check(
+      'the selected note survives a reload',
+      welcome !== -1 && before.activeNoteId !== before.ids[welcome] && before.ids.includes(before.activeNoteId),
+      `active ${before?.activeNoteId} of ${JSON.stringify(before?.ids)}`,
+    );
+    report.check('the pre-panel "text" key is migrated away', before?.legacyKey === false, String(before?.legacyKey));
+
+    await page.session.navigate(appUrl);
+    await wait(500);
+    const afterReload = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      if (!item) return null;
+      const editor = item.querySelector('textarea[aria-label^="Note "]');
+      return { value: editor ? editor.value : null, rows: item.querySelectorAll('ul[aria-label="Your notes"] > li').length };
+    })()`);
+    report.check(
+      'the active note and its text come back after a refresh',
+      afterReload?.value === browserNoteId && afterReload.rows === 2,
+      JSON.stringify(afterReload),
+    );
+
+    const deleted = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const button = item && [...item.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Delete '));
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    report.check('deleting a note asks for confirmation first', deleted);
+    await wait(400);
+    const confirmed = await page.session.evaluate(`(() => {
+      const dialog = document.querySelector('[role="dialog"]');
+      if (!dialog) return false;
+      const button = [...dialog.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'Delete note');
+      if (!button) return false;
+      button.click();
+      return true;
+    })()`);
+    await wait(700);
+    const afterDelete = await page.session.evaluate(stored);
+    report.check(
+      'deleting removes the note from the workspace',
+      confirmed && afterDelete?.texts.length === 1 && !afterDelete.texts.includes(browserNoteId),
+      JSON.stringify(afterDelete?.texts?.length),
+    );
+    report.check('the surviving note is selected', afterDelete?.activeNoteId === afterDelete?.ids[0]);
+
+    // An emptied list has to stay empty: re-seeding on read would resurrect a
+    // note the user deleted.
+    await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const button = item && [...item.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') || '').startsWith('Delete '));
+      if (button) button.click();
+      return true;
+    })()`);
+    await wait(300);
+    await page.session.evaluate(`(() => {
+      const dialog = document.querySelector('[role="dialog"]');
+      const button = dialog && [...dialog.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'Delete note');
+      if (button) button.click();
+      return Boolean(button);
+    })()`);
+    await wait(700);
+    await page.session.navigate(appUrl);
+    await wait(500);
+    const emptied = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      return item ? (item.innerText || '').includes('No notes yet') : false;
+    })()`);
+    report.check('deleting every note leaves an empty panel, not a re-seeded one', emptied === true);
+  } finally {
+    report.check('no console errors during notes interaction', problems.consoleErrors.length === 0, problems.consoleErrors.slice(0, 3).join(' | '));
+    report.check('no uncaught exceptions during notes interaction', problems.exceptions.length === 0);
+    await page.close();
+  }
+}
+
+/**
  * Quick links drag-to-reorder, driven with real mouse input so Chrome synthesises
  * genuine pointer events (synthetic `PointerEvent`s have no active pointer and
  * would not exercise pointer capture at all).

@@ -103,6 +103,14 @@ export const MenuIcon = (props: IconProps) => (
   </Icon>
 );
 
+/** Collapse/expand a side panel (used by the notes file manager). */
+export const PanelLeftIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9.5 4v16" />
+  </Icon>
+);
+
 export const MoreIcon = (props: IconProps) => (
   <Icon {...props}>
     <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />

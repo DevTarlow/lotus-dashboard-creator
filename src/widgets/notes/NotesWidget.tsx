@@ -1,38 +1,46 @@
-import { useMemo, useState, type ChangeEvent, type KeyboardEvent } from 'react';
-import { CheckIcon, NotesIcon, PencilIcon, SplitIcon, EyeIcon } from '@/components/icons';
-import { Markdown, Segmented } from '@/components/ui';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { CheckIcon, NotesIcon, PencilIcon, PanelLeftIcon, SplitIcon, EyeIcon } from '@/components/icons';
+import { Button, EmptyState, IconButton, Markdown, Segmented } from '@/components/ui';
+import { ConfirmDialog } from '@/components/modals/ConfirmDialog';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
+import {
+  DEFAULT_NOTE_ID,
+  countNoteWords,
+  createDefaultNote,
+  createNote,
+  deriveNoteTitle,
+  needsNotesMigration,
+  normalizeNotesState,
+  removeNote,
+  selectAfterRemoval,
+  updateNote,
+  type Note,
+  type NotesFontSize,
+  type NotesMode,
+  type NotesState,
+} from '@/lib/notes';
 import { cn } from '@/lib/utils';
 import type { SettingField, WidgetProps } from '@/types';
 import { defineWidget } from '@/widgets/define';
+import { NotesSidebar } from './NotesSidebar';
 
-export type NotesMode = 'edit' | 'split' | 'preview';
-export type NotesFontSize = 'sm' | 'md' | 'lg';
+export type { NotesFontSize, NotesMode } from '@/lib/notes';
 
-export type NotesConfig = {
-  /** Raw markdown source. */
-  text: string;
-  mode: NotesMode;
-  fontSize: NotesFontSize;
+/**
+ * Widget config. `text` is the pre-file-manager shape and is only ever read, so
+ * a workspace or export saved before the notes panel existed still opens with
+ * its content (see {@link normalizeNotesState}).
+ */
+export type NotesConfig = NotesState & {
+  text?: string;
 };
 
-const DEFAULT_NOTES_TEXT = `# Welcome to Lotus 👋
-
-This scratchpad saves as you type — switch to **Preview** or **Split** to see the markdown.
-
-## Try this
-- [x] Drag a widget by its header
-- [ ] Resize it from the bottom-right corner
-- [ ] Drag a widget from the *Add widget* drawer straight onto the grid
-
-> Everything is stored locally in your browser, and you can export the whole layout as JSON.
-
-\`Ctrl/⌘ + Z\` undoes a layout change.`;
-
 const DEFAULT_NOTES_CONFIG: NotesConfig = {
-  text: DEFAULT_NOTES_TEXT,
+  notes: [createDefaultNote(0)],
+  activeNoteId: DEFAULT_NOTE_ID,
   mode: 'split',
   fontSize: 'md',
+  sidebarOpen: true,
 };
 
 const SETTINGS: readonly SettingField[] = [
@@ -56,6 +64,7 @@ const SETTINGS: readonly SettingField[] = [
       { label: 'Large', value: 'lg' },
     ],
   },
+  { key: 'sidebarOpen', label: 'Show the notes panel', type: 'switch' },
 ];
 
 const FONT_SIZES: Record<NotesFontSize, string> = {
@@ -70,30 +79,101 @@ const MODE_OPTIONS = [
   { value: 'preview' as NotesMode, label: 'Preview', icon: <EyeIcon className="h-3 w-3" /> },
 ];
 
-/** Markdown scratchpad with debounced auto-save and a live preview. */
-export function NotesWidget({ config, updateConfig }: WidgetProps<NotesConfig>) {
-  /**
-   * `draft` is `null` while the editor mirrors the stored config and holds the
-   * in-progress value between keystrokes and the debounced save. This keeps the
-   * component free of "sync prop into state" effects: an external change (import,
-   * template, reset) is picked up instantly whenever the user is not typing, and
-   * never clobbers what they are typing.
-   */
-  const [draft, setDraft] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
-  const value = draft ?? config.text;
-  const dirty = draft !== null;
+/** Autosave delay per note, matching the original scratchpad. */
+const SAVE_DELAY_MS = 350;
 
-  const save = useDebouncedCallback((next: string) => {
-    updateConfig({ text: next });
+/**
+ * Multi-note markdown editor with a file-manager panel.
+ *
+ * Notes live in the widget config, so the existing dashboard persistence (and the
+ * embedded single-file snapshot) carries them with no extra storage layer.
+ */
+export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps<NotesConfig>) {
+  // `normalizeNotesState` is pure and cheap, so the non-migrated view mirrors the
+  // stored shape instead of writing during render.
+  const { notes, activeNoteId, mode, fontSize, sidebarOpen } = useMemo(
+    () => normalizeNotesState(config),
+    [config],
+  );
+
+  /**
+   * In-progress edit: `noteId` says which note the text belongs to, so a
+   * debounced save can never land on the wrong note after a switch or a delete.
+   * `null` means "mirror the stored config" (see the links widget for the same
+   * pattern).
+   */
+  const [draft, setDraft] = useState<{ noteId: string; text: string } | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Note | null>(null);
+  const editorRef = useRef<HTMLTextAreaElement | null>(null);
+  /** Set while creating a note so the editor focuses once it shows the new one. */
+  const focusNewNoteRef = useRef(false);
+
+  const activeNote = notes.find((note) => note.id === activeNoteId) ?? null;
+  const value = activeNote && draft && draft.noteId === activeNote.id ? draft.text : (activeNote?.text ?? '');
+  const dirty = draft !== null && draft.noteId === activeNoteId;
+
+  const commit = useDebouncedCallback((target: string, text: string) => {
+    if (target !== activeNoteId) return;
+    updateConfig({ notes: updateNote(notes, target, { text }) });
     setSavedAt(Date.now());
+    setDraft((current) => (current && current.noteId === target ? null : current));
+  }, SAVE_DELAY_MS);
+
+  /**
+   * Bring a pre-panel workspace (or an import from an older version) up to the
+   * current shape once per mount: an array of notes, a valid active id and the
+   * legacy `text` key removed. Re-running is a no-op.
+   */
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current || !needsNotesMigration(config)) return;
+    migratedRef.current = true;
+    replaceConfig(normalizeNotesState(config));
+    // Normalisation depends on the whole config; the guard keeps this to one write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]);
+
+  useEffect(() => {
+    if (!focusNewNoteRef.current) return;
+    focusNewNoteRef.current = false;
+    editorRef.current?.focus();
+  }, [activeNoteId]);
+
+  const selectNote = (id: string) => {
+    if (id === activeNoteId) return;
+    // Persist the note being left behind now, rather than after the switch.
+    if (draft) commit.flush();
     setDraft(null);
-  }, 350);
+    updateConfig({ activeNoteId: id });
+  };
+
+  const createNewNote = () => {
+    if (draft) commit.flush();
+    const note = createNote();
+    focusNewNoteRef.current = true;
+    setDraft(null);
+    updateConfig({ notes: [note, ...notes], activeNoteId: note.id });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    commit.cancel();
+    // Drop the note from the pending draft too, so a debounced save cannot bring
+    // it back after the deletion.
+    setDraft(null);
+    updateConfig({
+      notes: removeNote(notes, deleteTarget.id),
+      activeNoteId: selectAfterRemoval(notes, deleteTarget.id),
+    });
+    setDeleteTarget(null);
+  };
 
   const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    if (!activeNote) return;
     const next = event.target.value;
-    setDraft(next);
-    save.run(next);
+    setDraft({ noteId: activeNote.id, text: next });
+    commit.run(activeNote.id, next);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -102,81 +182,134 @@ export function NotesWidget({ config, updateConfig }: WidgetProps<NotesConfig>) 
     const target = event.currentTarget;
     const { selectionStart, selectionEnd } = target;
     const next = `${value.slice(0, selectionStart)}  ${value.slice(selectionEnd)}`;
-    setDraft(next);
-    save.run(next);
+    if (!activeNote) return;
+    setDraft({ noteId: activeNote.id, text: next });
+    commit.run(activeNote.id, next);
     requestAnimationFrame(() => {
       target.selectionStart = selectionStart + 2;
       target.selectionEnd = selectionStart + 2;
     });
   };
 
-  const stats = useMemo(() => {
-    const words = value.trim() === '' ? 0 : value.trim().split(/\s+/).length;
-    return { words, characters: value.length };
-  }, [value]);
+  const stats = { words: countNoteWords(value), characters: value.length };
 
-  const showEditor = config.mode !== 'preview';
-  const showPreview = config.mode !== 'edit';
+  const showEditor = mode !== 'preview';
+  const showPreview = mode !== 'edit';
 
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Segmented
-          label="Notes view mode"
-          value={config.mode}
-          onChange={(mode) => updateConfig({ mode })}
-          options={MODE_OPTIONS}
+    <div className="flex h-full min-h-0 gap-3">
+      {sidebarOpen ? (
+        <NotesSidebar
+          notes={notes}
+          activeNoteId={activeNoteId}
+          onSelect={selectNote}
+          onCreate={createNewNote}
+          onRequestDelete={setDeleteTarget}
+          onClose={() => updateConfig({ sidebarOpen: false })}
         />
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
-          {dirty ? (
-            'Saving…'
-          ) : savedAt ? (
-            <>
-              <CheckIcon className="h-3 w-3 text-emerald-500" /> Saved
-            </>
-          ) : (
-            'Auto-save on'
-          )}
-        </span>
-      </div>
+      ) : null}
 
-      <div className={cn('grid min-h-0 flex-1 gap-3', showEditor && showPreview && 'grid-cols-2')}>
-        {showEditor ? (
-          <textarea
-            value={value}
-            onChange={onChange}
-            onKeyDown={onKeyDown}
-            spellCheck
-            placeholder="Write markdown here…"
-            aria-label="Notes"
-            className={cn(
-              'h-full w-full resize-none rounded-xl border border-slate-200 bg-slate-50/60 p-3 font-mono leading-relaxed text-slate-700',
-              'placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20',
-              'dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200 dark:placeholder:text-slate-600',
-              'dark:focus:border-violet-500/50 dark:focus:bg-slate-950/70',
-              FONT_SIZES[config.fontSize],
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1">
+            {sidebarOpen ? null : (
+              <IconButton
+                label="Show notes panel"
+                size="icon-sm"
+                icon={<PanelLeftIcon className="h-3.5 w-3.5" />}
+                onClick={() => updateConfig({ sidebarOpen: true })}
+              />
             )}
-          />
-        ) : null}
+            <Segmented
+              label="Notes view mode"
+              value={mode}
+              onChange={(next) => updateConfig({ mode: next })}
+              options={MODE_OPTIONS}
+            />
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            {dirty ? (
+              'Saving…'
+            ) : savedAt ? (
+              <>
+                <CheckIcon className="h-3 w-3 text-emerald-500" /> Saved
+              </>
+            ) : (
+              'Auto-save on'
+            )}
+          </span>
+        </div>
 
-        {showPreview ? (
+        {activeNote === null ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <EmptyState
+              size="sm"
+              icon={<NotesIcon className="h-4 w-4" />}
+              title="No notes yet"
+              description="Create a note to start writing."
+              action={
+                <Button size="sm" variant="primary" onClick={createNewNote}>
+                  New note
+                </Button>
+              }
+            />
+          </div>
+        ) : (
           <div
             className={cn(
-              'h-full min-w-0 overflow-y-auto rounded-xl border border-slate-100 bg-white/60 p-3',
-              'dark:border-slate-800 dark:bg-slate-950/20',
+              'grid min-h-0 flex-1 gap-3',
+              showEditor && showPreview && 'sm:grid-cols-2',
             )}
           >
-            <Markdown source={value} placeholder="Your preview appears here." />
+            {showEditor ? (
+              <textarea
+                ref={editorRef}
+                value={value}
+                onChange={onChange}
+                onKeyDown={onKeyDown}
+                spellCheck
+                placeholder="Write markdown here…"
+                aria-label={`Note ${deriveNoteTitle(activeNote.text)}`}
+                className={cn(
+                  'h-full w-full resize-none rounded-xl border border-slate-200 bg-slate-50/60 p-3 font-mono leading-relaxed text-slate-700',
+                  'placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20',
+                  'dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200 dark:placeholder:text-slate-600',
+                  'dark:focus:border-violet-500/50 dark:focus:bg-slate-950/70',
+                  FONT_SIZES[fontSize],
+                )}
+              />
+            ) : null}
+
+            {showPreview ? (
+              <div
+                className={cn(
+                  'h-full min-w-0 overflow-y-auto rounded-xl border border-slate-100 bg-white/60 p-3',
+                  'dark:border-slate-800 dark:bg-slate-950/20',
+                )}
+              >
+                <Markdown source={value} placeholder="Your preview appears here." />
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        )}
+
+        <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="truncate">{activeNote ? deriveNoteTitle(activeNote.text) : 'No note selected'}</span>
+          <span className="shrink-0 tabular-nums">
+            {stats.words} words · {stats.characters} chars
+          </span>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
-        <span>Markdown supported</span>
-        <span className="tabular-nums">
-          {stats.words} words · {stats.characters} chars
-        </span>
-      </div>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={`Delete “${deleteTarget ? deriveNoteTitle(deleteTarget.text) : ''}”?`}
+        description="The note is removed from this widget. Nothing else is deleted, and you can undo with ⌘/Ctrl + Z."
+        confirmLabel="Delete note"
+        tone="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
@@ -184,17 +317,19 @@ export function NotesWidget({ config, updateConfig }: WidgetProps<NotesConfig>) 
 export const notesWidget = defineWidget<NotesConfig>({
   type: 'notes',
   name: 'Markdown notes',
-  summary: 'A scratchpad with live markdown preview and auto-save.',
+  summary: 'A multi-note markdown editor with a file panel, live preview and auto-save.',
   category: 'productivity',
-  keywords: ['notes', 'markdown', 'scratchpad', 'todo', 'editor'],
+  keywords: ['notes', 'markdown', 'scratchpad', 'todo', 'editor', 'files'],
   icon: NotesIcon,
   accent: 'amber',
   defaultSize: { w: 6, h: 6, minW: 3, minH: 4 },
   defaultConfig: DEFAULT_NOTES_CONFIG,
   settings: SETTINGS,
   summarize: (config) => {
-    const firstLine = config.text.split('\n').find((line) => line.trim() !== '');
-    return firstLine ? firstLine.replace(/^#+\s*/, '').slice(0, 48) : 'Empty note';
+    const state = normalizeNotesState(config);
+    const active = state.notes.find((note) => note.id === state.activeNoteId);
+    if (!active) return 'No notes';
+    return state.notes.length === 1 ? deriveNoteTitle(active.text) : `${state.notes.length} notes`;
   },
   component: NotesWidget,
 });

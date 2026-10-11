@@ -16,6 +16,7 @@ export function WidgetDeleteFlow() {
   const pendingDeleteId = useUiStore((state) => state.pendingDeleteId);
   const cancelDelete = useUiStore((state) => state.cancelDelete);
   const confirmDelete = usePrefsStore((state) => state.confirmDelete);
+  const setConfirmDelete = usePrefsStore((state) => state.setConfirmDelete);
   const widget = useDashboardStore((state) => state.widgets.find((entry) => entry.id === pendingDeleteId));
   const { removeWidget } = useDashboardActions();
 
@@ -50,7 +51,10 @@ export function WidgetDeleteFlow() {
       open
       widgetTitle={widget.title}
       onCancel={cancelDelete}
-      onConfirm={() => {
+      onConfirm={(askNextTime) => {
+        // The answer to "ask me next time?" is applied with the removal, so the
+        // question never disappears before it has been answered.
+        if (askNextTime !== confirmDelete) setConfirmDelete(askNextTime);
         removeWidget(pendingDeleteId);
         cancelDelete();
       }}

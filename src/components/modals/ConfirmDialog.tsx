@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AlertIcon } from '@/components/icons';
 import { Button, Modal, Switch } from '@/components/ui';
 import { usePrefsStore } from '@/store/prefsStore';
@@ -58,14 +58,22 @@ export function ConfirmDialog({
 export interface DeleteWidgetDialogProps {
   open: boolean;
   widgetTitle: string;
-  onConfirm: () => void;
+  /** `askNextTime` is the state of the "ask before removing" switch. */
+  onConfirm: (askNextTime: boolean) => void;
   onCancel: () => void;
 }
 
 /** Delete confirmation, including the "don't ask again" preference. */
 export function DeleteWidgetDialog({ open, widgetTitle, onConfirm, onCancel }: DeleteWidgetDialogProps) {
   const confirmDelete = usePrefsStore((state) => state.confirmDelete);
-  const setConfirmDelete = usePrefsStore((state) => state.setConfirmDelete);
+  /**
+   * Held locally until the user answers.
+   *
+   * Applying the switch immediately made the dialog vanish mid-question (the
+   * flow stopped asking) and left the widget on the canvas, which read as the
+   * app ignoring both choices. The answer now travels with the confirmation.
+   */
+  const [askNextTime, setAskNextTime] = useState(confirmDelete);
 
   return (
     <ConfirmDialog
@@ -74,7 +82,7 @@ export function DeleteWidgetDialog({ open, widgetTitle, onConfirm, onCancel }: D
       description="The widget and its saved settings are removed from the canvas."
       confirmLabel="Remove widget"
       tone="danger"
-      onConfirm={onConfirm}
+      onConfirm={() => onConfirm(askNextTime)}
       onCancel={onCancel}
     >
       <div className="space-y-4">
@@ -83,10 +91,10 @@ export function DeleteWidgetDialog({ open, widgetTitle, onConfirm, onCancel }: D
           You can undo this right away from the toast or with ⌘/Ctrl + Z.
         </p>
         <Switch
-          checked={confirmDelete}
-          onChange={setConfirmDelete}
+          checked={askNextTime}
+          onChange={setAskNextTime}
           label="Ask before removing a widget"
-          help="Turn this off and removals happen straight away. You still get an undo option."
+          help="Turn this off and future removals happen straight away. You still get an undo option."
         />
       </div>
     </ConfirmDialog>

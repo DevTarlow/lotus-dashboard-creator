@@ -1,24 +1,32 @@
 # Lotus Dashboard Creator
 
-A dashboard you arrange yourself, in the browser. Twenty widgets drop onto a
-12-column grid: clocks and daylight, weather and air quality, tasks, habits and a
-focus timer, sticky notes, a calendar, market prices, news and history, a
-currency converter, a device panel. A plugin architecture makes adding the
-twenty-first one file.
+Most of us keep the day scattered across a dozen tabs: the weather in one, a
+checklist in another, prices, news, the thing you meant to do at four. Lotus
+gives you one screen with twenty widgets to fill it. Put what you use on it,
+leave out what you don't, and arrange it however it suits you. Make the weather
+panel wider if that is the one you actually look at.
 
-Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zustand 5
-· react-grid-layout 2**.
+There is nothing to install and no account to make. The whole app is one HTML
+file you download, double-click, and use offline from then on, and widgets are
+plugins, so writing the twenty-first one is a folder and a registry line. The
+[widget guide](#writing-your-own-widget) walks through it.
 
-**Just want a dashboard?** [Use it](#use-it) is one file and no setup.
-[Build it](#build-it) and everything below it is for people working on the code.
+**Just want a dashboard?** Jump to [Use it](#use-it). Everything from
+[Build it](#build-it) down is for people working on the code.
 
 ---
 
 ## Table of contents
 
 - [Use it](#use-it)
+  - [Where your data goes](#where-your-data-goes)
 - [Features](#features)
+  - [Layout](#layout)
+  - [Saving your work](#saving-your-work)
+  - [What you can put on it](#what-you-can-put-on-it)
+  - [Making it yours](#making-it-yours)
 - [Build it](#build-it)
+  - [Releasing](#releasing)
 - [Project structure](#project-structure)
 - [Architecture](#architecture)
 - [Writing your own widget](#writing-your-own-widget)
@@ -32,47 +40,47 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 
 ## Use it
 
-Lotus Dashboard Creator is one HTML file: the whole app, its styles and every
-image inside it. There is nothing to install and no account to create.
+Lotus Dashboard Creator is one HTML file with the app, the styles and every
+image inside it.
 
 1. Get the file. Download `lotus-dashboard.html` from the
    [latest release](https://github.com/DevTarlow/lotus-dashboard-creator/releases/latest)
-   (under **Assets**), or build it yourself with `npm run build:single` (see
-   [Build it](#build-it)) and use `dist-single/index.html`.
+   (it is under **Assets**), or build it yourself with `npm run build:single`
+   (see [Build it](#build-it)) and use `dist-single/index.html`.
 2. Put it somewhere you will find it again, in Documents rather than Downloads.
 3. Double-click it. It opens in your browser and works offline.
-4. Press `Ctrl+S` (`⌘S` on macOS), or use `⋯ → Save to file`. Your changes are
-   kept in the browser as you work; this writes them *into the file*, which is
-   the copy you keep and the copy you send. Chrome and Edge rewrite the same
-   file, and other browsers download a fresh copy each time.
+4. Press `⌘/Ctrl + S`, or use `⋯ → Save to file`. Your changes are kept in the
+   browser as you work. This step writes them *into the file*, which is the copy
+   you keep and the copy you send. Chrome and Edge rewrite the same file; other
+   browsers download a fresh copy each time.
 5. To share your dashboard, send the file. To keep a spare, copy it.
 
-The first time a dashboard opens it explains all of this itself, and **Help**
-(the `?` key, or the button in the footer) brings that explanation back whenever
-you want it, along with the version and a link to this page. Chrome and Edge are
-the best browsers for it, because they can rewrite the file in place; Firefox and
-Safari work too, and download a copy.
+The first time a dashboard opens it explains all of this itself. **Help** (the
+`?` key, or the button in the footer) brings that explanation back whenever you
+want it, along with the version and a link to this page. Chrome and Edge handle
+this best, because they can rewrite the file in place; Firefox and Safari work
+too, and download a copy instead.
 
 ### Where your data goes
 
-The dashboard runs entirely in your browser. There is no server of ours in the
-middle, and nothing to sign up for.
+The dashboard runs in your browser. There is no server of ours in the middle,
+and nothing to sign up for.
 
 Widgets that show live information fetch it straight from the source: weather
 from wttr.in, crypto prices from CoinGecko, headlines from Hacker News, DEV,
 Spaceflight News and Wikipedia, holidays from Nager.Date, earthquakes from USGS,
 air quality and place lookups from Open-Meteo, currency from Frankfurter. Each
 card says at the bottom whether it is showing live data, a saved copy, or
-nothing at all, and a panel that cannot reach its source says so rather than
-inventing a number. The exceptions are weather, crypto prices and the news feed,
-which fall back to a clearly labelled **Simulated** reading when the network is
-unavailable.
+nothing at all. A panel that cannot reach its source says so rather than
+inventing a number. Weather, crypto prices and the news feed are the exception:
+when the network is unavailable they fall back to a reading clearly labelled
+**Simulated**.
 
-Keys are the exception, and they never leave your browser: a Finnhub key for
-stock prices and an optional GitHub key are stored locally, sent only to their
-own service, and left out of any file you save or send. The one widget that sends
-something about you by design is **System & device**'s address lookup, which is
-off until you turn it on and says what it sends.
+Keys are the other exception, and they never leave your browser. A Finnhub key
+for stock prices and an optional GitHub key are stored locally, sent only to
+their own service, and left out of any file you save or send. The one widget
+that sends something about you by design is **System & device**'s address
+lookup, which is off until you turn it on and says what it sends.
 
 ![Lotus Dashboard Creator, dark theme](docs/dashboard-dark.png)
 
@@ -83,111 +91,121 @@ off until you turn it on and says what it sends.
 
 ## Features
 
-**Canvas & layout engine**
+### Layout
 
-- Responsive 12-column grid (5 breakpoints: `xl lg md sm xs`) with drag, resize
-  and collision-aware compaction.
-- Layout for **every** breakpoint is stored, so a phone layout and a desktop
-  layout never fight each other.
-- Live snap placeholder while dragging, resize handles on the south, east and
-  south-east edges, and a **drag a card straight out of the Add widget panel
-  onto the grid** drop flow (mouse _and_ touch).
-- Lock the layout to stop accidental drags, or hit **Tidy up** to close every
-  gap.
-- Add, duplicate, rename, reconfigure and remove individual widgets.
-- A first visit starts on a **six-panel starter** (clock, weather, links, tasks,
-  calendar, notes) and explains itself in a one-time welcome panel. The full
-  sixteen-panel **Complete workspace** is one click away in Templates, along with
-  five more desks and a blank canvas.
+The canvas is a responsive 12-column grid with five breakpoints
+(`xl lg md sm xs`). Drag a card to move it, pull an edge to resize it, and the
+cards around it close the gap. Resize handles sit on the south, east and
+south-east edges. Your layout is stored per breakpoint, so the arrangement you
+make on a phone and the one you make on a desktop never overwrite each other.
+While you drag, a placeholder shows where the card will land. You can also drag a
+card straight out of the **Add widget** panel and drop it onto the grid, with a
+mouse or a finger.
 
-**Persistence & portability**
+Every card can be added, duplicated, renamed, reconfigured and removed. If the
+dragging gets in the way, lock the layout, or press **Tidy up** to close every
+gap at once.
 
-- Automatic `localStorage` persistence (debounced by zustand's `persist`
-  middleware), so the dashboard is exactly as you left it after a reload,
-  including the theme.
-- The footer says where the work actually is: *Saved in this browser. Save to
-  file to update the file too*, or *Saved to `<name>`* once the file is linked.
-  The remembered file is scoped per document, so a second dashboard opened in the
-  same browser can never save into the first one's file.
-- **Save to file** writes the dashboard into the HTML file it was opened from
-  (proposing that file's own name), with *Save a copy…* and *Forget this file* for
-  the other two cases.
-- **Save a backup** (`.json`) exports the whole workspace as a self-describing
-  file, restored from the picker *or* by dropping it onto the canvas, with a
-  preview of what will change before anything is replaced.
-- Undo/redo (`⌘/Ctrl + Z`) for every structural change: adding, removing,
-  duplicating, dragging, resizing, tidying, applying templates, importing and
-  resetting. Rapid edits are coalesced into a single history step.
-- Removing a widget asks first, and the dialog's switch turns the question off
-  for next time. Nothing is destroyed by a stray click.
+A first visit starts on a six-panel **Starter** (clock, weather, links, tasks,
+calendar, notes) with a one-time welcome panel. The full sixteen-panel
+**Complete workspace** is one click away in Templates, along with five more desks
+and a blank canvas.
 
-**Widgets**
+### Saving your work
 
-**Essentials**
+Everything you change is saved in the browser automatically, so a reload brings
+back the dashboard exactly as you left it, theme included. The footer always says
+where the work actually is: *Saved in this browser. Save to file to update the
+file too*, or *Saved to `<name>`* once the file is linked. The remembered file is
+scoped to that one document, so a second dashboard opened in the same browser can
+never save into the first one's file.
 
-| Widget | Highlights |
+**Save to file** writes the dashboard into the HTML file it was opened from.
+**Save a copy…** puts it in a second file, and **Forget this file** unlinks the
+current one so the next save asks again. **Save a backup** exports the whole
+workspace as a `.json` file, which you can restore from the picker or by dropping
+it onto the canvas. A preview shows what will change before anything is
+replaced.
+
+Undo and redo (`⌘/Ctrl + Z`) cover every change to the widgets and the layout:
+adding, removing, renaming, duplicating, dragging, resizing, tidying, applying
+templates, importing and resetting. Rapid edits are collected into a single step.
+Removing a widget asks first, and the dialog's switch turns the question off for
+next time, so nothing disappears from a stray click.
+
+### What you can put on it
+
+This is the full catalogue, grouped the way the **Add widget** drawer groups it.
+
+#### Essentials
+
+| Widget | What it does |
 | --- | --- |
-| **Clock** | Live time in any IANA time zone, 12/24h, optional seconds, day-progress bar. |
-| **Weather** | Live forecast from wttr.in (no key) with an hourly outlook and details. Asks which city you want, and falls back to a simulated forecast offline. |
+| **Clock** | Live time in any IANA time zone, 12 or 24 hour, with optional seconds and a day-progress bar. |
+| **Weather** | A live forecast from wttr.in, no key needed, with an hourly outlook and the details. It asks which city you want, and falls back to a simulated forecast offline. |
 
-**Productivity**
+#### Productivity
 
-| Widget | Highlights |
+| Widget | What it does |
 | --- | --- |
-| **Tasks** | A checklist with priorities, due dates, ↑/↓ reordering, a progress bar and "clear completed"; every edit is one undo step. |
-| **Focus timer** | Pomodoro and stopwatch in one card. Derived from timestamps, so a throttled tab cannot drift and a reload resumes a running phase; sessions are logged with a daily total. |
-| **Habit streaks** | Today's ticks, current and best streaks, and a four-to-twelve week heatmap. A habit you have not done *yet* today never breaks its streak, and weekends are skipped when the schedule says so. |
-| **Calendar** | A month grid with ISO week numbers, local events per day (edited inline) and optional public holidays from Nager.Date, plus the next holiday and how far away it is. |
+| **Tasks** | A checklist with priorities, due dates, reordering with ↑/↓, a progress bar and "clear completed". Every edit is one undo step. |
+| **Focus timer** | Pomodoro and stopwatch in one card. It counts from timestamps rather than ticking a counter, so a background tab cannot make it drift and a reload resumes a running phase. Finished sessions are logged with a daily total. |
+| **Habit streaks** | Today's ticks, current and best streaks, and a heatmap covering four to twelve weeks. A habit you have not done yet today never breaks its streak, and weekends are skipped when the schedule says so. |
+| **Calendar** | A month grid with ISO week numbers, events you edit inline and optional public holidays from Nager.Date, plus the next holiday and how far off it is. |
 | **Countdown** | The dates worth waiting for, with annual rollover (29 February waits for the next leap year) and a ring for the next one. |
-| **Markdown notes** | Multi-note editor with a left file panel (create, switch, delete with confirmation), draggable dividers between the panel and both panes, auto-save with edit / split / preview modes and a dependency-free markdown renderer. |
-| **Sticky notes** | Quick post-it notes in five colours: pin the ones you need to the top, copy a note or the whole list to the clipboard, edit inline with auto-save, and remove with an undo toast. |
-| **Quick links** | Bookmark launcher with site icons (falling back to an initials chip), inline add/edit/remove, and reordering by drag or with ↑/↓. |
+| **Markdown notes** | A multi-note editor with a file panel down the left for creating, switching and deleting notes (with a confirmation), draggable dividers between the panel and both panes, auto-save, edit / split / preview modes, and a markdown renderer with no dependencies. |
+| **Sticky notes** | Quick post-its in five colours. Pin the ones you need to the top, copy a note or the whole list to the clipboard, edit inline with auto-save, and remove one with an undo toast. |
+| **Quick links** | A bookmark launcher with site icons, which fall back to an initials chip when there is no icon. Add, edit, remove and reorder inline, by drag or with ↑/↓. |
 
-**Markets**
+#### Markets
 
-| Widget | Highlights |
+| Widget | What it does |
 | --- | --- |
-| **Market ticker** | Live crypto prices (CoinGecko, no key) and live stock prices (your own free Finnhub key), with a price line for crypto, and add or remove for each symbol. |
+| **Market ticker** | Live crypto prices from CoinGecko, no key needed, and live stock prices through your own free Finnhub key. Crypto gets a price line; either kind of symbol can be added or removed. |
 
-**News**
+#### News
 
-| Widget | Highlights |
+| Widget | What it does |
 | --- | --- |
-| **News feed** | Live headlines from four keyless, CORS-enabled providers (Hacker News, DEV Community, Spaceflight News, Wikipedia's current-events desk) with topic filters, source links and expandable summaries; falls back to a labelled simulated feed offline. |
-| **On this day** | Curated highlights, events, births or deaths for today's date, from the Wikimedia feeds, with thumbnails, article links and the CC BY-SA attribution the licence requires. |
+| **News feed** | Live headlines from four providers that need no key and allow browser requests: Hacker News, DEV Community, Spaceflight News and Wikipedia's current-events desk. Filter by topic, follow the source link, expand a summary. Offline it falls back to a labelled simulated feed. |
+| **On this day** | Curated highlights, events, births and deaths for today's date, from the Wikimedia feeds, with thumbnails, article links and the CC BY-SA attribution the licence requires. |
 
-**Environment**
+#### Environment
 
-| Widget | Highlights |
+| Widget | What it does |
 | --- | --- |
-| **Sun & moon** | Sunrise, sunset, solar noon, golden hour, civil twilight and the day's change in daylight, all computed locally from a NOAA solar model, with the moon phase beside it. The solar maths needs no network at all; only the city lookup asks for one. |
-| **Air quality & UV** | US AQI with its band wording, a twelve-hour strip, the UV index and peak, and pollen where the model covers it (Open-Meteo, keyless). |
-| **Seismic watch** | Recent earthquakes from the USGS feeds, by magnitude threshold and window, optionally filtered to a radius around a city, with the feed's own generation time so the timestamps stay honest. |
+| **Sun & moon** | Sunrise, sunset, solar noon, golden hour, civil twilight and how much daylight you gained or lost, worked out on your machine from a NOAA solar model, with the moon phase beside it. Only the city lookup needs the network. |
+| **Air quality & UV** | The US AQI with its band wording, a twelve-hour strip, the UV index and its peak, and pollen where the model covers it (Open-Meteo, no key). |
+| **Seismic watch** | Recent earthquakes from the USGS feeds, filtered by magnitude threshold and time window, and optionally to a radius around a city. The feed's own generation time is shown so the timestamps stay honest. |
 
-**Utilities**
+#### Utilities
 
-| Widget | Highlights |
+| Widget | What it does |
 | --- | --- |
-| **World clock** | Several time zones at once, with each zone's offset, date rollover, office-hours tint and a 24-hour strip showing the windows you share. |
-| **Converter** | Eleven categories of unit conversion (with affine temperature scales) and currency at the ECB reference rate, with a 30-day rate history. |
-| **System & device** | Connection, battery, browser storage, screen, platform and uptime, read locally, plus an opt-in public-address lookup that tells you exactly what it sends. |
+| **World clock** | Several time zones at once, each with its offset, the date it is on, an office-hours tint and a 24-hour strip showing the windows you share. |
+| **Converter** | Eleven categories of unit conversion, temperature scales included, and currency at the ECB reference rate with a 30-day rate history. |
+| **System & device** | Connection, battery, browser storage, screen, platform and uptime, all read locally, plus an opt-in public-address lookup that tells you exactly what it sends. |
 | **Repository** | Stars, forks, issues, the latest release and the newest workflow run for a GitHub repository, with the hourly quota shown and an optional key for a higher limit. |
 
-**Polish**
+### Making it yours
 
-- Ten palette presets (warm, cool, neutral and bold) on top of light / dark /
-  system, each with an optional custom accent colour and neutral warmth, applied
-  with no flash of the wrong palette on load.
-- Toast notifications with undo actions, per-widget error boundaries, an empty
-  state that explains what to do next, and a **Help** panel with the
-  getting-started steps and every shortcut.
-- Zero console errors or warnings, verified in a real browser (see
-  [Testing & verification](#testing--verification)).
+Light, dark or follow the system, plus ten palette presets in four groups
+(Neutral, Warm, Cool and Bold). You can layer a custom accent colour and a
+neutral warmth on top of any of them, and the palette is applied before the page
+paints, so there is no flash of the wrong one.
+
+Toasts carry an undo action for anything you might have done by accident. Every
+widget has its own error boundary, so one panel failing leaves the rest of the
+dashboard alone. The empty state tells you what to do next, and **Help** holds
+the getting-started steps and every shortcut.
+
+---
 
 ## Build it
 
-Requirements: **Node.js `^20.19` or `>=22.12`** and npm (or pnpm/yarn — the
-lockfile is npm's).
+The app is built with Vite 8, React 19, TypeScript in strict mode, Tailwind CSS
+4, Zustand 5 and react-grid-layout 2. You need Node.js `^20.19` or `>=22.12`, and
+npm (pnpm or yarn will work too, though the lockfile is npm's).
 
 ```bash
 # 1. install
@@ -212,16 +230,15 @@ Other scripts:
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
 
-The app is entirely client-side: no backend, and no key needed for anything
-except stock prices and an optional GitHub key. Every network call degrades
-gracefully: the weather widget uses
-[wttr.in](https://wttr.in) and falls back to a simulated forecast, the market
-ticker prices crypto through [CoinGecko](https://www.coingecko.com/en/api)
-(keyless) and falls back to simulated crypto, the news feed reads four keyless
-providers and falls back to a simulated feed labelled **Simulated**, and the
-quick-links favicon lookup falls back to an initials chip. The newer panels use keyless,
-CORS-enabled sources and deliberately have **no simulated fallback at all**.
-Cities are resolved by
+The app is entirely client-side, with no backend. Nothing needs a key except
+stock prices and an optional GitHub token. Every network call has something to
+fall back on: the weather widget reads [wttr.in](https://wttr.in) and drops to a
+simulated forecast, the market ticker prices crypto through
+[CoinGecko](https://www.coingecko.com/en/api) without a key and simulates when it
+cannot reach it, the news feed reads four keyless providers and falls back to a
+feed labelled **Simulated**, and the quick-links favicon lookup falls back to an
+initials chip. The panels added since then use keyless sources that allow browser
+requests, and those have no simulated fallback at all. Cities are resolved by
 [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), air quality
 and UV by [Open-Meteo](https://open-meteo.com/en/docs/air-quality-api), currency
 by [Frankfurter](https://frankfurter.dev) (ECB reference rates), holidays by
@@ -229,11 +246,12 @@ by [Frankfurter](https://frankfurter.dev) (ECB reference rates), holidays by
 [USGS feeds](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) and
 "on this day" by the [Wikimedia feeds](https://api.wikimedia.org/). When one of
 those fails the panel says so and offers a retry, because a made-up reading in a
-card that looks live is worse than an empty one. Stock quotes are the one thing
-that *needs* a key, from [Finnhub](https://finnhub.io/register): a free one the
-user pastes into the widget's settings. GitHub takes an optional key to raise its
-anonymous limit. Neither is ever simulated or embedded in a saved file (see the
-notes below).
+card that looks live is worse than an empty one.
+
+Stock quotes are the one thing that needs a key, from
+[Finnhub](https://finnhub.io/register). A free one is pasted into the widget's
+settings. GitHub takes an optional key to raise its anonymous limit. Neither key
+is ever simulated, and neither ends up in a saved file (see the notes below).
 
 ### Releasing
 
@@ -275,7 +293,7 @@ src/
 │   ├── feedback/               # ErrorBoundary, StorageNotice, SeedNotice,
 │   │                           # ToastViewport
 │   ├── forms/SettingsForm.tsx  # schema-driven settings renderer
-│   ├── icons.tsx               # ~57 inline SVG icons
+│   ├── icons.tsx               # the inline SVG icon set
 │   ├── layout/                 # HeaderBar, StatusBar, DashboardCanvas,
 │   │                           # WidgetFrame, ImportDropZone
 │   ├── modals/                 # AddWidgetDrawer, WidgetSettingsModal,
@@ -305,12 +323,13 @@ src/
 │   ├── fileHandle.ts           # File System Access + a save target remembered
 │   │                           # per document, so dashboards cannot cross-save
 │   ├── http.ts                 # shared fetch: de-duplication, TTL cache, queue
-│   ├── resourceStatus.ts       # Live / Cached / Offline / Key required vocabulary
+│   ├── resourceStatus.ts       # Live / Saved copy / Offline / Needs a key vocabulary
 │   ├── prefs.ts                # the shareable preference slice (never a key)
 │   ├── time.ts                 # DST-safe calendar maths, day keys, zone offsets
 │   ├── solar.ts / moon.ts      # NOAA sun times and the lunar cycle (offline)
 │   ├── geo.ts / geocode.ts     # haversine distance, city → coordinates
 │   ├── units.ts                # the unit catalogue and its conversions
+│   ├── converter.ts            # the converter widget's model over that catalogue
 │   ├── currency.ts             # Frankfurter (ECB reference rates)
 │   ├── weather.ts              # live wttr.in provider (fetch + condition mapping)
 │   ├── market.ts               # live providers: CoinGecko (crypto) + Finnhub (stocks)
@@ -359,114 +378,118 @@ src/
 | `uiStore` | Open overlay, settings target, pending import, drag payload | ❌ |
 | `toastStore` | Transient notifications | ❌ |
 
-The canvas is a *controlled* grid: the store owns the layout, `react-grid-layout`
-reports changes through `onLayoutChange`, and the store normalises and persists
-them. Widgets never import the dashboard store — they receive `config` and an
-`updateConfig` callback through `WidgetProps`, which keeps them pure, testable and
-hot-reload friendly.
+The canvas is a *controlled* grid: the store owns the layout,
+`react-grid-layout` reports changes through `onLayoutChange`, and the store
+normalises and persists them. Widgets never import the dashboard store. They
+receive `config` and an `updateConfig` callback through `WidgetProps`, which
+keeps them pure, testable and friendly to hot reload.
 
 ### Widgets are plugins
 
 A widget is a `WidgetDefinition`: metadata, a default footprint on the 12-column
 reference grid, a default config, an optional settings schema, and a React
 component. `src/widgets/registry.ts` is the only place that knows the full list of
-**twenty**, and everything else — the gallery, the settings modal, import
-validation, persistence rehydration, templates — is driven by that registry. A
-widget type that is not installed is kept in the document (with a warning) and
-rendered as an “unavailable plugin” card instead of being silently dropped.
+**twenty**. The gallery, the settings modal, import validation, persistence
+rehydration and templates are all driven by that registry. A widget type this
+build does not have is kept in the document with a warning and rendered as an
+"unavailable plugin" card, rather than being dropped without a word.
 
 ### One data layer for every live panel
 
 Sixteen panels on a screen would fire sixteen requests on load if each of them
-fetched for itself, and a couple of them usually want the *same* thing — two air
+fetched for itself, and a couple of them usually want the *same* thing: two air
 quality cards for one city, or three panels resolving the same city name. So the
-live widgets share one layer instead:
+live widgets share one layer instead.
 
-- **`src/lib/http.ts`** is the only thing that calls `fetch`. It de-duplicates
-  identical requests in flight, keeps a TTL cache per resource (so a refresh that
-  lands early never touches the network), caps concurrency at four so a cold
-  sixteen-panel boot starts as a queue rather than a stampede, adds a timeout and
-  one retry on a 429 or a 5xx, and turns every failure into an `HttpError` with a
-  code the widgets can explain.
-- **`src/hooks/useResource.ts`** is what the widgets use. It refreshes on a
-  window (1 minute for quotes, 5 for the earthquake feeds, 15 for air and
-  currency, an hour for Wikimedia, a day for geocoding), aborts on unmount,
-  ignores a reply that arrives after the settings changed, pauses while the tab
-  is hidden, and keeps the last good value on screen when a refresh fails.
-- **`src/lib/resourceStatus.ts`** owns the vocabulary in the footer of every
-  live card — *Live*, *Cached*, *Offline*, *Timed out*, *Rate limited*, *Key
-  required*, *Unavailable* — so "cached" never pretends to be "live" and a
+- `src/lib/http.ts` is the only thing that calls `fetch`. It de-duplicates
+  identical requests in flight, keeps a TTL cache per resource so a refresh that
+  lands early never touches the network, and caps concurrency at four, so a cold
+  sixteen-panel boot starts as a queue instead of a stampede. It adds a timeout
+  and one retry on a 429 or a 5xx, and turns every failure into an `HttpError`
+  with a code the widgets can explain.
+- `src/hooks/useResource.ts` is what the widgets use. It refreshes on a window
+  (1 minute for quotes, 5 for the earthquake feeds, 15 for air and currency, an
+  hour for Wikimedia, a day for geocoding), aborts on unmount, ignores a reply
+  that arrives after the settings changed, pauses while the tab is hidden, and
+  keeps the last good value on screen when a refresh fails.
+- `src/lib/resourceStatus.ts` owns the vocabulary in the footer of every live
+  card: *Live*, *Saved copy*, *Offline*, *Timed out*, *Too many requests*,
+  *Needs a key*, *Unavailable*. A saved copy never pretends to be live, and a
   missing API key is not mistaken for an outage.
 
-The rule that goes with it: **the new panels never invent data.** Weather, the
-crypto ticker and the news feed keep their labelled **Simulated** fallbacks,
-which were there first; everything added since shows an explanatory empty state
-with a retry instead.
+The rule that goes with it: the panels added later never invent data. Weather,
+the crypto ticker and the news feed keep the labelled **Simulated** fallbacks
+they always had. Everything added since shows an explanatory empty state with a
+retry instead.
 
 ### Layout maths is pure and unit tested
 
-`src/lib/grid.ts` contains the whole layout engine as pure functions:
+`src/lib/grid.ts` contains the whole layout engine as pure functions. The grid
+itself handles collisions during a drag, and this module owns the placement and
+packing around it:
 
-- `placeWidget` — add a widget to **every** breakpoint, first-fit packed, or at an
-  explicit drop position; already-placed widgets keep their slot.
-- `packLayout` / `tidyLayouts` — first-fit packing that closes every hole.
-- `reconcileLayouts` — make a layout map and a widget list agree (used on import
-  and rehydration).
-- `normalizeLayout` — clamp coordinates, drop malformed and duplicate entries.
-- `layoutsEqual` — structural diff so redundant writes never touch storage.
+- `placeWidget` adds a widget to **every** breakpoint, first-fit packed, or at an
+  explicit drop position. Already-placed widgets keep their slot.
+- `packLayout` / `tidyLayouts` do first-fit packing that closes every hole.
+- `reconcileLayouts` makes a layout map and a widget list agree. It runs on
+  import and on rehydration.
+- `normalizeLayout` clamps coordinates and drops malformed or duplicate entries.
+- `layoutsEqual` is a structural diff, so a redundant write never touches
+  storage.
 
-Because it is pure, the import pipeline, the store and the tests all share exactly
-the same behaviour.
+Because it is pure, the import pipeline, the store and the tests all share
+exactly the same behaviour.
 
 ### Persistence, migration and recovery
 
 `localStorage` is accessed through `src/lib/storage.ts`, which probes availability
-and degrades to an in-memory map when storage is blocked, full or absent. That
-fallback used to be invisible — the app looked fine until the next refresh wiped
-everything — so the shell now says so: a banner explains the risk and the status
-bar says **Can't save in this browser — use Save to file** instead of claiming
-the opposite.
+and degrades to an in-memory map when storage is blocked, full or absent. The
+workspace is written through zustand's `persist` middleware, so a state change
+reaches storage without anything else having to remember to save. That fallback
+used to be invisible, and the app looked fine until the next refresh wiped
+everything. Now a banner explains the risk, and the footer reads **This browser
+won't save your changes. Use Save to file** instead of claiming the opposite.
 
 Keys are namespaced per document when the page is opened from disk. Every
 `file://` document shares the single origin `file://`, so without that suffix two
 different dashboard files would read and overwrite each other's state. On the web
-the origin already separates apps and the keys are left alone. **The same scoping
-applies to the remembered File System Access handle** in `lib/fileHandle.ts` — the
+the origin already separates apps and the keys are left alone. The same scoping
+applies to the remembered File System Access handle in `lib/fileHandle.ts`. The
 storage keys and the save target have to agree, or a second dashboard saves into
 the first one's file.
 
 Every rehydration runs through the same validator as an import
 (`sanitizeWorkspace` → `validateDashboardDocument`), so a stale or hand-edited
-payload can never produce a broken canvas: unknown widget types are kept,
+payload can never produce a broken canvas. Unknown widget types are kept,
 out-of-range coordinates are clamped, missing layouts are generated, and unknown
 layout entries are dropped. `sanitizeWorkspace` reports whether it had to fall
-back, and `merge` turns that into the store's `seedOrigin`; an entry that cannot
-be parsed at all is dropped before hydration so the embedded snapshot in a saved
+back, and `merge` turns that into the store's `seedOrigin`. An entry that cannot
+be parsed at all is dropped before hydration, so the embedded snapshot in a saved
 file is still read.
 
-Documents carry `format: "lotus-dashboard/v1"` and a `version`. Newer versions are
-rejected with a readable message; older ones are migrated with a warning. The
-messages themselves are written for the person reading them — "That file was made
-by a newer version of Lotus Dashboard Creator (version 2). Update the app, then
-open it again." — and a scanned test keeps the vocabulary honest.
+Documents carry `format: "lotus-dashboard/v1"` and a `version`. Newer versions
+are rejected with a readable message; older ones are migrated with a warning. The
+messages are written for the person reading them, as in "That file was made by a
+newer version of Lotus Dashboard Creator (version 2). Update the app, then open
+it again." A scanned test keeps the vocabulary honest.
 
 ### Your dashboard is one file
 
-`npm run build:single` produces **a single `dist-single/index.html`** — the whole
+`npm run build:single` produces **a single `dist-single/index.html`**: the whole
 app, its styles and every image inlined into one portable file. There is nothing
-to install and no server to run: double-click it. Below is how your data travels
+to install and no server to run. Double-click it. Below is how your data travels
 with it.
 
-The built file also explains itself. A readable note sits just after the doctype
-(a comment *above* it would put the page into quirks mode), a `<noscript>`
+The built file also explains itself. A readable note sits just after the doctype,
+because a comment *above* it would put the page into quirks mode. A `<noscript>`
 fallback says what the page needs and which browsers can open it, and the tab,
 bookmark and history entry are named after the dashboard rather than always
 reading "Lotus Dashboard Creator".
 
-**Save to file** (`⌘/Ctrl + S`) writes the current dashboard *into that HTML*,
-as a JSON snapshot in a `<script type="application/json">` element. Opening the
-file again — on any machine, in any browser, offline — restores that exact
-dashboard. Where the [File System Access
+**Save to file** (`⌘/Ctrl + S`) writes the current dashboard *into that HTML*, as
+a JSON snapshot in a `<script type="application/json">` element. Opening the file
+again, on any machine, in any browser, offline, restores that exact dashboard.
+Where the [File System Access
 API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) is
 available (Chrome, Edge) the app remembers the file you chose and overwrites it in
 place, so saving is one keystroke. Other browsers download a copy each time, and
@@ -475,21 +498,21 @@ the footer says which of the two is happening. **Save a backup (.json)**
 
 Two details exist because getting them wrong loses work:
 
-- The remembered file is **scoped to the document** it was chosen from, using the
+- The remembered file is scoped to the document it was chosen from, using the
   same helper as `localStorage` (`storageScope`). Every `file://` page shares one
-  origin *and therefore one IndexedDB*, so a single global key meant that opening
-  a second dashboard and pressing `⌘S` wrote it over the first one's file.
-- The picker proposes the **file you opened**, not a name derived from the
-  dashboard title. Otherwise editing a dashboard someone sent you dropped a
-  renamed copy in Downloads and left the file they sent untouched.
+  origin and therefore one IndexedDB, so a single global key meant that opening a
+  second dashboard and pressing `⌘S` wrote it over the first one's file.
+- The picker proposes the file you opened, not a name derived from the dashboard
+  title. Otherwise editing a dashboard someone sent you dropped a renamed copy in
+  Downloads and left the file they sent untouched.
 
 Use **Save a copy…** when you want the dashboard in a second file, and **Forget
 this file** to unlink the one it writes to so the next save asks again. If a write
 fails because the file was moved, renamed or deleted, the link is dropped too, so
 `⌘S` recovers by asking where to put it instead of failing every time.
 
-The `.html` and the `.json` are not interchangeable: the `.html` is an app to
-*open*, the `.json` is a backup to *restore*. Picking a saved `.html` in
+The `.html` and the `.json` are not interchangeable. The `.html` is an app to
+*open*; the `.json` is a backup to *restore*. Picking a saved `.html` in
 **Restore from a backup (.json)** is allowed, and explains exactly that instead of
 failing with a JSON syntax error.
 
@@ -504,22 +527,22 @@ On load the app takes **whichever is newer**. So an edit you have not saved yet
 survives a refresh, and a file someone sends you is not ignored in favour of
 stale local state. Saving is what promotes your work into the durable layer.
 
-The store records **where the workspace came from** — `fresh`, `browser`, `file`
-or `recovered`. That is what decides whether the welcome appears, and a stored
+The store records **where the workspace came from**: `fresh`, `browser`, `file`
+or `recovered`. That value decides whether the welcome appears, and a stored
 dashboard that could not be read now says so instead of looking like a first
-visit; an unparseable `localStorage` entry is dropped rather than left to abort
+visit. An unparseable `localStorage` entry is dropped rather than left to abort
 hydration, so a snapshot inside the file can still win.
 
-The Finnhub API key is deliberately **never** embedded: `prefsStore` promises it
+The Finnhub API key is deliberately **never** embedded. `prefsStore` promises it
 stays in `localStorage` and goes nowhere but Finnhub, and a file is shareable.
-Theme and the other preferences do travel with the file — but *"you have seen the
+Theme and the other preferences do travel with the file, but *"you have seen the
 welcome"* does not, so the person you send it to still gets the explanation.
 
 ### Undo/redo
 
 History stores snapshots of `{ widgets, layouts }`. Continuous gestures (a drag, a
 settings slider, typing in a widget) share a *coalescing key* so they collapse
-into one undo step instead of flooding the stack; the stack is capped at 40
+into one undo step instead of flooding the stack. The stack is capped at 40
 entries.
 
 ### Theming
@@ -531,39 +554,38 @@ entries.
 </p>
 
 Two independent axes. `theme` is `light | dark | system`, applied as a class on
-`<html>` (Tailwind v4 is configured with a class-based `dark` variant, and all
-widgets use `dark:` utilities rather than runtime colour logic). `themeId` is the
-palette preset (ten of them, grouped in the picker by temperature rather than by
-who they are "for"), and the user can layer a custom accent colour and a neutral
-hue on top ([`lib/theme.ts`](./src/lib/theme.ts)). The dialog behind it also
-carries the **Show the grid dots** switch and a **Reset colours** button that
-returns the palette, the accent and the warmth to the preset.
+`<html>`. Tailwind v4 is configured with a class-based `dark` variant, and all
+widgets use `dark:` utilities instead of runtime colour logic. `themeId` is the
+palette preset (ten of them, grouped in the picker as Neutral, Warm, Cool and
+Bold), and you can layer a custom accent colour and a neutral hue on top
+([`lib/theme.ts`](./src/lib/theme.ts)). The dialog behind it also carries the
+**Show the grid dots** switch and a **Reset colours** button that returns the
+palette, the accent and the warmth to the preset.
 
 A preset does not touch a single call site. The app is written with ~1,200
 hardcoded `slate-*` and `violet-*` utilities, and Tailwind v4 compiles
-`bg-slate-900` to `background-color: var(--color-slate-900)`; so the theme engine
-writes those custom properties (plus `--color-accent-fg`) onto the root element
+`bg-slate-900` to `background-color: var(--color-slate-900)`. The theme engine
+writes those custom properties (plus `--color-accent-fg`) onto the root element,
 and every utility follows at once. Each step keeps the **lightness** of Tailwind's
-own scale and only changes hue and chroma, which is what keeps one ramp correct in
-both modes — light mode uses the low steps for surfaces and the high steps for
-text, dark mode the reverse — and what keeps the contrast the interface was
+own scale and only changes hue and chroma. That is what keeps one ramp correct in
+both modes, with light mode using the low steps for surfaces and the high steps
+for text and dark mode the reverse, and what keeps the contrast the interface was
 designed around.
 
 Two details are worth knowing before changing this:
 
-- **The accent foreground is solved, not assumed.** White on a mid-lightness
-  accent is not automatically readable (the shipped violet measured 4.40:1 on
+- The accent foreground is solved, not assumed. White on a mid-lightness accent
+  is not automatically readable (the shipped violet measured 4.40:1 on
   `violet-500`), so `lib/theme.ts` picks white or a deep ink and applies the
   smallest lightness nudge that holds all nine accent pairs the UI renders at
-  WCAG AA — for every preset *and* for any accent hue a user can pick. The pairs
+  WCAG AA, for every preset *and* for any accent hue a user can pick. The pairs
   are data, and `lib/theme.test.ts` asserts them.
-- **Tokens are cached for the first paint.** The inline script in `index.html`
-  cannot import the engine, so the store persists the resolved palette next to the
-  choice and the script replays it before the bundle runs. The cache is never
-  trusted on load: `merge` and `refreshThemeTokens` re-resolve from
-  `themeId` + overrides, which is also what picks up retuned presets after an
-  upgrade. Anything arriving from a file is sanitised first
-  ([`lib/embedded.ts`](./src/lib/embedded.ts)).
+- Tokens are cached for the first paint. The inline script in `index.html` cannot
+  import the engine, so the store persists the resolved palette next to the choice
+  and the script replays it before the bundle runs. The cache is never trusted on
+  load: `merge` and `refreshThemeTokens` re-resolve from `themeId` + overrides,
+  which is also what picks up retuned presets after an upgrade. Anything arriving
+  from a file is sanitised first ([`lib/embedded.ts`](./src/lib/embedded.ts)).
 
 Deliberately *not* themed: the semantic tones (`rose`/`amber`/`emerald`/`sky` mean
 danger/warning/success/info), white cards in the light theme (a light preset tints
@@ -573,7 +595,7 @@ the canvas, borders, text and accent instead), and the brand mark.
 > your child element and injects the drag handlers (`onMouseDown`, …) *and* the
 > resize handles as `children`. A wrapper component that does not forward those
 > props renders perfectly but silently refuses to drag or resize. `WidgetFrame`
-> forwards them explicitly — see the comments in
+> forwards them explicitly. See the comments in
 > `src/components/layout/WidgetFrame.tsx`.
 
 ## Writing your own widget
@@ -642,9 +664,9 @@ export const WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
 ];
 ```
 
-That is the entire integration: the gallery card, the settings form, validation,
-persistence, templates (if you add it to one) and JSON round-tripping all pick it
-up automatically.
+That is the entire integration. The gallery card, the settings form, validation,
+persistence, JSON round-tripping and any template you add it to all pick it up
+automatically.
 
 ## Keyboard shortcuts
 
@@ -726,9 +748,9 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/fileHandle.test.ts` | The remembered save target: scoped per document on `file://` so two dashboards cannot share one, global on the web, stable for a path, and the whole module degrading quietly without IndexedDB or the File System Access API. |
 | `lib/singleFile.test.ts` | The name a save proposes (the file you opened on disk, the dashboard title on the web), plus `</script>` handling and the snapshot round trip. |
 | `components/chromeCopy.test.ts` | A scan of the shell sources for the copy that was removed (grid vocabulary, `localStorage`, "schema v1", parser messages) and for the copy the app is built on, so the wording cannot drift back. |
-| `lib/utils.test.ts` | `moveItem` — forward/backward moves, clamping, no-ops, and never mutating the input. |
+| `lib/utils.test.ts` | `moveItem`: forward and backward moves, clamping, no-ops, and never mutating the input. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
-| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences — including the palette preset and colour overrides; a cached palette is recomputed rather than trusted; corrupt, foreign or unknown stored payloads fall back to defaults; the palette comes from a newer dashboard file and not from an older one; the four seed origins, including a saved file outranking an unreadable browser copy, and the "ask before removing" default. |
+| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences, including the palette preset and colour overrides; a cached palette is recomputed rather than trusted; corrupt, foreign or unknown stored payloads fall back to defaults; the palette comes from a newer dashboard file and not from an older one; the four seed origins, including a saved file outranking an unreadable browser copy, and the "ask before removing" default. |
 | `lib/http.test.ts` | The shared fetch layer: in-flight de-duplication, TTL reuse and expiry, the concurrency cap, timeouts, offline fast-fail, one retry on a 429/5xx, and that a failure is never cached. |
 | `lib/time.test.ts` | Day keys and day counting across DST changes, month matrices (leap years, either week start), ISO week numbers, zone offsets across a transition, duration formatting. |
 | `lib/solar.test.ts`, `lib/moon.test.ts` | Sunrise, sunset, twilight and golden hour against published USNO values in both hemispheres, polar day and night, and the lunar cycle's periodicity and illumination. |
@@ -737,7 +759,7 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/air.test.ts` | Air-quality mapping, the AQI, UV and pollen band boundaries, and the hourly strip. |
 | `lib/currency.test.ts` | Frankfurter mapping, the `base === quote` shortcut, malformed payloads and unknown symbols. |
 | `lib/holidays.test.ts` | Nager.Date mapping, a 404 for an unsupported country, and next-holiday selection. |
-| `lib/earthquake.test.ts` | The USGS GeoJSON mapping — including the `[longitude, latitude, depth]` trap — radius filtering and magnitude bands. |
+| `lib/earthquake.test.ts` | The USGS GeoJSON mapping, including the `[longitude, latitude, depth]` trap, plus radius filtering and magnitude bands. |
 | `lib/onthisday.test.ts` | The Wikimedia feeds, HTML stripping and the year phrasing. |
 | `lib/github.test.ts` | Repository mapping, optional release and workflow sections, slug normalisation and the bearer header. |
 | `lib/system.test.ts` | Battery, storage and device readings that most browsers do not expose, and the opt-in address lookup. |
@@ -746,20 +768,20 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/timer.test.ts` | The pomodoro state machine derived from timestamps: pause and resume, phase transitions, session logging, reload resume. |
 | `lib/habits.test.ts` | Streak maths (a pending today never breaks a run), schedules, completion rates and the rolling grid. |
 | `lib/countdown.test.ts` | Annual rollover including 29 February, all-day versus timed events, and countdown formatting. |
-| `lib/sun.test.ts`, `lib/calendar.test.ts`, `lib/worldclock.test.ts` | Place-local labels and the polar wording; month cells, week numbers and week starts; zone offsets, business hours and overlap windows. |
-| `lib/resourceStatus.test.ts`, `lib/prefs.test.ts` | The Live/Cached/Offline vocabulary and the pending derivation; the proof that an API key cannot reach a saved file. |
+| `lib/sun.test.ts`, `lib/calendar.test.ts`, `lib/worldclock.test.ts` | Place-local labels and the polar wording; month cells, week numbers and week starts; zone offsets, office hours and overlap windows. |
+| `lib/resourceStatus.test.ts`, `lib/prefs.test.ts` | The Live / Saved copy / Offline vocabulary and the pending derivation; the proof that an API key cannot reach a saved file. |
 | `widgets/registry.test.tsx` | Registry invariants: unique, well-formed metadata; settings fields that write somewhere real; and a server render of every registered widget from its own defaults. |
 
 **Browser verification.** The app was driven through a real Chrome (DevTools
-protocol) in both dev and production builds: assertions covering initial
-render, gallery add, drag (including the snap placeholder and the persisted
-result), resize, undo, theme switching, reload persistence, JSON export (a real
-file download) and JSON import (a real file upload, preview and apply) — with
-**zero console errors, warnings or uncaught exceptions**, and the grid verified to
-be overlap-free at five viewport widths (1680 → 420 px).
+protocol) in both dev and production builds. The assertions cover initial render,
+gallery add, drag (including the snap placeholder and the persisted result),
+resize, undo, theme switching, reload persistence, JSON export (a real file
+download) and JSON import (a real file upload, preview and apply). There were
+**zero console errors, warnings or uncaught exceptions**, and the grid was
+verified to be overlap-free at five viewport widths (1680 → 420 px).
 
-The one-file promise and the drag interactions cannot be unit tested — one needs
-DOM serialisation, the other genuine pointer events — so they are checked in a
+The one-file promise and the drag interactions cannot be unit tested. One needs
+DOM serialisation and the other genuine pointer events, so they are checked in a
 real browser instead, over the DevTools protocol, with no test-runner dependency:
 
 ```bash
@@ -769,43 +791,42 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 117 assertions there — 164 with a server —
-cover the first run (the welcome appears once and each of its four points is
-really there, the six-panel starter, the weather asking for a city, the honest
-footer line, the tab named after the dashboard, no grid vocabulary in the chrome,
-the settings gear and resize corner visible without hovering, the removal
-question surviving being answered, Help bringing the guidance back, the blank
-canvas, and the readable note plus `<noscript>` fallback in the built file),
+single-file checks need no server at all. There are 117 assertions, or 164 with a
+server, and they cover the first run (the welcome appears once and each of its
+four points is really there, the six-panel starter, the weather asking for a city,
+the honest footer line, the tab named after the dashboard, no grid vocabulary in
+the chrome, the settings gear and resize corner visible without hovering, the
+removal question surviving being answered, Help bringing the guidance back, the
+blank canvas, and the readable note plus `<noscript>` fallback in the built file),
 rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, theme presets and custom colours (the applied tokens, the painted
 colours of real elements, mode independence, the warmth slider, the solved accent
 foreground, persistence across a reload, and the palette applied before the
-document finishes parsing), the notes file panel (create, autosave across a reload, delete
-confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
-filling the width whenever only one of them shows, dragging both notes dividers
-(editor/preview and the notes panel, including their keyboard equivalents),
-settings surviving a refresh, and the save/reopen round trip — including the
-assertion that
-matters most: the saved file is reopened **from a different path**, so a different
-`localStorage` scope means a restored setting can only have come from the embedded
-snapshot. That check caught a genuine bug — a string-level `</body>` insertion
-landing inside the minified bundle — which is why the snapshot is now written
-through the DOM. The same group also feeds the freshly saved file back into the
-**Restore from a backup (.json)** picker (a real CDP file-input upload) and
-asserts the dialog explains it is a dashboard file rather than reporting a JSON
-syntax error.
+document finishes parsing), the notes file panel (create, autosave across a reload,
+delete confirmation, and a pre-panel scratchpad migrating into a note), the notes
+panes filling the width whenever only one of them shows, dragging both notes
+dividers (editor/preview and the notes panel, including their keyboard
+equivalents), settings surviving a refresh, and the save/reopen round trip.
+
+One assertion in that last group matters more than the rest: the saved file is
+reopened **from a different path**, so a different `localStorage` scope means a
+restored setting can only have come from the embedded snapshot. That check caught
+a genuine bug, where a string-level `</body>` insertion landed inside the minified
+bundle. It is why the snapshot is now written through the DOM. The same group also
+feeds the freshly saved file back into the **Restore from a backup (.json)** picker
+(a real CDP file-input upload) and asserts the dialog explains it is a dashboard
+file rather than reporting a JSON syntax error.
 
 The catalogue has its own group, driven against the built file with **no network
-at all** — which is the point: every provider-backed panel is exercised while it
-is failing. It takes the sixteen-panel showcase from the welcome's own example —
-the click a user makes — and asserts that the workspace is overlap-free at five
-widths from 1680 px down to 420 px, that a task
-typed into the list survives a reload with its completed state, that a running
-focus timer is still running after one, that a habit and its one-day streak come
-back, and that the seeded countdown and the calendar's seven columns render. Zero
-console errors and zero uncaught exceptions across the whole group is asserted
-separately, because a panel that throws while its provider is unreachable is
-exactly the failure this layer exists to prevent.
+at all**. That is the point: every provider-backed panel is exercised while it is
+failing. It takes the sixteen-panel showcase from the welcome's own example, the
+click a user makes, and asserts that the workspace is overlap-free at five widths
+from 1680 px down to 420 px, that a task typed into the list survives a reload with
+its completed state, that a running focus timer is still running after one, that a
+habit and its one-day streak come back, and that the seeded countdown and the
+calendar's seven columns render. Zero console errors and zero uncaught exceptions
+across the whole group is asserted separately, because a panel that throws while
+its provider is unreachable is exactly the failure this layer exists to prevent.
 
 The **sticky notes** group also runs against the built file with no server. It
 seeds a deliberately hand-edited config (a blank id, a duplicate id, a junk
@@ -819,29 +840,29 @@ note and restores it from the toast's **Undo**; adds a note, reloads and checks
 it came back; empties the widget and checks it shows the empty state rather than
 re-seeding itself; and confirms the text-size setting reaches the rendered note.
 The clipboard is stubbed rather than granted because the assertion wanted is what
-the widget tried to write — the same answer in every Chrome, `file://` included,
-with no permission prompt.
+the widget tried to write, which gives the same answer in every Chrome, `file://`
+included, with no permission prompt.
 
 That group also measures **readability** while typing, in both themes, because a
 contrast bug there is invisible to every other kind of test. Two details make it
-honest: the page is put into a genuinely focused state
+honest. The page is put into a genuinely focused state
 (`Emulation.setFocusEmulationEnabled`), since a headless page never matches
-`:focus` and the bug it guards against only existed while the editor was focused;
-and the colours are resolved through a 1×1 canvas with translucent backgrounds
+`:focus` and the bug it guards against only existed while the editor was focused.
+The colours are resolved through a 1×1 canvas with translucent backgrounds
 composited from the page down to the element, because Chrome computes Tailwind v4
 colours as `oklch()`/`oklab()` and string parsing would get them wrong. The
-assertion is a WCAG contrast ratio, so it cannot be fooled by the specificity
-trap that caused it: a `focus:bg-white` carries a pseudo-class the
-`:where()`-wrapped dark variant does not, so it wins in the dark theme and paints
-a white editor behind near-white text (ratio 1.1, i.e. invisible). Measured now:
+assertion is a WCAG contrast ratio, so it cannot be fooled by the specificity trap
+that caused the bug: a `focus:bg-white` carries a pseudo-class the
+`:where()`-wrapped dark variant does not, so it wins in the dark theme and paints a
+white editor behind near-white text (ratio 1.1, which is invisible). Measured now:
 14.6 in the light theme and 16.3 in the dark, plus an assertion that the two
 surfaces actually differ.
 
 ## Performance notes
 
-- Widget children of the grid are memoised by identity, so dragging or resizing
-  one widget does not re-render the others — `react-grid-layout` v2 memoises grid
-  items on geometry, and `WidgetFrame` is `memo`-ised on the widget instance.
+- Widget children of the grid are memoised by identity, so dragging or resizing one
+  widget does not re-render the others. `react-grid-layout` v2 memoises grid items
+  on geometry, and `WidgetFrame` is `memo`-ised on the widget instance.
 - Live widgets tick locally (`useInterval` + `useNow`) instead of pushing
   high-frequency updates into the global store.
 - Store writes are structural: a layout report that changes nothing is dropped by
@@ -871,47 +892,48 @@ surfaces actually differ.
 
 ## Notes & limitations
 
-- **A first visit starts on six panels** — clock, weather, links, tasks, calendar,
-  notes — with a one-time welcome panel, rather than on the sixteen-panel
+- **A first visit starts on six panels**: clock, weather, links, tasks, calendar
+  and notes, with a one-time welcome panel, rather than on the sixteen-panel
   showcase. The showcase is the *Show an example* button in that panel, or the
-  first row of **Templates…**. Existing dashboards are untouched: the starter only
-  applies when nothing is stored for the document.
+  first row of **Templates…**. Existing dashboards are untouched, because the
+  starter only applies when nothing is stored for the document.
 - **Weather, sun and air ask for a city** instead of defaulting to Lisbon. The
   weather card takes the city inline; the other two point at their settings. The
   temperature unit comes from the browser's locale (metric unless the region is
   one that uses Fahrenheit), and one click changes it.
 - Removing a widget **asks first**, and the dialog's switch turns the question off
-  for next time — applied together with the answer, so the dialog never vanishes
-  mid-question. Undo history lives in memory (deliberately not persisted), so
-  undoing a removal is gone after a reload; the toast's own **Undo** is the
-  immediate safety net.
+  for next time. The switch is applied together with the answer, so the dialog
+  never vanishes mid-question. Undo history lives in memory (deliberately not
+  persisted), so undoing a removal is gone after a reload. The toast's own
+  **Undo** is the immediate safety net.
 - Weather is **live** from [wttr.in](https://wttr.in), which needs no key or
   signup and allows browser requests from any origin. There is no default city:
   the card asks for one, because guessing where someone is turned out to be worse
-  than asking. It is a free community
-  service, so the widget refreshes on a 15 minute window, debounces typing, and
-  falls back to the deterministic simulated forecast (labelled **Simulated**)
-  whenever a lookup fails. wttr.in serves cached upstream readings, so the footer
-  shows the provider's own observation time rather than implying the numbers were
-  just measured; city names are resolved to the nearest sub-district, which the
-  optional "resolved location" line makes visible.
+  than asking. It is a free community service, so the widget refreshes on a 15
+  minute window, debounces typing, and falls back to the deterministic simulated
+  forecast (labelled **Simulated**) whenever a lookup fails. wttr.in serves cached
+  upstream readings, so the footer shows the provider's own observation time
+  rather than implying the numbers were just measured; city names are resolved to
+  the nearest sub-district, which the optional "resolved location" line makes
+  visible.
 - The market ticker prices **crypto live** from [CoinGecko](https://www.coingecko.com/en/api),
   which is keyless and allows browser requests from any origin. Its keyless tier
-  is shared per IP and documented at roughly 10–30 calls/minute and "not suitable
-  for … scheduled polling", so live quotes refresh once a minute in a single
-  batched request and the widget names a rate limit rather than showing stale
-  numbers as fresh. Symbols are resolved through a curated, market-cap-validated
-  map (`src/lib/market.ts`) instead of a symbol search, because CoinGecko hosts
-  20k+ coins and a fuzzy match can silently return a bridged or scam token.
+  is shared per IP and documented at roughly 10 to 30 calls a minute and "not
+  suitable for … scheduled polling", so live quotes refresh once a minute in a
+  single batched request and the widget names a rate limit instead of showing
+  stale numbers as fresh. Symbols are resolved through a curated,
+  market-cap-validated map (`src/lib/market.ts`) instead of a symbol search,
+  because CoinGecko hosts 20k+ coins and a fuzzy match can silently return a
+  bridged or scam token.
 - **Stock prices are never simulated.** A fabricated number beside a real ticker
   is misleading however it is labelled, so a stock symbol either has a live quote
   or is listed as unavailable with a link to get a free key. The key comes from
-  [Finnhub](https://finnhub.io/register) (free tier: US quotes, 60 requests/minute,
-  no card) and is pasted into the market widget's settings; it lives in
+  [Finnhub](https://finnhub.io/register) (free tier: US quotes, 60 requests a
+  minute, no card) and is pasted into the market widget's settings. It lives in
   `localStorage` under the app's `prefs` entry, is sent only to Finnhub, and is
   deliberately **excluded from dashboard exports** so sharing a workspace cannot
-  leak it. This is not optional for a reason: every keyless alternative was
-  tested and blocked — the unofficial Yahoo endpoints send no
+  leak it. This is not optional, and there is a reason: every keyless alternative
+  was tested and blocked. The unofficial Yahoo endpoints send no
   `access-control-allow-origin` header (and 401 on `/v7/finance/quote`), Stooq
   serves a JavaScript proof-of-work challenge, Nasdaq's API has no CORS header,
   and Alpha Vantage, Finnhub, Twelve Data and FMP all reject keyless requests.
@@ -919,7 +941,7 @@ surfaces actually differ.
   server-side proxy) is unavoidable.
 - Live stock quotes carry **no sparkline**: Finnhub's free tier exposes no
   intraday OHLC history, so those rows show an empty gap rather than an invented
-  line. The change percentage is also labelled per source — crypto reports 24
+  line. The change percentage is also labelled per source. Crypto reports 24
   hours, stocks report the session against the previous close.
 - The news feed is **live**, from four providers chosen because they need no API
   key, no signup and send an `access-control-allow-origin` header a browser will
@@ -937,7 +959,7 @@ surfaces actually differ.
   `/news` is PRO-only, GDELT throttles to one request every five seconds, and
   NewsAPI's free tier only answers `localhost` origins, so it breaks as soon as
   the dashboard is hosted. Wikipedia items are dated to the **day** they cover,
-  because that is the finest granularity the source publishes — the panel never
+  because that is the finest granularity the source publishes. The panel never
   invents a time of day. Refreshes use a 15 minute window and the refresh button
   bypasses it; if every provider for a topic fails, the widget says so and falls
   back to the deterministic simulated feed under a **Simulated** badge.
@@ -945,9 +967,9 @@ surfaces actually differ.
   unit-conversion** panels need no provider at all. Sun times come from a NOAA
   solar model in `src/lib/solar.ts` and the lunar phase from the mean synodic
   month in `src/lib/moon.ts`, both checked against published USNO values in the
-  unit suite (the polar cases included: Tromsø reports "Midnight sun" in June and
-  "No daylight" — with civil twilight — in December, which is what the almanac
-  says too). Nothing there is fetched, so those panels work on a plane.
+  unit suite, the polar cases included: Tromsø reports "Midnight sun" in June and
+  "No daylight", with civil twilight, in December, which is what the almanac says
+  too. Nothing there is fetched, so those panels work on a plane.
 - The **environment panels share one geocoder.** Open-Meteo's geocoding service
   turns a city into coordinates *and* into that place's own time zone, which is
   what makes "sunrise at 07:41" mean sunrise where the place is rather than where
@@ -964,11 +986,11 @@ surfaces actually differ.
   "not a trading rate" in as many words, because a daily reference rate dressed
   as a live quote would be misleading. Crypto is not covered by it at all.
   Frankfurter now marks `/v1` as deprecated in favour of a `/v2` that blends 223
-  currencies from 104 providers — no longer "the ECB reference rate", and not a
-  drop-in — so the widget stays on v1, which the vendor documents as remaining
-  available.
-- **Seismic watch** reads the USGS GeoJSON feeds — static, CDN-cached files, so
-  the widget is cheap to keep open — and reports the feed's own generation time
+  currencies from 104 providers. That is no longer "the ECB reference rate" and
+  not a drop-in, so the widget stays on v1, which the vendor documents as
+  remaining available.
+- **Seismic watch** reads the USGS GeoJSON feeds, which are static and CDN-cached,
+  so the widget is cheap to keep open. It reports the feed's own generation time
   next to the quakes, since "4m ago" is only honest if you know when the list was
   built. The feed and the window are both the user's choice, and "near a place"
   filters by haversine distance once the city resolves.
@@ -983,29 +1005,29 @@ surfaces actually differ.
 - The two optional keys are **never needed**. Stock quotes use the Finnhub key
   (below); the repository panel adds its own optional
   [token](https://github.com/settings/tokens) because anonymous `api.github.com`
-  calls are capped at **60 per hour per address** — the widget shows the
-  remaining quota from the `x-ratelimit-remaining` header and says when it has
-  run out, and its own refresh window is one request per repository per quarter
-  hour. Both keys live in `localStorage` only, are sent only to their own
-  provider, and are excluded from exports and from the snapshot embedded in a
-  saved file **by construction** (`src/lib/prefs.ts` projects the shareable slice
-  and has a test that a secret cannot slip through it).
+  calls are capped at **60 per hour per address**. The widget shows the remaining
+  quota from the `x-ratelimit-remaining` header and says when it has run out, and
+  its own refresh window is one request per repository per quarter hour. Both keys
+  live in `localStorage` only, are sent only to their own provider, and are
+  excluded from exports and from the snapshot embedded in a saved file **by
+  construction** (`src/lib/prefs.ts` projects the shareable slice and has a test
+  that a secret cannot slip through it).
 - **System & device** reads only what the browser exposes, and says so when it
   exposes nothing: battery, processor count and connection details are
   Chromium-only, and each such row reads "—" rather than a zero. The connection,
   battery and visibility readings follow the browser's own events (`online` /
   `offline`, `levelchange` / `chargingchange`, `visibilitychange`) rather than
   being sampled once, and a failed address lookup still leaves the locally read
-  downlink and latency on the card. Its one network
-  call — the public address lookup — is **off by default** and labelled with
-  exactly what it sends, because it is the only panel in the app whose data
-  leaves the machine by design.
+  downlink and latency on the card. Its one network call, the public address
+  lookup, is **off by default** and labelled with exactly what it sends, because
+  it is the only panel in the app whose data leaves the machine by design.
 - The panels added since the news feed **do not simulate anything**. Offline, or
-  with a provider refusing, they show an explanatory empty state with a retry;
-  the weather, crypto and news widgets keep the labelled **Simulated** fallbacks
+  with a provider refusing, they show an explanatory empty state with a retry.
+  The weather, crypto and news widgets keep the labelled **Simulated** fallbacks
   they always had. The new widgets also never write to their configuration on a
-  tick — a running timer or a ticking clock keeps that state in the component, so
-  a dashboard sitting on a desk does not churn `localStorage` or the undo stack.
+  tick, so a running timer or a ticking clock keeps that state in the component
+  and a dashboard sitting on a desk does not churn `localStorage` or the undo
+  stack.
 - Providers that were **tested and rejected** while building these panels, so
   nobody retries them: `dictionaryapi.dev` times out; OpenAQ's v3 API answers
   `401` without a key; ZenQuotes sends no CORS header; CoinCap's API is
@@ -1031,24 +1053,24 @@ surfaces actually differ.
   15% and 60%, so a pane can never be dragged shut.
 - **Sticky notes** are the quick sibling of that panel: plain text, no markdown,
   five colours and a pin. They live in the widget config the same way, so they
-  persist, export and travel inside a saved file with no extra storage layer, and
-  every change — including a pin and a delete — is one undo step (a delete also
+  persist, export and travel inside a saved file with no extra storage layer.
+  Every change, including a pin and a delete, is one undo step. A delete also
   offers an immediate **Undo** in its toast, which puts the note back at the index
-  it came from). The caps are 60 notes of 2,000 characters each; the character cap
-  is only reachable by a paste, and "New note" is disabled — with the reason on
-  the card — once the count is reached, rather than silently dropping notes on the
+  it came from. The caps are 60 notes of 2,000 characters each. The character cap
+  is only reachable by a paste, and "New note" is disabled once the count is
+  reached, with the reason on the card, rather than silently dropping notes on the
   floor. Pinned notes are stored grouped at the front of the list, and the view is
   a stable pinned-first partition, so a note that arrived scattered by a
   hand-edited import is still shown under **Pinned**. Such a config is repaired in
   place on mount instead of trusted: a blank or duplicated id gets a fresh one and
   an unknown colour falls back to the widget's configured default. The editor's
-  surface is opaque and theme-aware and deliberately never changes colour on
-  focus — a `focus:bg-*` out-specifies the `:where()`-wrapped dark variant and
-  would paint white behind the dark theme's near-white text — so only the ring and
-  the border react to focus, and the browser checks assert the resulting contrast
+  surface is opaque and theme-aware, and it deliberately never changes colour on
+  focus. A `focus:bg-*` out-specifies the `:where()`-wrapped dark variant and
+  would paint white behind the dark theme's near-white text, so only the ring and
+  the border react to focus. The browser checks assert the resulting contrast
   ratio in both themes.
 - Drag & drop inside the grid is disabled while the layout is locked, but the
-  template/import/reset flows still work — the lock only guards accidental moves.
+  template/import/reset flows still work. The lock only guards accidental moves.
 - The exported JSON contains everything, so treat a shared file as you would a
   shared document.
 

@@ -15,7 +15,11 @@
     <title>Lotus Dashboard Creator</title>
     <script>
       // Apply the persisted colour scheme before first paint to avoid a flash of
-      // the wrong theme. Kept tiny and dependency-free on purpose.
+      // the wrong theme. Kept tiny and dependency-free on purpose — it cannot
+      // import the theme engine, so it replays the cached palette tokens the store
+      // writes next to the choice (`src/store/prefsStore.ts`). Keep the token
+      // prefixes and the attribute name in step with `src/lib/theme.ts`; a unit
+      // test pins the two together.
       //
       // The key is scoped by path when the page is opened from disk, because
       // every `file://` document shares a single origin. Keep this in step with
@@ -24,16 +28,27 @@
         try {
           var scope = location.protocol === 'file:' ? ':' + location.pathname : '';
           var raw = localStorage.getItem('lotus-dashboard-creator:prefs/v1' + scope);
-          var mode = raw ? JSON.parse(raw).state.theme : 'system';
+          var state = raw ? JSON.parse(raw).state : null;
+          var mode = (state && state.theme) || 'system';
           var dark =
             mode === 'dark' ||
-            ((!mode || mode === 'system') &&
-              window.matchMedia('(prefers-color-scheme: dark)').matches);
+            (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           var root = document.documentElement;
           root.classList.toggle('dark', dark);
           root.style.colorScheme = dark ? 'dark' : 'light';
+          root.dataset.theme = (state && state.themeId) || 'lotus';
+
+          var tokens = (state && state.themeTokens) || null;
+          for (var key in tokens) {
+            // Only the keys this app writes, and only ever a colour value.
+            if (!/^--color-slate-\d{2,3}$|^--color-violet-\d{2,3}$|^--color-accent-fg$/.test(key)) continue;
+            var value = tokens[key];
+            if (typeof value !== 'string' || value.length > 40) continue;
+            if (!/^[#oklchrgb(),.%\d\s\/-]+$/.test(value)) continue;
+            root.style.setProperty(key, value);
+          }
         } catch (e) {
-          /* storage unavailable — fall back to the light theme */
+          /* storage unavailable — fall back to the default theme */
         }
       })();
     </script>

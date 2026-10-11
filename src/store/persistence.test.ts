@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEYS } from '@/constants/app';
 
 /**
@@ -101,5 +101,144 @@ describe('persistence', () => {
     localStorage.setItem(STORAGE_KEYS.workspace, JSON.stringify({ state: { nonsense: true }, version: 1 }));
     const store = await loadDashboardStore();
     expect(store.getState().widgets.length).toBeGreaterThan(0);
+  });
+});
+
+describe('theme persistence', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    delete (globalThis as { document?: unknown }).document;
+  });
+
+  /** Write a preference payload straight to storage, as an older build would. */
+  function seedPrefs(state: Record<string, unknown>): void {
+    localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify({ state, version: 1 }));
+  }
+
+  /** Pretend the page carries an embedded snapshot, newest at `savedAt`. */
+  function embedSnapshot(prefs: unknown, savedAt: number): void {
+    const text = JSON.stringify({
+      format: 'lotus-embedded/v1',
+      version: 1,
+      generator: { name: 'Lotus Dashboard Creator', version: '1.0.0' },
+      savedAt,
+      workspace: { title: '', description: '', widgets: [], layouts: {}, locked: false, updatedAt: savedAt },
+      prefs,
+    });
+    Object.defineProperty(globalThis, 'document', {
+      value: {
+        getElementById: (id: string) =>
+          id === 'lotus-embedded-workspace' ? { textContent: text } : null,
+      },
+      configurable: true,
+      writable: true,
+    });
+  }
+
+  it('restores the preset and the colour overrides after a refresh', async () => {
+    const prefs = await loadPrefsStore();
+    prefs.getState().setThemePreset('rose-quartz');
+    prefs.getState().setCustomAccentHex('#00ffcc');
+    prefs.getState().setCustomNeutralHue(200);
+    const tokens = prefs.getState().themeTokens;
+    expect(tokens['--color-violet-500']).toMatch(/^oklch\(/);
+
+    const reloaded = await loadPrefsStore();
+    expect(reloaded.getState().themeId).toBe('rose-quartz');
+    expect(reloaded.getState().customAccentHex).toBe('#00ffcc');
+    expect(reloaded.getState().customNeutralHue).toBe(200);
+    // Regenerated from the same inputs, so the palette is identical.
+    expect(reloaded.getState().themeTokens).toEqual(tokens);
+  });
+
+  it('recomputes the cached palette instead of trusting what storage holds', async () => {
+    // A hand-edited (or older-build) cache must never reach the DOM.
+    seedPrefs({
+      themeId: 'cobalt',
+      customAccentHex: '#ff00ff',
+      customNeutralHue: null,
+      themeTokens: { '--color-slate-50': 'url(https://example.com/track.png)', '--evil': 'oklch(1% 0 0)' },
+    });
+
+    const reloaded = await loadPrefsStore();
+    const tokens = reloaded.getState().themeTokens;
+    expect(tokens['--evil']).toBeUndefined();
+    expect(tokens['--color-slate-50']).toMatch(/^oklch\(/);
+    expect(reloaded.getState().customAccentHex).toBe('#ff00ff');
+  });
+
+  it('ignores an unknown preset id and an invalid accent', async () => {
+    seedPrefs({ themeId: 'ultraviolet', customAccentHex: 'rebeccapurple', customNeutralHue: 'warm' });
+
+    const reloaded = await loadPrefsStore();
+    expect(reloaded.getState().themeId).toBe('lotus');
+    expect(reloaded.getState().customAccentHex).toBe('');
+    expect(reloaded.getState().customNeutralHue).toBeNull();
+  });
+
+  it('repairs a stale cache on mount without pretending the user changed anything', async () => {
+    const prefs = await loadPrefsStore();
+    prefs.getState().setThemePreset('cobalt');
+    const { tokensForPreset } = await import('@/lib/theme');
+
+    // Simulate a cache written by an older build.
+    prefs.setState({ themeTokens: {} });
+    const stampedAt = prefs.getState().updatedAt;
+
+    prefs.getState().refreshThemeTokens();
+
+    expect(prefs.getState().themeTokens).toEqual(tokensForPreset('cobalt'));
+    // Regenerating a cache is not a user edit: the timestamp must not move, or
+    // this browser would start outranking a file the user was just sent.
+    expect(prefs.getState().updatedAt).toBe(stampedAt);
+  });
+
+  it('takes the palette from a newer dashboard file', async () => {
+    const prefs = await loadPrefsStore();
+    prefs.getState().setThemePreset('lotus');
+
+    embedSnapshot(
+      {
+        theme: 'dark',
+        themeId: 'amber-forge',
+        customAccentHex: '',
+        customNeutralHue: null,
+        themeTokens: {},
+        showGridHints: true,
+        confirmDelete: false,
+      },
+      Date.now() + 10_000,
+    );
+
+    const reloaded = await loadPrefsStore();
+    expect(reloaded.getState().themeId).toBe('amber-forge');
+    expect(reloaded.getState().theme).toBe('dark');
+    expect(reloaded.getState().themeTokens).toEqual(
+      (await import('@/lib/theme')).tokensForPreset('amber-forge'),
+    );
+  });
+
+  it('keeps the local palette when the file is older than this browser', async () => {
+    const prefs = await loadPrefsStore();
+    prefs.getState().setThemePreset('crimson-carbon');
+
+    embedSnapshot(
+      {
+        theme: 'light',
+        themeId: 'graphite',
+        customAccentHex: '',
+        customNeutralHue: null,
+        themeTokens: {},
+        showGridHints: true,
+        confirmDelete: false,
+      },
+      1,
+    );
+
+    const reloaded = await loadPrefsStore();
+    expect(reloaded.getState().themeId).toBe('crimson-carbon');
   });
 });

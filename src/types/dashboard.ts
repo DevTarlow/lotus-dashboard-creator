@@ -11,6 +11,33 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
 
 /**
+ * Palette preset id.
+ *
+ * The roster itself lives in `lib/theme.ts` as data; this union is the public
+ * shape of an id, so a preset cannot be referenced by a name that does not
+ * exist. `theme.test.ts` asserts the roster covers every member.
+ */
+export type ThemeId =
+  | 'lotus'
+  | 'graphite'
+  | 'rose-quartz'
+  | 'lavender-haze'
+  | 'peach-fizz'
+  | 'fuchsia-bloom'
+  | 'cobalt'
+  | 'emerald-slate'
+  | 'amber-forge'
+  | 'crimson-carbon';
+
+/**
+ * Resolved theme tokens: CSS custom property name → CSS colour.
+ *
+ * Applied to `<html>` as inline custom properties, which is how a preset
+ * recolours every `slate-*`/`violet-*` utility at once.
+ */
+export type ThemeTokens = Readonly<Record<string, string>>;
+
+/**
  * The complete, serialisable dashboard payload — used for `localStorage`
  * persistence, JSON export and JSON import.
  */

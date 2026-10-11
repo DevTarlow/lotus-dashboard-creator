@@ -7,6 +7,14 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /*
+   * Text colour for anything sitting *on* the accent (the primary button, a
+   * selected chip, the import drop target). Defaults to white and is overridden
+   * at runtime by the theme engine, which picks white or a deep ink per palette
+   * so the pair always passes WCAG AA — see `lib/theme.ts`.
+   */
+  --color-accent-fg: #ffffff;
+
   --font-sans:
     'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
@@ -234,6 +242,56 @@
 
 .dark ::-webkit-scrollbar-thumb {
   background-color: var(--color-slate-700);
+}
+
+/* ---------------------------------------------------------------------------
+ * Hue slider (appearance dialog)
+ *
+ * The track is a hue wheel supplied inline by the dialog; the thumb is styled
+ * here so it stays visible in every engine and follows the theme's neutrals.
+ * ---------------------------------------------------------------------------
+ */
+.theme-hue-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 0.75rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  outline: none;
+}
+
+.theme-hue-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-white);
+  background-color: var(--color-slate-700);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.4);
+}
+
+.dark .theme-hue-slider::-webkit-slider-thumb {
+  border-color: var(--color-slate-900);
+  background-color: var(--color-slate-200);
+}
+
+.theme-hue-slider::-moz-range-thumb {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-white);
+  background-color: var(--color-slate-700);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.4);
+}
+
+.dark .theme-hue-slider::-moz-range-thumb {
+  border-color: var(--color-slate-900);
+  background-color: var(--color-slate-200);
+}
+
+.theme-hue-slider:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-violet-500);
 }
 
 /* Respect users who prefer reduced motion. */

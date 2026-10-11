@@ -11,10 +11,14 @@
  * to the widget settings allow-list — never to this projection.
  */
 import type { EmbeddedPrefs } from './embedded';
-import type { ThemeMode } from '@/types';
+import type { ThemeId, ThemeMode, ThemeTokens } from '@/types';
 
 export interface ShareablePrefsInput {
   theme: ThemeMode;
+  themeId: ThemeId;
+  customAccentHex: string;
+  customNeutralHue: number | null;
+  themeTokens: ThemeTokens;
   showGridHints: boolean;
   confirmDelete: boolean;
 }
@@ -23,6 +27,10 @@ export interface ShareablePrefsInput {
 export function shareablePrefs(prefs: ShareablePrefsInput): EmbeddedPrefs {
   return {
     theme: prefs.theme,
+    themeId: prefs.themeId,
+    customAccentHex: prefs.customAccentHex,
+    customNeutralHue: prefs.customNeutralHue,
+    themeTokens: prefs.themeTokens,
     showGridHints: prefs.showGridHints,
     confirmDelete: prefs.confirmDelete,
   };

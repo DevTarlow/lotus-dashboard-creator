@@ -6,8 +6,14 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { readEmbeddedState, shouldPreferEmbedded } from '@/lib/embedded';
 import { zustandStorage } from '@/lib/storage';
 import { prefsStorageKey } from '@/lib/storageKeys';
+import {
+  normalizeThemeInput,
+  resolveThemeTokens,
+  sameThemeTokens,
+  type ResolvedThemeInput,
+} from '@/lib/theme';
 import { asNumber } from '@/lib/utils';
-import type { ThemeMode } from '@/types';
+import type { ThemeId, ThemeMode, ThemeTokens } from '@/types';
 
 /**
  * Preference fields that hold a secret a widget setting may write to.
@@ -29,6 +35,24 @@ export function isPrefSecretKey(key: string): key is PrefSecretKey {
 export interface PrefsState {
   /** Colour scheme preference. */
   theme: ThemeMode;
+  /**
+   * Palette preset. A preset re-hues the neutral and accent scales the whole
+   * interface is built from — see `lib/theme.ts`.
+   */
+  themeId: ThemeId;
+  /** Accent override as `#rrggbb`, or `''` to use the preset's accent. */
+  customAccentHex: string;
+  /** Neutral warmth override in degrees, or `null` to use the preset's hue. */
+  customNeutralHue: number | null;
+  /**
+   * The resolved palette, applied to `<html>` as CSS custom properties.
+   *
+   * Derived from the three fields above, and kept in the store because the
+   * inline script in `index.html` needs it *before* the bundle runs — it cannot
+   * resolve a preset without importing the engine. It is never trusted on load:
+   * the store regenerates it (see `refreshThemeTokens`).
+   */
+  themeTokens: ThemeTokens;
   /** Draw a subtle dot grid behind the canvas. */
   showGridHints: boolean;
   /** Ask before removing a widget. */
@@ -54,6 +78,21 @@ export interface PrefsState {
   /** Epoch ms of the last preference change, used for embedded-state precedence. */
   updatedAt: number;
   setTheme: (theme: ThemeMode) => void;
+  /** Pick a palette preset, clearing any accent/warmth overrides. */
+  setThemePreset: (themeId: ThemeId) => void;
+  setCustomAccentHex: (hex: string) => void;
+  setCustomNeutralHue: (hue: number | null) => void;
+  /** Back to the default palette: preset and both overrides. */
+  resetAppearance: () => void;
+  /**
+   * Re-resolve the palette from the current inputs and persist it if it changed.
+   *
+   * Called once on mount. It is what picks up retuned or added presets after an
+   * upgrade, and what repairs a cache written by an older build — without a
+   * stored schema version to keep in step, and without stamping `updatedAt`,
+   * because nothing the user chose has changed.
+   */
+  refreshThemeTokens: () => void;
   setShowGridHints: (value: boolean) => void;
   setConfirmDelete: (value: boolean) => void;
   setFinnhubKey: (value: string) => void;
@@ -63,31 +102,93 @@ export interface PrefsState {
 /** Preferences worth carrying inside a single-file dashboard. */
 type PersistedPrefs = Pick<
   PrefsState,
-  'theme' | 'showGridHints' | 'confirmDelete' | 'finnhubKey' | 'githubToken' | 'updatedAt'
+  | 'theme'
+  | 'themeId'
+  | 'customAccentHex'
+  | 'customNeutralHue'
+  | 'themeTokens'
+  | 'showGridHints'
+  | 'confirmDelete'
+  | 'finnhubKey'
+  | 'githubToken'
+  | 'updatedAt'
 >;
+
+/** Theme fields of whatever source won the precedence check. */
+function themeInputFrom(source: {
+  themeId?: unknown;
+  customAccentHex?: unknown;
+  customNeutralHue?: unknown;
+}): ResolvedThemeInput {
+  return normalizeThemeInput({
+    themeId: source.themeId,
+    customAccentHex: source.customAccentHex,
+    customNeutralHue: source.customNeutralHue,
+  });
+}
 
 export const usePrefsStore = create<PrefsState>()(
   persist(
-    (set) => ({
-      theme: 'system',
-      showGridHints: true,
-      confirmDelete: false,
-      finnhubKey: '',
-      githubToken: '',
-      updatedAt: 0,
-      // Each setter stamps `updatedAt`, so a local edit outranks the file.
-      setTheme: (theme) => set({ theme, updatedAt: Date.now() }),
-      setShowGridHints: (showGridHints) => set({ showGridHints, updatedAt: Date.now() }),
-      setConfirmDelete: (confirmDelete) => set({ confirmDelete, updatedAt: Date.now() }),
-      setFinnhubKey: (finnhubKey) => set({ finnhubKey, updatedAt: Date.now() }),
-      setGithubToken: (githubToken) => set({ githubToken, updatedAt: Date.now() }),
-    }),
+    (set, get) => {
+      /**
+       * Apply a theme change.
+       *
+       * The palette is derived here rather than in a component effect so every
+       * writer — the picker, a slider drag, hydration — produces exactly one
+       * canonical token set, and stamps `updatedAt` so a local edit keeps
+       * outranking the file it was opened from.
+       */
+      const applyTheme = (patch: Partial<ResolvedThemeInput>) => {
+        const current = get();
+        const input = normalizeThemeInput({
+          themeId: patch.themeId ?? current.themeId,
+          customAccentHex: patch.customAccentHex ?? current.customAccentHex,
+          customNeutralHue: patch.customNeutralHue === undefined ? current.customNeutralHue : patch.customNeutralHue,
+        });
+        set({ ...input, themeTokens: resolveThemeTokens(input), updatedAt: Date.now() });
+      };
+
+      return {
+        theme: 'system',
+        themeId: 'lotus',
+        customAccentHex: '',
+        customNeutralHue: null,
+        themeTokens: {},
+        showGridHints: true,
+        confirmDelete: false,
+        finnhubKey: '',
+        githubToken: '',
+        updatedAt: 0,
+        // Each setter stamps `updatedAt`, so a local edit outranks the file.
+        setTheme: (theme) => set({ theme, updatedAt: Date.now() }),
+        setThemePreset: (themeId) => applyTheme({ themeId, customAccentHex: '', customNeutralHue: null }),
+        setCustomAccentHex: (hex) => applyTheme({ customAccentHex: hex }),
+        setCustomNeutralHue: (hue) => applyTheme({ customNeutralHue: hue }),
+        resetAppearance: () => applyTheme({ themeId: 'lotus', customAccentHex: '', customNeutralHue: null }),
+        refreshThemeTokens: () => {
+          const { themeId, customAccentHex, customNeutralHue, themeTokens } = get();
+          const input = themeInputFrom({ themeId, customAccentHex, customNeutralHue });
+          const refreshed = resolveThemeTokens(input);
+          if (sameThemeTokens(refreshed, themeTokens)) return;
+          // No `updatedAt` stamp: regenerating a cache is not a user edit.
+          set({ ...input, themeTokens: refreshed });
+        },
+        setShowGridHints: (showGridHints) => set({ showGridHints, updatedAt: Date.now() }),
+        setConfirmDelete: (confirmDelete) => set({ confirmDelete, updatedAt: Date.now() }),
+        setFinnhubKey: (finnhubKey) => set({ finnhubKey, updatedAt: Date.now() }),
+        setGithubToken: (githubToken) => set({ githubToken, updatedAt: Date.now() }),
+      };
+    },
     {
       name: prefsStorageKey(),
       version: 1,
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state): PersistedPrefs => ({
         theme: state.theme,
+        themeId: state.themeId,
+        customAccentHex: state.customAccentHex,
+        customNeutralHue: state.customNeutralHue,
+        themeTokens: state.themeTokens,
         showGridHints: state.showGridHints,
         confirmDelete: state.confirmDelete,
         finnhubKey: state.finnhubKey,
@@ -101,19 +202,29 @@ export const usePrefsStore = create<PrefsState>()(
       merge: (persisted, current) => {
         const stored = (persisted ?? {}) as Partial<PersistedPrefs>;
         const embedded = readEmbeddedState();
-        if (shouldPreferEmbedded(embedded, asNumber(stored.updatedAt, 0)) && embedded?.prefs) {
-          return {
-            // Keep everything local (`finnhubKey` above all) and override only the
-            // shareable preferences the file carries.
-            ...current,
-            ...stored,
-            theme: embedded.prefs.theme,
-            showGridHints: embedded.prefs.showGridHints,
-            confirmDelete: embedded.prefs.confirmDelete,
-            updatedAt: embedded.savedAt,
-          };
-        }
-        return { ...current, ...stored };
+        const preferEmbedded =
+          shouldPreferEmbedded(embedded, asNumber(stored.updatedAt, 0)) && Boolean(embedded?.prefs);
+        const source = preferEmbedded ? (embedded?.prefs ?? {}) : stored;
+        const themeInput = themeInputFrom(source);
+
+        return {
+          // Keep everything local (`finnhubKey` above all) and override only the
+          // shareable preferences the file carries.
+          ...current,
+          ...stored,
+          ...(preferEmbedded
+            ? {
+                theme: (embedded?.prefs?.theme ?? current.theme) as ThemeMode,
+                showGridHints: embedded?.prefs?.showGridHints ?? current.showGridHints,
+                confirmDelete: embedded?.prefs?.confirmDelete ?? current.confirmDelete,
+                updatedAt: embedded?.savedAt ?? current.updatedAt,
+              }
+            : null),
+          ...themeInput,
+          // Recompute rather than trust: a cached palette may come from a file,
+          // from an older build, or from a hand-edited `localStorage` entry.
+          themeTokens: resolveThemeTokens(themeInput),
+        };
       },
     },
   ),

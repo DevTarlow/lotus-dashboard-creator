@@ -24,10 +24,24 @@ const WORKSPACE = {
   locked: false,
 };
 
+/** A theme as the picker would have written it, for round-trip assertions. */
+const PREFS = {
+  theme: 'dark',
+  themeId: 'rose-quartz',
+  customAccentHex: '#ec4899',
+  customNeutralHue: 20,
+  themeTokens: {
+    '--color-violet-500': 'oklch(60.6% 0.190 354.000)',
+    '--color-accent-fg': '#ffffff',
+  },
+  showGridHints: false,
+  confirmDelete: true,
+} as const;
+
 function makeState(savedAt = 1000): EmbeddedState {
   return createEmbeddedState({
     workspace: WORKSPACE,
-    prefs: { theme: 'dark', showGridHints: false, confirmDelete: true },
+    prefs: { ...PREFS, themeTokens: { ...PREFS.themeTokens } },
     savedAt,
   });
 }
@@ -81,7 +95,7 @@ describe('readEmbeddedState', () => {
     const text = encodeEmbeddedState(makeState(4242));
     const read = readEmbeddedState(documentWith(text));
     expect(read?.savedAt).toBe(4242);
-    expect(read?.prefs).toEqual({ theme: 'dark', showGridHints: false, confirmDelete: true });
+    expect(read?.prefs).toEqual(PREFS);
     expect((read?.workspace as { title: string }).title).toBe('Ops wall');
   });
 
@@ -96,6 +110,58 @@ describe('readEmbeddedState', () => {
   it('tolerates a missing or non-numeric timestamp', () => {
     const read = readEmbeddedState(documentWith('{"format":"lotus-embedded/v1","workspace":{}}'));
     expect(read?.savedAt).toBe(0);
+  });
+
+  it('sanitises the preference block of a file it did not write', () => {
+    // A saved dashboard may arrive from anywhere: colours must be validated and
+    // unknown keys dropped before they reach the DOM or the store.
+    const hostile = {
+      format: 'lotus-embedded/v1',
+      workspace: { title: 'x' },
+      savedAt: 10,
+      prefs: {
+        theme: 'chartreuse',
+        themeId: 'not-a-preset',
+        customAccentHex: 'javascript:alert(1)',
+        customNeutralHue: 9999,
+        themeTokens: {
+          '--color-slate-50': 'url(https://example.com/track.png)',
+          '--color-accent-fg': '#000000',
+          '--evil': 'oklch(1% 0 0)',
+        },
+        showGridHints: 'yes',
+        confirmDelete: 1,
+      },
+    };
+    const read = readEmbeddedState(documentWith(JSON.stringify(hostile)));
+
+    expect(read?.prefs).toEqual({
+      theme: 'system',
+      themeId: 'lotus',
+      customAccentHex: '',
+      customNeutralHue: 360,
+      themeTokens: { '--color-accent-fg': '#000000' },
+      showGridHints: true,
+      confirmDelete: false,
+    });
+  });
+
+  it('falls back to no preferences rather than a half-parsed block', () => {
+    expect(readEmbeddedState(documentWith('{"format":"lotus-embedded/v1","workspace":{},"prefs":[]}'))?.prefs).toBeNull();
+    expect(readEmbeddedState(documentWith('{"format":"lotus-embedded/v1","workspace":{},"prefs":"x"}'))?.prefs).toBeNull();
+  });
+
+  it('accepts a file from before theming existed, defaulting to the lotus palette', () => {
+    const legacy = { format: 'lotus-embedded/v1', workspace: {}, savedAt: 5, prefs: { theme: 'light', showGridHints: false, confirmDelete: true } };
+    expect(readEmbeddedState(documentWith(JSON.stringify(legacy)))?.prefs).toEqual({
+      theme: 'light',
+      themeId: 'lotus',
+      customAccentHex: '',
+      customNeutralHue: null,
+      themeTokens: {},
+      showGridHints: false,
+      confirmDelete: true,
+    });
   });
 });
 

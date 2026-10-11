@@ -22,7 +22,8 @@
  * file the user might email would break that promise.
  */
 import { APP_NAME, APP_VERSION, SCHEMA_VERSION } from '@/constants/app';
-import type { DetectedFileKind, ThemeMode } from '@/types';
+import { normalizeThemeInput, sanitizeThemeTokens } from '@/lib/theme';
+import type { DetectedFileKind, ThemeId, ThemeMode, ThemeTokens } from '@/types';
 
 /** Format discriminator written into the embedded block. */
 export const EMBEDDED_FORMAT = 'lotus-embedded/v1' as const;
@@ -33,6 +34,20 @@ export const EMBEDDED_ELEMENT_ID = 'lotus-embedded-workspace';
 /** Preferences worth carrying with the file (never the API key). */
 export interface EmbeddedPrefs {
   theme: ThemeMode;
+  /** Palette preset the dashboard was saved with. */
+  themeId: ThemeId;
+  /** Accent override, `#rrggbb`, or `''` for the preset's own accent. */
+  customAccentHex: string;
+  /** Neutral warmth override in degrees, or `null` for the preset's hue. */
+  customNeutralHue: number | null;
+  /**
+   * The palette as resolved when the file was written.
+   *
+   * Redundant with `themeId` (the app re-resolves on load) but kept so a saved
+   * file is self-describing about how it looked, and so an older cache still
+   * renders correctly if the preset data ever changes.
+   */
+  themeTokens: ThemeTokens;
   showGridHints: boolean;
   confirmDelete: boolean;
 }
@@ -60,6 +75,11 @@ export interface EmbeddedState {
 /** Minimal `document` surface, so this module is unit testable in plain Node. */
 export interface DocumentLike {
   getElementById: (id: string) => { textContent: string | null } | null;
+}
+
+/** `true` for one of the three colour-scheme values the UI understands. */
+function isThemeMode(value: unknown): value is ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system';
 }
 
 function currentDocument(): DocumentLike | undefined {
@@ -95,6 +115,32 @@ export function createEmbeddedState(input: {
 }
 
 /**
+ * Sanitise the preference block of an untrusted file.
+ *
+ * A saved dashboard is something a user may receive from someone else, so it is
+ * treated as input rather than as state: colours are validated, an unknown
+ * preset id falls back to the default, and only known token keys survive.
+ * Booleans keep the store's own defaults when the file does not carry them.
+ */
+export function sanitizeEmbeddedPrefs(raw: unknown): EmbeddedPrefs | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const value = raw as Record<string, unknown>;
+  const themeInput = normalizeThemeInput({
+    themeId: value.themeId,
+    customAccentHex: value.customAccentHex,
+    customNeutralHue: value.customNeutralHue,
+  });
+
+  return {
+    theme: isThemeMode(value.theme) ? value.theme : 'system',
+    ...themeInput,
+    themeTokens: sanitizeThemeTokens(value.themeTokens),
+    showGridHints: typeof value.showGridHints === 'boolean' ? value.showGridHints : true,
+    confirmDelete: typeof value.confirmDelete === 'boolean' ? value.confirmDelete : false,
+  };
+}
+
+/**
  * Parse the snapshot embedded in the page, or `null` when there is none (dev
  * server, web deployment) or it is not ours.
  *
@@ -123,7 +169,7 @@ export function readEmbeddedState(doc: DocumentLike | undefined = currentDocumen
       generator: parsed.generator ?? { name: APP_NAME, version: APP_VERSION },
       savedAt,
       workspace: parsed.workspace as EmbeddedWorkspace,
-      prefs: parsed.prefs ?? null,
+      prefs: sanitizeEmbeddedPrefs(parsed.prefs),
     };
   } catch {
     return null;

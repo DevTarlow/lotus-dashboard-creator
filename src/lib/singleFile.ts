@@ -87,5 +87,5 @@ export function preferredSaveName(title: string, location: LocationLike | undefi
 
 /** Human readable summary used in toasts and the save dialog. */
 export function dashboardFileDescription(title: string): string {
-  return `${APP_NAME} dashboard — ${title.trim() || 'Untitled'}`;
+  return `${APP_NAME} dashboard: ${title.trim() || 'Untitled'}`;
 }

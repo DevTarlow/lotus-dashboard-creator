@@ -95,8 +95,8 @@ export const WidgetFrame = memo(
           <EmptyState
             size="sm"
             icon={<PlugIcon className="h-4 w-4" />}
-            title="This widget isn't in this copy of the app"
-            description={`Nothing here can display a “${instance.type}” card. Your data for it is kept, so it comes back in a newer copy of the app.`}
+            title="This card isn't in this copy of the app"
+            description={`Nothing here can show a “${instance.type}” card. Whatever you had saved in it is kept.`}
             action={
               <Button
                 size="sm"
@@ -133,7 +133,7 @@ export const WidgetFrame = memo(
             'widget-drag-handle flex shrink-0 items-center gap-2.5 border-b border-slate-100 px-3 py-2 dark:border-slate-800',
             locked ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
           )}
-          title={locked ? 'The layout is locked — unlock it in the status bar' : undefined}
+          title={locked ? 'The layout is locked. Unlock it at the bottom of the page' : undefined}
           onPointerDown={
             locked
               ? () => {
@@ -223,7 +223,7 @@ export const WidgetFrame = memo(
               <EmptyState
                 size="sm"
                 icon={<AlertIcon className="h-4 w-4 text-rose-500" />}
-                title="This widget could not start"
+                title="This card could not start"
                 /* The technical message is kept, but underneath the buttons: a raw
                    error as the body of a card reads as breakage. */
                 description="Trying again usually fixes it."
@@ -242,7 +242,7 @@ export const WidgetFrame = memo(
                           reset();
                         }}
                       >
-                        Reset this widget
+                        Reset this card
                       </Button>
                     </div>
                     <details className="text-left">

@@ -68,7 +68,7 @@ export interface StickyNotesState {
 export const STICKY_TITLE_MAX = 48;
 
 /** The note a brand-new widget starts with. */
-export const WELCOME_STICKY_TEXT = 'Pin a note to keep it on top — copy, edit or bin it from its corner.';
+export const WELCOME_STICKY_TEXT = 'Pin a note to keep it at the top. Copy, edit or delete it from its corner.';
 
 /** Trim a note's text to the storage cap. */
 export function clampStickyText(text: string): string {

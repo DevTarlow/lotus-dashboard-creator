@@ -149,7 +149,7 @@ export function DashboardCanvas() {
           <EmptyState
             icon={<GridIcon className="h-5 w-5" />}
             title="Nothing here yet"
-            description="Add a widget to get started — a clock, the weather, your tasks, a notebook. Your changes are kept in this browser automatically."
+            description="Add a widget to get started. Your changes are saved in this browser as you work."
             action={
               <Button variant="primary" icon={<PlusIcon className="h-4 w-4" />} onClick={openAddWidget}>
                 Add your first widget

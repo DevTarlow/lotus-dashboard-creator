@@ -105,7 +105,7 @@ describe('user-facing copy', () => {
     // layers; they are allowed to differ in wording but not in claim.
     const header = source('src/components/layout/HeaderBar.tsx');
     expect(header).toContain('Saved to ${linkedFileName}');
-    expect(header).toContain('use Save to file to keep the file up to date');
+    expect(header).toContain('Save to file to update the file too');
     expect(header).not.toContain("'Saved in this browser'");
   });
 });

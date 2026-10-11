@@ -22,7 +22,7 @@ const STEPS: readonly Step[] = [
     body: (
       <>
         Press <strong className="font-semibold text-slate-700 dark:text-slate-200">Add widget</strong> at the top
-        right, then add a card with a click or by dragging it onto the page.
+        right, then click a card or drag it onto the page.
       </>
     ),
   },
@@ -32,14 +32,14 @@ const STEPS: readonly Step[] = [
     body: (
       <>
         Drag a card by its <em className="not-italic font-medium text-slate-700 dark:text-slate-200">title bar</em> to
-        move it, and by its bottom-right corner to resize it.
+        move it. Drag the bottom-right corner to make it bigger or smaller.
       </>
     ),
   },
   {
     icon: <WandIcon className="h-4 w-4" />,
     title: 'Tidy up when it looks messy',
-    body: <>Press Tidy up in the toolbar and the gaps close themselves.</>,
+    body: <>Press Tidy up and the gaps between your cards close up.</>,
   },
   {
     icon: <SaveIcon className="h-4 w-4" />,
@@ -47,9 +47,10 @@ const STEPS: readonly Step[] = [
     body: (
       <>
         Your changes are saved in this browser as you work. To keep them in{' '}
-        <strong className="font-semibold text-slate-700 dark:text-slate-200">this file</strong> — so it is up to date
-        when you open it again, or send it to someone — press ⌘/Ctrl&nbsp;+&nbsp;S, or use{' '}
-        <strong className="font-semibold text-slate-700 dark:text-slate-200">Save to file</strong> in the ⋯ menu.
+        <strong className="font-semibold text-slate-700 dark:text-slate-200">this file</strong> as well, press
+        ⌘/Ctrl&nbsp;+&nbsp;S, or use{' '}
+        <strong className="font-semibold text-slate-700 dark:text-slate-200">Save to file</strong> in the ⋯ menu. Then
+        the copy you keep and the copy you send are the same.
       </>
     ),
   },

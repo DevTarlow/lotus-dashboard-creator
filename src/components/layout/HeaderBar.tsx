@@ -327,12 +327,12 @@ export function StatusBar() {
    * updated by Save to file.
    */
   const saveState = !persistent
-    ? { tone: 'bg-amber-500', label: "Can't save in this browser — use Save to file" }
+    ? { tone: 'bg-amber-500', label: "This browser won't save your changes. Use Save to file" }
     : linkedFileName
       ? { tone: 'bg-emerald-500', label: `Saved to ${linkedFileName}` }
       : canWriteInPlace
-        ? { tone: 'bg-emerald-500', label: 'Saved in this browser — use Save to file to keep the file up to date' }
-        : { tone: 'bg-emerald-500', label: 'Saved in this browser — Save to file downloads a copy' };
+        ? { tone: 'bg-emerald-500', label: 'Saved in this browser. Save to file to update the file too' }
+        : { tone: 'bg-emerald-500', label: 'Saved in this browser. Save to file makes a fresh copy' };
 
   return (
     <footer className="border-t border-slate-200/80 bg-white/70 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/70">
@@ -354,7 +354,7 @@ export function StatusBar() {
             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-amber-600 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 dark:text-amber-400 dark:hover:bg-amber-500/10"
           >
             <LockIcon className="h-3 w-3" />
-            Layout locked — unlock
+            Layout locked. Unlock
           </button>
         ) : null}
         <button

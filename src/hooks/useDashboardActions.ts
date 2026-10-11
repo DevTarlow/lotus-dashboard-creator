@@ -58,7 +58,7 @@ export function useDashboardActions(): DashboardActions {
     });
     const fileName = suggestedFileName(document.dashboard.title);
     downloadTextFile(fileName, serializeDashboardDocument(document));
-    success('Backup saved', { description: `${fileName} — keep it somewhere safe.` });
+    success('Backup saved', { description: `${fileName}. Keep it somewhere safe.` });
   }, [success]);
 
   const copyJson = useCallback(() => {
@@ -92,8 +92,8 @@ export function useDashboardActions(): DashboardActions {
       const definition = getWidgetDefinition(type);
       const id = addWidgetToStore(type);
       if (!id) {
-        error('That widget is not in this copy of the app', {
-          description: `Nothing here can display a “${type}” card.`,
+        error('That card is not in this copy of the app', {
+          description: `Nothing here can show a “${type}” card.`,
         });
         return;
       }
@@ -163,7 +163,7 @@ export function useDashboardActions(): DashboardActions {
     (template: DashboardTemplate) => {
       applyTemplateToStore(template);
       success(`Applied “${template.name}”`, {
-        description: 'Your previous dashboard is one undo away (⌘/Ctrl + Z).',
+        description: 'Press ⌘/Ctrl + Z to get your earlier dashboard back.',
         duration: 7000,
         action: { label: 'Undo', onClick: () => useDashboardStore.getState().undo() },
       });

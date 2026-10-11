@@ -96,20 +96,19 @@ export function clampSidebarRatio(value: unknown): number {
  * Copy for the first note of a brand-new widget. Also the text every scratchpad
  * created before multi-note support migrates into.
  */
-export const WELCOME_NOTE_TEXT = `# Welcome to Lotus 👋
+export const WELCOME_NOTE_TEXT = `# Notes
 
-This scratchpad saves as you type — switch to **Preview** or **Split** to see the markdown.
+This panel saves as you type. Switch to **Preview** or **Split** to see the text as it will look.
 
-Use the panel on the left to keep several notes side by side.
+Notes live in the column on the left. Make as many as you like, and drag the divider
+between the two sides to give the list more room.
 
-## Try this
-- [x] Drag a widget by its header
-- [ ] Resize it from the bottom-right corner
-- [ ] Drag a widget from the *Add widget* drawer straight onto the grid
+A little markdown to start from:
+- \`#\` for a heading, \`-\` for a bullet
+- \`**bold**\` and \`*italic*\`
+- \`[a link](https://example.com)\`
 
-> Everything is stored locally in your browser, and you can export the whole layout as JSON.
-
-\`Ctrl/⌘ + Z\` undoes a layout change.`;
+These notes are part of the dashboard, so they are saved with it and travel in a copy of the file.`;
 
 /**
  * Id of the note a brand-new widget starts with. Fixed so a config that only

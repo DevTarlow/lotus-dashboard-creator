@@ -156,7 +156,7 @@ export function AddWidgetDrawer() {
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            {widgetCount} widget{widgetCount === 1 ? '' : 's'} on your dashboard · keep adding, then close this panel.
+            {widgetCount} widget{widgetCount === 1 ? '' : 's'} on your dashboard.
           </p>
           <Button size="sm" variant="primary" onClick={close}>
             Done

@@ -117,7 +117,7 @@ export function useSaveDashboardFile(): SaveDashboardFile {
     (title: string, description: string) => {
       if (import.meta.env.DEV) {
         warning(title, {
-          description: `${description} This build came from the dev server — run \`npm run build:single\` for a file that opens on its own.`,
+          description: `${description} This build came from the dev server, so it will not open on its own. Run \`npm run build:single\` for a file that does.`,
         });
       } else {
         success(title, { description });
@@ -157,7 +157,7 @@ export function useSaveDashboardFile(): SaveDashboardFile {
 
       if (!canWriteInPlace) {
         downloadTextFile(fileName, html, 'text/html');
-        announce('Dashboard downloaded', `${fileName} — open it any time to restore this dashboard.`);
+        announce('Dashboard downloaded', `${fileName}. Open it any time to get this dashboard back.`);
         return 'download';
       }
 

@@ -20,7 +20,7 @@ export function SeedNotice() {
     announced.current = true;
     warning('We could not read your saved dashboard', {
       description:
-        'It started again from the starter layout. If you saved a copy of this dashboard to a file, open that file to get it back.',
+        'It started again from the starter dashboard. If you kept a copy in a file, open that file to get your dashboard back.',
       duration: 12000,
     });
   }, [seedOrigin, warning]);

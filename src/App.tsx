@@ -44,7 +44,7 @@ function CrashScreen({ message, onRetry }: { message: string; onRetry: () => voi
           </Button>
         </div>
         <p className="text-[11px] text-slate-400 dark:text-slate-500">
-          Your dashboard is stored in this browser and is not affected by this error.
+          Your dashboard is still saved in this browser.
         </p>
       </div>
     </div>

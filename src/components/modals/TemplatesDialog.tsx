@@ -107,13 +107,13 @@ export function TemplatesDialog() {
       open={open}
       onClose={close}
       title="Templates"
-      description="Start from a ready-made dashboard, or clear the canvas and build your own."
+      description="Start from a ready-made dashboard, or from nothing at all."
       size="lg"
       footer={
         <>
           <p className="mr-auto text-[11px] text-slate-400 dark:text-slate-500">
-            Applying a template replaces the current {widgetCount} widget{widgetCount === 1 ? '' : 's'} — press ⌘/Ctrl + Z
-            to undo.
+            This replaces the current {widgetCount} widget{widgetCount === 1 ? '' : 's'}. You can undo it with ⌘/Ctrl
+            + Z.
           </p>
           <Button variant="secondary" onClick={close}>
             Close

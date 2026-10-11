@@ -139,7 +139,7 @@ export function AppearanceDialog() {
       open={open}
       onClose={close}
       title="Themes & colours"
-      description="Pick a palette, then adjust it if you like. Your colours travel with a saved dashboard."
+      description="Pick a palette, then adjust it if you like. Your colours are kept with the dashboard."
       size="lg"
       footer={
         <>

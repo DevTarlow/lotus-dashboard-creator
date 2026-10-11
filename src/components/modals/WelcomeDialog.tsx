@@ -49,8 +49,8 @@ export function WelcomeDialog() {
       open={open}
       onClose={dismiss}
       size="md"
-      title="Welcome — this is your dashboard"
-      description="Nothing here is permanent. Move things around, add widgets, change the colours — everything can be undone."
+      title="Welcome to your dashboard"
+      description="Move things around, add widgets, change the colours. Anything you do here can be undone."
       footer={
         <>
           <Button variant="ghost" size="sm" icon={<TrashIcon className="h-3.5 w-3.5" />} onClick={startBlank}>

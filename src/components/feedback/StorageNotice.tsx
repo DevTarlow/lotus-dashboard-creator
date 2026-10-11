@@ -30,11 +30,11 @@ export function StorageNotice() {
       <div className="mx-auto flex max-w-[1800px] items-start gap-3 px-4 py-2.5 text-xs sm:px-6 lg:px-8">
         <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
         <p className="min-w-0 flex-1">
-          <span className="font-semibold">This browser won't let the dashboard save here</span>, so your changes
-          will be lost when you refresh or close the tab.{' '}
+          <span className="font-semibold">This browser won't save your dashboard</span>, so your changes will be
+          lost when you refresh or close the tab.{' '}
           <span className="text-amber-800/90 dark:text-amber-200/80">
-            Use <strong>Save to file</strong> in the ⋯ menu (top right) to keep your dashboard in a file you can
-            reopen — or <strong>Save a backup (.json)</strong> for a portable copy.
+            Use <strong>Save to file</strong> in the ⋯ menu (top right) to keep it in a file you can open again. You
+            can also use <strong>Save a backup (.json)</strong> for a copy you can move between computers.
           </span>
         </p>
         <IconButton

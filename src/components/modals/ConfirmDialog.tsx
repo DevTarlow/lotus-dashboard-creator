@@ -83,10 +83,10 @@ export function DeleteWidgetDialog({ open, widgetTitle, onConfirm, onCancel }: D
           You can undo this right away from the toast or with ⌘/Ctrl + Z.
         </p>
         <Switch
-          checked={!confirmDelete}
-          onChange={(checked) => setConfirmDelete(!checked)}
-          label="Remove without asking next time"
-          help="You will still get an undo option."
+          checked={confirmDelete}
+          onChange={setConfirmDelete}
+          label="Ask before removing a widget"
+          help="Turn this off and removals happen straight away. You still get an undo option."
         />
       </div>
     </ConfirmDialog>

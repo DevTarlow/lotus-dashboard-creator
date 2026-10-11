@@ -8,7 +8,6 @@ import {
   MoreIcon,
   PlusIcon,
   RedoIcon,
-  RefreshIcon,
   SaveIcon,
   SunIcon,
   MonitorIcon,
@@ -215,17 +214,18 @@ export function HeaderBar() {
             items={[
               {
                 id: 'templates',
-                label: 'Templates & reset',
+                label: 'Templates…',
                 icon: <SparklesIcon className="h-4 w-4" />,
                 onSelect: openTemplates,
               },
               {
                 id: 'tidy',
-                label: 'Tidy up layout',
+                label: 'Tidy up',
                 icon: <WandIcon className="h-4 w-4" />,
                 onSelect: actions.tidy,
               },
               { id: 'sep-1', separator: true },
+              { id: 'heading-files', heading: 'This dashboard file' },
               {
                 id: 'save-file',
                 label: 'Save to file',
@@ -252,33 +252,28 @@ export function HeaderBar() {
                   void forgetLink();
                 },
               },
+              { id: 'sep-2', separator: true },
+              { id: 'heading-backup', heading: 'Backups' },
               {
                 id: 'export',
-                label: 'Export layout as JSON',
+                label: 'Save a backup (.json)',
                 icon: <DownloadIcon className="h-4 w-4" />,
                 shortcut: '⌘⇧S',
                 onSelect: actions.exportJson,
               },
               {
                 id: 'copy',
-                label: 'Copy layout JSON',
+                label: 'Copy backup to clipboard',
                 icon: <CopyIcon className="h-4 w-4" />,
                 onSelect: actions.copyJson,
               },
               {
                 id: 'import',
-                label: 'Import layout from JSON',
+                label: 'Restore from a backup (.json)',
                 icon: <UploadIcon className="h-4 w-4" />,
                 onSelect: () => inputRef.current?.click(),
               },
-              { id: 'sep-2', separator: true },
-              {
-                id: 'reset',
-                label: 'Reset to default template',
-                icon: <RefreshIcon className="h-4 w-4" />,
-                danger: true,
-                onSelect: actions.resetDashboard,
-              },
+              { id: 'sep-3', separator: true },
               {
                 id: 'help',
                 label: 'Help & shortcuts',

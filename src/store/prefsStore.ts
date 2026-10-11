@@ -165,7 +165,10 @@ export const usePrefsStore = create<PrefsState>()(
         customNeutralHue: null,
         themeTokens: {},
         showGridHints: true,
-        confirmDelete: false,
+        // Ask first. Removing a widget was silent by default, and the preference
+        // that would have turned the question on was only reachable from inside
+        // the dialog that never appeared.
+        confirmDelete: true,
         hasSeenWelcome: false,
         finnhubKey: '',
         githubToken: '',

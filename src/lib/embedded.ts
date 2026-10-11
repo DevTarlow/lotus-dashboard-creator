@@ -136,7 +136,9 @@ export function sanitizeEmbeddedPrefs(raw: unknown): EmbeddedPrefs | null {
     ...themeInput,
     themeTokens: sanitizeThemeTokens(value.themeTokens),
     showGridHints: typeof value.showGridHints === 'boolean' ? value.showGridHints : true,
-    confirmDelete: typeof value.confirmDelete === 'boolean' ? value.confirmDelete : false,
+    // Match the store's default: a file written before this preference existed
+    // must not arrive with confirmations switched off.
+    confirmDelete: typeof value.confirmDelete === 'boolean' ? value.confirmDelete : true,
   };
 }
 

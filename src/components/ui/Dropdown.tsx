@@ -20,18 +20,30 @@ export interface DropdownItem {
   disabled?: boolean;
 }
 
+/** A non-interactive group label inside the menu. */
+export interface DropdownHeading {
+  id: string;
+  heading: string;
+}
+
+export type DropdownEntry = DropdownItem | { id: string; separator: true } | DropdownHeading;
+
 export interface DropdownProps {
   /** Accessible label for the trigger button. */
   label: string;
   trigger: ReactNode;
-  items: readonly (DropdownItem | { id: string; separator: true })[];
+  items: readonly DropdownEntry[];
   align?: 'start' | 'end';
   /** Extra classes for the trigger button. */
   triggerClassName?: string;
 }
 
-function isSeparator(item: DropdownItem | { id: string; separator: true }): item is { id: string; separator: true } {
+function isSeparator(item: DropdownEntry): item is { id: string; separator: true } {
   return 'separator' in item;
+}
+
+function isHeading(item: DropdownEntry): item is DropdownHeading {
+  return 'heading' in item;
 }
 
 /** Accessible menu with roving focus, used for toolbars and widget actions. */
@@ -94,6 +106,14 @@ export function Dropdown({ label, trigger, items, align = 'end', triggerClassNam
           {items.map((item) =>
             isSeparator(item) ? (
               <div key={item.id} className="my-1 h-px bg-slate-100 dark:bg-slate-800" role="separator" />
+            ) : isHeading(item) ? (
+              // Not a menuitem: it is a label, so the roving focus skips it.
+              <div
+                key={item.id}
+                className="px-2.5 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500"
+              >
+                {item.heading}
+              </div>
             ) : (
               <button
                 key={item.id}

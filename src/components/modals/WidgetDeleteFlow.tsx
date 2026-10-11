@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { DeleteWidgetDialog } from '@/components/modals/ConfirmDialog';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -19,10 +19,26 @@ export function WidgetDeleteFlow() {
   const widget = useDashboardStore((state) => state.widgets.find((entry) => entry.id === pendingDeleteId));
   const { removeWidget } = useDashboardActions();
 
+  /**
+   * The request we have already decided about.
+   *
+   * The decision is taken once, when the request arrives. Without it the
+   * dialog's own "ask before removing" switch read as a second request:
+   * turning confirmations off while the question was on screen deleted the
+   * widget instantly, before the user had pressed anything.
+   */
+  const decidedRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!pendingDeleteId) return;
+    if (!pendingDeleteId) {
+      decidedRef.current = null;
+      return;
+    }
+    if (decidedRef.current === pendingDeleteId) return;
+    decidedRef.current = pendingDeleteId;
+
+    // Confirmations on: the dialog below asks. Off: this request goes straight through.
     if (confirmDelete) return;
-    // Confirmation disabled → delete immediately.
     if (widget) removeWidget(pendingDeleteId);
     cancelDelete();
   }, [cancelDelete, confirmDelete, pendingDeleteId, removeWidget, widget]);

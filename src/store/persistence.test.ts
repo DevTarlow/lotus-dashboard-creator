@@ -209,6 +209,26 @@ describe('where the workspace came from', () => {
   });
 });
 
+describe('destructive action defaults', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('asks before removing a widget on a fresh install', async () => {
+    const prefs = await loadPrefsStore();
+    expect(prefs.getState().confirmDelete).toBe(true);
+  });
+
+  it('honours a stored choice to stop asking', async () => {
+    // The preference is real, and turning it off has to survive a refresh —
+    // otherwise "don't ask again" is a lie.
+    localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify({ state: { confirmDelete: false }, version: 1 }));
+
+    const prefs = await loadPrefsStore();
+    expect(prefs.getState().confirmDelete).toBe(false);
+  });
+});
+
 describe('theme persistence', () => {
   beforeEach(() => {
     localStorage.clear();

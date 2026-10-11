@@ -142,7 +142,8 @@ describe('readEmbeddedState', () => {
       customNeutralHue: 360,
       themeTokens: { '--color-accent-fg': '#000000' },
       showGridHints: true,
-      confirmDelete: false,
+      // A non-boolean falls back to the store's default, which is "ask first".
+      confirmDelete: true,
     });
   });
 

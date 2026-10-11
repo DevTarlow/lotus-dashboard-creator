@@ -32,6 +32,15 @@ function respondWith(body: unknown, init: { status?: number; headers?: Record<st
   return vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(body, init)));
 }
 
+/** A mock that behaves like the real thing: an already-aborted signal rejects. */
+function respondUnlessAborted(body: unknown) {
+  return vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+    const signal = init.signal as AbortSignal | undefined;
+    if (signal?.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
+    return Promise.resolve(jsonResponse(body));
+  });
+}
+
 /** Let the queue and the microtask chain settle. */
 function nextTick(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -244,6 +253,45 @@ describe('requestJson', () => {
     b.abort();
     await expect(second).rejects.toMatchObject({ code: 'aborted' });
     expect(controllers[0].aborted).toBe(true);
+  });
+
+  it('starts a fresh request after the previous one was abandoned', async () => {
+    const mock = respondUnlessAborted({ value: 1 });
+    vi.stubGlobal('fetch', mock);
+
+    // React's development StrictMode mounts, unmounts and mounts again: the
+    // first caller abandons the request and the second must not inherit it.
+    const first = new AbortController();
+    const abandoned = requestJson('air:1', 'https://example.test/air', { signal: first.signal, retries: 0 });
+    first.abort();
+    await expect(abandoned).rejects.toMatchObject({ code: 'aborted' });
+
+    const second = await requestJson<{ value: number }>('air:1', 'https://example.test/air', { retries: 0 });
+    expect(second.data).toEqual({ value: 1 });
+    expect(mock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not let a new caller join an abandoned request', async () => {
+    let calls = 0;
+    // The first request hangs until it is aborted (a real provider that never
+    // answers); the replacement answers normally.
+    const mock = vi.fn().mockImplementation((url: string, init: RequestInit) => {
+      calls += 1;
+      return calls === 1 ? hangingResponse(url, init) : Promise.resolve(jsonResponse({ value: 2 }));
+    });
+    vi.stubGlobal('fetch', mock);
+
+    const controller = new AbortController();
+    const abandoned = requestJson('air:2', 'https://example.test/air', { signal: controller.signal, retries: 0 });
+    controller.abort();
+    await expect(abandoned).rejects.toMatchObject({ code: 'aborted' });
+
+    // The abandoned request is un-registered the moment it is abandoned, so this
+    // caller asks for itself instead of inheriting a failure it never caused.
+    const fresh = requestJson<{ value: number }>('air:2', 'https://example.test/air', { retries: 0 });
+    await nextTick();
+    expect(mock).toHaveBeenCalledTimes(2);
+    await expect(fresh).resolves.toMatchObject({ data: { value: 2 } });
   });
 
   it('rejects immediately when handed an already aborted signal', async () => {

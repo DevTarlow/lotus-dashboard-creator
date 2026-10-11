@@ -241,6 +241,18 @@ export async function runAppChecks({ port, appUrl, report }) {
       JSON.stringify(reloaded) === JSON.stringify(after) && JSON.stringify(after) !== JSON.stringify(before),
       `${JSON.stringify(before)} → ${JSON.stringify(after)} → reload ${JSON.stringify(reloaded)}`,
     );
+
+    /**
+     * Development builds render under StrictMode, which mounts every panel twice.
+     * The abandoned first request must not be inherited by the second mount, or
+     * each live panel sits on "Request aborted." until its retry is clicked —
+     * a failure only a dev server can show, and only this group can catch.
+     */
+    await wait(4000);
+    const aborted = await page.session.evaluate(`[...document.querySelectorAll('[data-widget-type]')]
+      .filter((el) => /aborted/i.test(el.innerText || ''))
+      .map((el) => el.getAttribute('data-widget-type'))`);
+    report.check('no live panel is stuck on an aborted first request', aborted.length === 0, aborted.join(', '));
   } finally {
     report.check('no console errors on the server build', problems.consoleErrors.length === 0, problems.consoleErrors.slice(0, 3).join(' | '));
     report.check('no uncaught exceptions on the server build', problems.exceptions.length === 0);

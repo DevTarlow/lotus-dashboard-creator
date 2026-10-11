@@ -249,6 +249,8 @@ interface CacheEntry {
 }
 
 interface SharedRequest {
+  /** The cache key this request was started for. */
+  key: string;
   controller: AbortController;
   /** Live joiners; the request is cancelled when the last one leaves. */
   refs: number;
@@ -285,7 +287,15 @@ async function runRequest(
   }
 }
 
-/** Resolve with the shared request, or reject as soon as *this* caller aborts. */
+/**
+ * Resolve with the shared request, or reject as soon as *this* caller aborts.
+ *
+ * When the last joiner leaves, the request is abandoned **and un-registered
+ * immediately**. Waiting for the fetch to reject would leave a doomed entry in
+ * `inflight`, and the next caller — in React's development StrictMode, that is
+ * the same component remounting a moment later — would join a request that is
+ * already aborted and inherit its failure instead of asking again.
+ */
 function joinRequest<T>(shared: SharedRequest, signal?: AbortSignal): Promise<CachedJson<T>> {
   return new Promise<CachedJson<T>>((resolve, reject) => {
     let done = false;
@@ -303,7 +313,10 @@ function joinRequest<T>(shared: SharedRequest, signal?: AbortSignal): Promise<Ca
       done = true;
       shared.refs -= 1;
       // Nobody is waiting any more: stop the network work as well.
-      if (shared.refs <= 0 && !shared.settled) shared.controller.abort();
+      if (shared.refs <= 0 && !shared.settled) {
+        shared.controller.abort();
+        if (inflight.get(shared.key) === shared) inflight.delete(shared.key);
+      }
       reject(new HttpError('Request aborted.', 'aborted'));
     }
 
@@ -345,9 +358,16 @@ export function requestJson<T>(key: string, url: string, options: RequestJsonOpt
   }
 
   let shared = inflight.get(key);
+  // A request whose controller is already aborted can never succeed, so it is
+  // not joined — the caller starts a fresh one instead.
+  if (shared && shared.controller.signal.aborted) {
+    inflight.delete(key);
+    shared = undefined;
+  }
   if (!shared) {
     const controller = new AbortController();
     const created: SharedRequest = {
+      key,
       controller,
       refs: 0,
       settled: false,

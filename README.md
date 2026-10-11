@@ -520,7 +520,7 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 808 unit tests
+npm test          # 810 unit tests
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -580,7 +580,7 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 34 assertions there — 80 with a server —
+single-file checks need no server at all. 34 assertions there — 81 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, the notes file panel (create, autosave across a reload, delete
 confirmation, and a pre-panel scratchpad migrating into a note), the notes panes

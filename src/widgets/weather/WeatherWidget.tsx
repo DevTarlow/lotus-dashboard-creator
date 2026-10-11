@@ -87,7 +87,7 @@ export function WeatherWidget({ config }: WidgetProps<WeatherConfig>) {
             </p>
           ) : null}
         </div>
-        <WeatherGlyph condition={weather.condition} className="h-9 w-9 text-violet-500 dark:text-violet-400" />
+        <WeatherGlyph condition={weather.condition} className="h-9 w-9 text-violet-500 dark:text-violet-300" />
       </div>
 
       <div className="flex items-end gap-2">

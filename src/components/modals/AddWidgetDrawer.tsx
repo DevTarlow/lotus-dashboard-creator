@@ -112,7 +112,7 @@ export function AddWidgetDrawer() {
                     'rounded-full px-2.5 py-1 text-[11px] font-semibold transition',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60',
                     active
-                      ? 'bg-violet-600 text-white dark:bg-violet-500'
+                      ? 'bg-violet-600 text-accent-fg dark:bg-violet-500'
                       : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200',
                   )}
                 >

@@ -17,7 +17,7 @@ function InlineLink({ href, children }: { href: string; children: string }) {
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className="font-medium text-violet-600 underline underline-offset-2 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+      className="font-medium text-violet-600 underline underline-offset-2 hover:text-violet-700 dark:text-violet-300 dark:hover:text-violet-300"
     >
       {children}
     </a>

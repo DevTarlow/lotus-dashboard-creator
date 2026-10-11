@@ -28,6 +28,7 @@ import {
   runSingleFileChecks,
   runStickyChecks,
   runSystemChecks,
+  runThemeChecks,
   runWorkspaceChecks,
 } from './browser/checks.mjs';
 
@@ -137,6 +138,20 @@ try {
     });
   } catch (error) {
     report.check('workspace checks completed', false, error.message);
+  }
+
+  // Presets, custom colours, persistence across a reload and the no-flash
+  // pre-paint path — all against the built file, which is the artifact a user
+  // actually opens.
+  report.startGroup('themes & colours (file://)');
+  try {
+    await runThemeChecks({
+      port: chrome.port,
+      appUrl: `file://${options.single}`,
+      report,
+    });
+  } catch (error) {
+    report.check('theme checks completed', false, error.message);
   }
 
   report.startGroup('system & device widget (file://)');

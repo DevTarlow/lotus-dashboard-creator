@@ -192,7 +192,7 @@ export function DashboardCanvas() {
           className="pointer-events-none absolute inset-x-0 -top-3 flex justify-center"
           aria-hidden="true"
         >
-          <span className="rounded-full bg-violet-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg">
+          <span className="rounded-full bg-violet-600 px-3 py-1 text-[11px] font-semibold text-accent-fg shadow-lg">
             Drop to add {getWidgetDefinition(draggingType)?.name ?? 'widget'}
           </span>
         </div>

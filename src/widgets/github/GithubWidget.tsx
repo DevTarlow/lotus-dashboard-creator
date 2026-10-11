@@ -57,7 +57,7 @@ function LinkRow({ href, children }: { href: string; children: React.ReactNode }
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className="inline-flex min-w-0 items-center gap-1 text-violet-600 underline-offset-2 hover:underline dark:text-violet-400"
+      className="inline-flex min-w-0 items-center gap-1 text-violet-600 underline-offset-2 hover:underline dark:text-violet-300"
     >
       <span className="truncate">{children}</span>
       <ExternalLinkIcon className="h-3 w-3 shrink-0" />

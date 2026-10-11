@@ -49,11 +49,11 @@ export function ImportDropZone({ children }: { children: ReactNode }) {
           )}
         >
           <div className="flex flex-col items-center gap-2 text-center">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-600 text-white shadow-lg">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-600 text-accent-fg shadow-lg">
               <UploadIcon className="h-5 w-5" />
             </span>
             <p className="text-sm font-semibold text-violet-800 dark:text-violet-200">Drop to import this layout</p>
-            <p className="text-xs text-violet-600/80 dark:text-violet-300/80">
+            <p className="text-xs text-violet-600 dark:text-violet-300">
               You will see a preview before anything is replaced.
             </p>
           </div>

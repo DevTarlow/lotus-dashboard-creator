@@ -15,6 +15,8 @@ export interface UiState {
   addWidgetOpen: boolean;
   /** Starter template gallery. */
   templatesOpen: boolean;
+  /** Palette and colour picker. */
+  appearanceOpen: boolean;
   /** Keyboard shortcut cheat sheet. */
   shortcutsOpen: boolean;
   /** Widget id whose settings modal is open. */
@@ -30,6 +32,8 @@ export interface UiState {
   closeAddWidget: () => void;
   openTemplates: () => void;
   closeTemplates: () => void;
+  openAppearance: () => void;
+  closeAppearance: () => void;
   openShortcuts: () => void;
   closeShortcuts: () => void;
   openSettings: (id: string) => void;
@@ -46,6 +50,7 @@ export interface UiState {
 export const useUiStore = create<UiState>()((set, get) => ({
   addWidgetOpen: false,
   templatesOpen: false,
+  appearanceOpen: false,
   shortcutsOpen: false,
   settingsWidgetId: null,
   pendingDeleteId: null,
@@ -56,6 +61,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   closeAddWidget: () => set({ addWidgetOpen: false }),
   openTemplates: () => set({ templatesOpen: true }),
   closeTemplates: () => set({ templatesOpen: false }),
+  openAppearance: () => set({ appearanceOpen: true }),
+  closeAppearance: () => set({ appearanceOpen: false }),
   openShortcuts: () => set({ shortcutsOpen: true }),
   closeShortcuts: () => set({ shortcutsOpen: false }),
   openSettings: (settingsWidgetId) => set({ settingsWidgetId }),
@@ -71,6 +78,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({
       addWidgetOpen: false,
       templatesOpen: false,
+      appearanceOpen: false,
       shortcutsOpen: false,
       settingsWidgetId: null,
       pendingDeleteId: null,
@@ -82,6 +90,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
 export const selectHasOpenOverlay = (state: UiState): boolean =>
   state.addWidgetOpen ||
   state.templatesOpen ||
+  state.appearanceOpen ||
   state.shortcutsOpen ||
   state.settingsWidgetId !== null ||
   state.pendingDeleteId !== null ||

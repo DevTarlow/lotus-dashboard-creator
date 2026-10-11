@@ -303,7 +303,7 @@ export function MarketWidget({ config, updateConfig }: WidgetProps<MarketConfig>
               href={FINNHUB_SIGNUP_URL}
               target="_blank"
               rel="noreferrer noopener"
-              className="shrink-0 rounded-lg bg-violet-600 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-violet-700"
+              className="shrink-0 rounded-lg bg-violet-600 px-2 py-1 text-[10px] font-semibold text-accent-fg transition hover:bg-violet-700"
             >
               Sign up
             </a>

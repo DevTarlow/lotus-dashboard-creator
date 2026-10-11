@@ -218,6 +218,15 @@ export const SparklesIcon = (props: IconProps) => (
   </Icon>
 );
 
+export const PaletteIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3a9 9 0 1 0 0 18h1.4a2 2 0 0 0 1.6-3.2 2 2 0 0 1 1.6-3.2H19a2 2 0 0 0 2-2A9 9 0 0 0 12 3Z" />
+    <circle cx="7.8" cy="11.6" r="1.1" fill="currentColor" stroke="none" />
+    <circle cx="11" cy="7.8" r="1.1" fill="currentColor" stroke="none" />
+    <circle cx="15.2" cy="9.4" r="1.1" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
 export const WandIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M4 20 14.5 9.5" />

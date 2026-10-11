@@ -71,7 +71,7 @@ function Item({ item, now, showImages }: { item: OnThisDayItem; now: Date; showI
               href={item.page.url}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex min-w-0 items-center gap-1 text-violet-600 hover:underline dark:text-violet-400"
+              className="inline-flex min-w-0 items-center gap-1 text-violet-600 hover:underline dark:text-violet-300"
             >
               <span className="max-w-[16ch] truncate">{item.page.label}</span>
               <ExternalLinkIcon className="h-2.5 w-2.5 shrink-0" />
@@ -152,7 +152,7 @@ export function OnThisDayWidget({ config }: WidgetProps<OnThisDayConfig>) {
           href="https://en.wikipedia.org/wiki/Wikipedia:On_this_day"
           target="_blank"
           rel="noreferrer noopener"
-          className="hover:text-violet-600 hover:underline dark:hover:text-violet-400"
+          className="hover:text-violet-600 hover:underline dark:hover:text-violet-300"
         >
           Wikipedia, CC BY-SA
         </a>

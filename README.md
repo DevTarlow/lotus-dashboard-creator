@@ -120,7 +120,9 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 
 **Polish**
 
-- Dark / light / system theme with no flash of the wrong colour scheme on load.
+- Ten palette presets — warm, cool, neutral and bold — on top of light / dark /
+  system, each with an optional custom accent colour and neutral warmth, applied
+  with no flash of the wrong palette on load.
 - Toast notifications with undo actions, per-widget error boundaries, an empty
   state that explains what to do next, and a keyboard shortcut cheat sheet.
 - Zero console errors or warnings — verified in a real browser (see
@@ -149,7 +151,7 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (859 tests, 41 files). |
+| `npm test` | Vitest unit suite (920 tests, 43 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
@@ -196,6 +198,7 @@ src/
 │   ├── layout/                 # HeaderBar, StatusBar, DashboardCanvas,
 │   │                           # WidgetFrame, ImportDropZone
 │   ├── modals/                 # AddWidgetDrawer, WidgetSettingsModal,
+│   │                           # TemplatesDialog, AppearanceDialog,
 │   │                           # TemplatesDialog, ImportDialog, ShortcutsDialog…
 │   └── ui/                     # Button, Modal, Drawer, Dropdown, Field, Markdown,
 │                               # Ring, ProgressBar, StatTile, SourceBadge, tone…
@@ -209,6 +212,8 @@ src/
 │   ├── validation.ts           # import/export validation & normalisation
 │   ├── document.ts             # dashboard document building/serialising
 │   ├── templates.ts            # six starter templates
+│   ├── theme.ts                # theme presets, ramps, contrast solver, tokens
+│   ├── color.ts                # sRGB ↔ OKLCH and WCAG contrast maths
 │   ├── storage.ts              # safe localStorage adapter (memory fallback)
 │   ├── storageKeys.ts          # per-document key scoping on file://
 │   ├── embedded.ts             # the snapshot carried inside a saved HTML file
@@ -241,7 +246,7 @@ src/
 │   └── utils.ts                # cn(), formatting, ids, download helpers…
 ├── store/
 │   ├── dashboardStore.ts       # workspace, layouts, history, persistence
-│   ├── prefsStore.ts           # theme, preferences + optional Finnhub/GitHub keys
+│   ├── prefsStore.ts           # palette, preferences + optional Finnhub/GitHub keys
 │   ├── toastStore.ts           # notifications
 │   └── uiStore.ts              # which overlay is open, drag payload
 ├── styles/index.css            # Tailwind v4 theme, animations, grid theming
@@ -265,7 +270,7 @@ src/
 | Store | Responsibility | Persisted |
 | --- | --- | --- |
 | `dashboardStore` | Dashboard title, widget instances, per-breakpoint layouts, lock flag, undo/redo | ✅ `localStorage` |
-| `prefsStore` | Theme mode, grid hints, delete confirmation, optional Finnhub key | ✅ `localStorage` |
+| `prefsStore` | Colour scheme and palette, custom accent/warmth, grid hints, delete confirmation, optional Finnhub key | ✅ `localStorage` |
 | `uiStore` | Open overlay, settings target, pending import, drag payload | ❌ |
 | `toastStore` | Transient notifications | ❌ |
 
@@ -394,10 +399,44 @@ entries.
 
 ### Theming
 
-`theme` is `light | dark | system`. An inline script in `index.html` applies the
-persisted choice before the first paint, so there is no flash of the wrong theme.
-Tailwind v4 is configured with a class-based `dark` variant, and all widgets use
-`dark:` utilities rather than runtime colour logic.
+![The themes & colours picker, listing the ten palette presets](docs/themes.png)
+
+Two independent axes. `theme` is `light | dark | system`, applied as a class on
+`<html>` (Tailwind v4 is configured with a class-based `dark` variant, and all
+widgets use `dark:` utilities rather than runtime colour logic). `themeId` is the
+palette preset — ten of them, grouped in the picker by temperature rather than by
+who they are "for" — and the user can layer a custom accent colour and a neutral
+hue on top ([`lib/theme.ts`](./src/lib/theme.ts)).
+
+A preset does not touch a single call site. The app is written with ~1,300
+hardcoded `slate-*` and `violet-*` utilities, and Tailwind v4 compiles
+`bg-slate-900` to `background-color: var(--color-slate-900)`; so the theme engine
+writes those custom properties (plus `--color-accent-fg`) onto the root element
+and every utility follows at once. Each step keeps the **lightness** of Tailwind's
+own scale and only changes hue and chroma, which is what keeps one ramp correct in
+both modes — light mode uses the low steps for surfaces and the high steps for
+text, dark mode the reverse — and what keeps the contrast the interface was
+designed around.
+
+Two details are worth knowing before changing this:
+
+- **The accent foreground is solved, not assumed.** White on a mid-lightness
+  accent is not automatically readable (the shipped violet measured 4.40:1 on
+  `violet-500`), so `lib/theme.ts` picks white or a deep ink and applies the
+  smallest lightness nudge that holds all nine accent pairs the UI renders at
+  WCAG AA — for every preset *and* for any accent hue a user can pick. The pairs
+  are data, and `lib/theme.test.ts` asserts them.
+- **Tokens are cached for the first paint.** The inline script in `index.html`
+  cannot import the engine, so the store persists the resolved palette next to the
+  choice and the script replays it before the bundle runs. The cache is never
+  trusted on load: `merge` and `refreshThemeTokens` re-resolve from
+  `themeId` + overrides, which is also what picks up retuned presets after an
+  upgrade. Anything arriving from a file is sanitised first
+  ([`lib/embedded.ts`](./src/lib/embedded.ts)).
+
+Deliberately *not* themed: the semantic tones (`rose`/`amber`/`emerald`/`sky` mean
+danger/warning/success/info), white cards in the light theme (a light preset tints
+the canvas, borders, text and accent instead), and the brand mark.
 
 > **A react-grid-layout v2 gotcha, documented for posterity:** the grid clones
 > your child element and injects the drag handlers (`onMouseDown`, …) *and* the
@@ -530,7 +569,7 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 859 unit tests, 41 files
+npm test          # 920 unit tests, 43 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -546,11 +585,13 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/market.test.ts` | The live market providers: the curated symbol→id map (and its refusal to guess), 24h change maths, end-anchored sparkline resampling, CoinGecko batching and the empty-array-on-unknown-id trap, Finnhub field mapping and its zeroes-for-unknown-ticker quirk, missing/invalid key handling, both rate limits, and partial-success behaviour. |
 | `lib/news.test.ts` | The live news providers against a routed `fetch` stub: each provider's payload mapping and malformed-input tolerance, the wikitext-to-prose parser (wiki links, refs, templates, citation labels), nested-sub-bullet de-duplication, summary collapsing/capping, day-page URL building, round-robin merging so one provider cannot crowd out a topic, partial failure, total failure and cancellation. |
 | `lib/templates.test.ts` | Every template builds a self-consistent workspace on all five breakpoints with unique ids and registered widget types. |
-| `lib/embedded.test.ts` | The embedded snapshot: format marker, `</script>` escaping in a widget's text, foreign/corrupt payloads rejected without throwing, and the newer-wins precedence rule. |
+| `lib/embedded.test.ts` | The embedded snapshot: format marker, `</script>` escaping in a widget's text, foreign/corrupt payloads rejected without throwing, the newer-wins precedence rule, and the sanitising of a preference block that arrived from someone else's file. |
+| `lib/theme.test.ts` | The preset roster and the token engine: the reference ramps pinned against Tailwind's published scales, a complete well-formed token set per preset, the contrast invariants for every preset and across the whole hue circle, custom-accent behaviour, input normalisation, token sanitising (including `__proto__` and injected CSS), and the pinning of the inline pre-paint script. |
+| `lib/color.test.ts` | sRGB ↔ OKLCH round trips and the CSS-spec reference values, WCAG relative luminance and contrast ratios against known boundaries, alpha compositing, and clamping of out-of-gamut or out-of-range input. |
 | `lib/storageKeys.test.ts` | Key scoping: untouched on the web, per-document on `file://`, and matching the expression the inline theme script evaluates. |
 | `lib/utils.test.ts` | `moveItem` — forward/backward moves, clamping, no-ops, and never mutating the input. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
-| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences; corrupt or foreign stored payloads fall back to defaults. |
+| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences — including the palette preset and colour overrides; a cached palette is recomputed rather than trusted; corrupt, foreign or unknown stored payloads fall back to defaults; the palette comes from a newer dashboard file and not from an older one. |
 | `lib/http.test.ts` | The shared fetch layer: in-flight de-duplication, TTL reuse and expiry, the concurrency cap, timeouts, offline fast-fail, one retry on a 429/5xx, and that a failure is never cached. |
 | `lib/time.test.ts` | Day keys and day counting across DST changes, month matrices (leap years, either week start), ISO week numbers, zone offsets across a transition, duration formatting. |
 | `lib/solar.test.ts`, `lib/moon.test.ts` | Sunrise, sunset, twilight and golden hour against published USNO values in both hemispheres, polar day and night, and the lunar cycle's periodicity and illumination. |
@@ -591,9 +632,12 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 73 assertions there — 120 with a server —
+single-file checks need no server at all. 90 assertions there — 137 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
-persistence, the notes file panel (create, autosave across a reload, delete
+persistence, theme presets and custom colours (the applied tokens, the painted
+colours of real elements, mode independence, the warmth slider, the solved accent
+foreground, persistence across a reload, and the palette applied before the
+document finishes parsing), the notes file panel (create, autosave across a reload, delete
 confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
 filling the width whenever only one of them shows, dragging both notes dividers
 (editor/preview and the notes panel, including their keyboard equivalents),

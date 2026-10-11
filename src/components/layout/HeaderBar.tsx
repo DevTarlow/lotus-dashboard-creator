@@ -17,6 +17,7 @@ import {
   UploadIcon,
   WandIcon,
   CopyIcon,
+  PaletteIcon,
   SparklesIcon,
 } from '@/components/icons';
 import { Badge, Button, Dropdown, IconButton } from '@/components/ui';
@@ -107,6 +108,7 @@ export function HeaderBar() {
   const activeBreakpoint = useDashboardStore((state) => state.activeBreakpoint);
   const canUndo = useDashboardStore(selectCanUndo);
   const canRedo = useDashboardStore(selectCanRedo);
+  const openAppearance = useUiStore((state) => state.openAppearance);
   const openTemplates = useUiStore((state) => state.openTemplates);
   const openShortcuts = useUiStore((state) => state.openShortcuts);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -177,10 +179,23 @@ export function HeaderBar() {
             trigger={
               <span className="inline-flex items-center gap-1.5">
                 {themeIcon}
+                {/* A dot of the live accent, so the current palette is visible
+                    without opening the picker. */}
+                <span
+                  className="h-2.5 w-2.5 rounded-full border border-slate-900/10 bg-violet-500 dark:border-white/20"
+                  aria-hidden="true"
+                />
                 <span className="hidden capitalize md:inline">{theme}</span>
               </span>
             }
             items={[
+              {
+                id: 'appearance',
+                label: 'Themes & colours…',
+                icon: <PaletteIcon className="h-4 w-4" />,
+                onSelect: openAppearance,
+              },
+              { id: 'sep-theme', separator: true },
               { id: 'light', label: 'Light', icon: <SunIcon className="h-4 w-4" />, onSelect: () => setTheme('light') },
               { id: 'dark', label: 'Dark', icon: <MoonIcon className="h-4 w-4" />, onSelect: () => setTheme('dark') },
               {

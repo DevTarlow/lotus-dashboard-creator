@@ -116,7 +116,7 @@ export function ClockWidget({ config }: WidgetProps<ClockConfig>) {
             </span>
           ) : null}
           {config.hour12 && time.dayPeriod ? (
-            <span className="pb-1.5 text-xs font-bold uppercase text-violet-500 dark:text-violet-400">
+            <span className="pb-1.5 text-xs font-bold uppercase text-violet-500 dark:text-violet-300">
               {time.dayPeriod}
             </span>
           ) : null}

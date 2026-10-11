@@ -49,6 +49,109 @@ const closeDialog = `(() => {
   return Boolean(done);
 })()`;
 
+/* ---------------------------------------------------------------- theming */
+
+/**
+ * The theme as the running page reports it.
+ *
+ * Both the tokens *and* the painted colours of real elements are read, because
+ * the mechanism under test is indirect: a preset writes CSS custom properties on
+ * `<html>` and every `slate-*`/`violet-*` utility reads them. A token that never
+ * reached a utility would still look applied here.
+ */
+const describeTheme = `(() => {
+  const root = document.documentElement;
+  const style = getComputedStyle(root);
+  const button = [...document.querySelectorAll('button')].find((b) => /add widget/i.test(b.innerText || ''));
+  let stored = null;
+  try {
+    const key = Object.keys(localStorage).find((k) => k.indexOf('lotus-dashboard-creator:prefs/v1') === 0);
+    stored = key ? JSON.parse(localStorage.getItem(key)).state.themeId : null;
+  } catch (e) {
+    stored = 'unreadable';
+  }
+  return {
+    preset: root.dataset.theme || '',
+    accent: style.getPropertyValue('--color-violet-500').trim(),
+    neutral: style.getPropertyValue('--color-slate-900').trim(),
+    accentFg: style.getPropertyValue('--color-accent-fg').trim(),
+    page: getComputedStyle(document.body).backgroundColor,
+    button: button ? getComputedStyle(button).backgroundColor : '',
+    dialog: Boolean(document.querySelector('[role="dialog"]')),
+    stored: stored,
+  };
+})()`;
+
+/** Open the header's "Colour theme" menu. */
+const openThemeMenu = `(() => {
+  const trigger = [...document.querySelectorAll('button[aria-label]')]
+    .find((b) => (b.getAttribute('aria-label') || '') === 'Colour theme');
+  if (!trigger) return false;
+  trigger.click();
+  return true;
+})()`;
+
+/** Choose "Themes & colours…" from that menu. */
+const openAppearance = `(() => {
+  const item = [...document.querySelectorAll('[role="menuitem"]')]
+    .find((el) => /themes & colours/i.test((el.innerText || '').trim()));
+  if (!item) return false;
+  item.click();
+  return true;
+})()`;
+
+/** Click the preset card whose label contains `name`. */
+function pickPreset(name) {
+  return `(() => {
+    const card = [...document.querySelectorAll('button[aria-pressed]')]
+      .find((b) => new RegExp(${JSON.stringify(name)}, 'i').test(b.innerText || ''));
+    if (!card) return false;
+    card.click();
+    return true;
+  })()`;
+}
+
+/** Click the light/dark/system radio by its visible label. */
+function pickMode(label) {
+  return `(() => {
+    const wanted = ${JSON.stringify(label.toLowerCase())};
+    const radio = [...document.querySelectorAll('[role="radio"]')]
+      .find((el) => (el.innerText || '').trim().toLowerCase() === wanted);
+    if (!radio) return false;
+    radio.click();
+    return true;
+  })()`;
+}
+
+/**
+ * Set a controlled input the way a user would.
+ *
+ * React tracks the last value it rendered, so assigning `.value` alone is
+ * ignored; going through the native setter and dispatching `input` is what the
+ * browser does when a person moves a slider or types.
+ */
+function setInputValue(selector, value) {
+  return `(() => {
+    const input = document.querySelector(${JSON.stringify(selector)});
+    if (!input) return false;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(input, ${JSON.stringify(value)});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`;
+}
+
+/** Open the appearance dialog from the header, if it is not already open. */
+async function showAppearance(session) {
+  const open = await session.evaluate(`Boolean(document.querySelector('[role="dialog"]'))`);
+  if (open) return true;
+  await session.evaluate(openThemeMenu);
+  await wait(300);
+  await session.evaluate(openAppearance);
+  await wait(400);
+  return session.evaluate(`Boolean(document.querySelector('[role="dialog"]'))`);
+}
+
 /** Open the clock settings, read its switches, close again. */
 async function clockSwitches(session) {
   if (!(await session.evaluate(openClockSettings))) return null;
@@ -134,6 +237,19 @@ export async function runSingleFileChecks({ port, singleFile, downloadDir, repor
       `${JSON.stringify(defaultSwitches)} → ${JSON.stringify(savedSwitches)}`,
     );
 
+    // Pick a palette before saving, so the round trip below has to restore it.
+    await showAppearance(page.session);
+    await page.session.evaluate(pickPreset('Rose Quartz'));
+    await wait(400);
+    const themedBefore = await page.session.evaluate(describeTheme);
+    await page.session.evaluate(closeDialog);
+    await wait(300);
+    report.check(
+      'a preset can be applied from the picker',
+      themedBefore.preset === 'rose-quartz' && /oklch\(/.test(themedBefore.accent),
+      `${themedBefore.preset} ${themedBefore.accent}`,
+    );
+
     // Save to file via the dashboard actions menu.
     await page.session.evaluate(`(() => {
       const buttons = [...document.querySelectorAll('button')];
@@ -177,6 +293,20 @@ export async function runSingleFileChecks({ port, singleFile, downloadDir, repor
         'settings survive the save/reopen round trip',
         JSON.stringify(restoredSwitches) === JSON.stringify(savedSwitches),
         `saved ${JSON.stringify(savedSwitches)} → reopened ${JSON.stringify(restoredSwitches)}`,
+      );
+
+      // The same round trip for the palette: a different path means a different
+      // localStorage scope, so only the embedded snapshot can explain this.
+      const themedAfter = await page.session.evaluate(describeTheme);
+      report.check(
+        'the palette survives the save/reopen round trip',
+        themedAfter.preset === themedBefore.preset && themedAfter.accent === themedBefore.accent,
+        `saved ${themedBefore.preset} → reopened ${themedAfter.preset}`,
+      );
+      report.check(
+        'the reopened file paints the saved palette',
+        themedAfter.page === themedBefore.page && themedAfter.page !== '',
+        `${themedBefore.page} → ${themedAfter.page}`,
       );
 
       const scopes = new Set(reopened.storageKeys);
@@ -1699,6 +1829,164 @@ export async function runStickyChecks({ port, appUrl, report }) {
       problems.exceptions.length === 0,
       problems.exceptions.slice(0, 2).join(' | '),
     );
+    await page.close();
+  }
+}
+
+/**
+ * Theme presets and colour customisation.
+ *
+ * Runs against the built single file, offline, because that is the artifact a
+ * user actually keeps. Every assertion is about live state — the tokens on
+ * `<html>`, the computed colours of real elements, what `localStorage` holds —
+ * rather than about text scraped out of the dialog.
+ */
+export async function runThemeChecks({ port, appUrl, report }) {
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    // A clean slate: presets left behind by another check must not leak in.
+    await page.session.navigate(appUrl);
+    await page.session.evaluate('localStorage.clear()');
+    await page.session.navigate(appUrl);
+    await wait(600);
+
+    const fresh = await page.session.evaluate(describeTheme);
+    report.check(
+      'a clean install starts on the default palette',
+      fresh.preset === 'lotus' && fresh.accent !== '' && fresh.dialog === false,
+      `${fresh.preset} ${fresh.accent}`,
+    );
+
+    // Open the picker the way a user does: header menu → "Themes & colours…".
+    await page.session.evaluate(openThemeMenu);
+    await wait(300);
+    const opened = await page.session.evaluate(openAppearance);
+    await wait(400);
+    const dialogText = await page.session.evaluate(
+      `(() => { const d = document.querySelector('[role="dialog"]'); return d ? d.innerText : null; })()`,
+    );
+    report.check(
+      'the appearance picker opens from the header',
+      opened && Boolean(dialogText) && /rose quartz/i.test(dialogText),
+      dialogText ? dialogText.split('\n').slice(0, 2).join(' / ') : 'no dialog',
+    );
+
+    // Pick a preset: the accent token and the painted page must both move.
+    await page.session.evaluate(pickPreset('Rose Quartz'));
+    await wait(400);
+    const rose = await page.session.evaluate(describeTheme);
+    report.check(
+      'choosing a preset applies it',
+      rose.preset === 'rose-quartz' && rose.accent !== fresh.accent && /oklch\(/.test(rose.accent),
+      `${fresh.accent} → ${rose.accent}`,
+    );
+    report.check(
+      'a preset recolours the neutrals, not just the accent',
+      rose.neutral !== fresh.neutral && rose.page !== fresh.page,
+      `page ${fresh.page} → ${rose.page}`,
+    );
+    report.check(
+      'the palette reaches rendered utilities',
+      rose.button !== '' && rose.button !== fresh.button,
+      `button ${fresh.button} → ${rose.button}`,
+    );
+
+    // Dark mode is a separate axis: the palette must not change with it. Both
+    // modes are set explicitly rather than assumed, because the starting scheme
+    // depends on the host's `prefers-color-scheme`.
+    await page.session.evaluate(pickMode('Light'));
+    await wait(400);
+    const light = await page.session.evaluate(describeTheme);
+    await page.session.evaluate(pickMode('Dark'));
+    await wait(400);
+    const dark = await page.session.evaluate(describeTheme);
+    report.check(
+      'light and dark stay independent of the palette',
+      dark.preset === 'rose-quartz' &&
+        dark.accent === rose.accent &&
+        dark.neutral === light.neutral &&
+        dark.page !== light.page,
+      `page ${light.page} → ${dark.page}, accent kept ${dark.accent}`,
+    );
+
+    // The warmth slider must move the neutrals only.
+    await page.session.evaluate(setInputValue('input[type="range"]', '200'));
+    await wait(400);
+    const warm = await page.session.evaluate(describeTheme);
+    report.check(
+      'the warmth slider re-hues the neutrals and leaves the accent alone',
+      warm.neutral !== dark.neutral && warm.accent === dark.accent && warm.preset === 'rose-quartz',
+      `neutral ${dark.neutral} → ${warm.neutral}`,
+    );
+
+    // A typed accent colour is honoured, and the preset stays selected.
+    const hexSet = await page.session.evaluate(
+      setInputValue('input[aria-label="Accent colour hex value"]', '#00ffcc'),
+    );
+    await wait(400);
+    const custom = await page.session.evaluate(describeTheme);
+    report.check(
+      'a custom accent colour is honoured on top of the preset',
+      hexSet && custom.accent !== warm.accent && custom.preset === 'rose-quartz',
+      `accent ${warm.accent} → ${custom.accent}`,
+    );
+    report.check(
+      'text on the accent always uses a solved, readable foreground',
+      custom.accentFg === '#ffffff' || custom.accentFg === '#0f172a',
+      custom.accentFg || '(unset)',
+    );
+
+    // Reload: the palette is a preference, so it has to come back.
+    await page.session.evaluate(closeDialog);
+    await wait(300);
+    await page.session.navigate(appUrl);
+    await wait(700);
+    const reloaded = await page.session.evaluate(describeTheme);
+    report.check(
+      'the palette and the custom colour survive a browser refresh',
+      reloaded.preset === 'rose-quartz' && reloaded.accent === custom.accent && reloaded.page === custom.page,
+      `${reloaded.preset} ${reloaded.accent}`,
+    );
+    report.check(
+      'storage holds the preset choice itself',
+      reloaded.stored === 'rose-quartz',
+      String(reloaded.stored),
+    );
+
+    // No flash: the inline head script must have the palette on <html> while the
+    // document is still parsing, long before React mounts. Recorded by an
+    // observer installed before the document starts.
+    const early = await openPage(port, 'about:blank');
+    try {
+      await early.session.send('Page.addScriptToEvaluateOnNewDocument', {
+        // Observed on `document`, not on `documentElement`: at document-start the
+        // <html> element does not exist yet.
+        source: `window.__firstPaint = null;
+          new MutationObserver(() => {
+            if (window.__firstPaint || !document.documentElement) return;
+            const style = document.documentElement.getAttribute('style') || '';
+            if (style.indexOf('--color-violet-500') === -1) return;
+            window.__firstPaint = {
+              readyState: document.readyState,
+              preset: document.documentElement.dataset.theme || '',
+            };
+          }).observe(document, { attributes: true, attributeFilter: ['style'], subtree: true });`,
+      });
+      await early.session.navigate(appUrl);
+      await wait(600);
+      const firstPaint = await early.session.evaluate('window.__firstPaint');
+      report.check(
+        'the palette is applied before the document finishes parsing',
+        Boolean(firstPaint) && firstPaint.readyState === 'loading' && firstPaint.preset === 'rose-quartz',
+        firstPaint ? `${firstPaint.preset} at readyState=${firstPaint.readyState}` : 'no early mutation seen',
+      );
+    } finally {
+      await early.close();
+    }
+  } finally {
+    report.check('no console errors while theming', problems.consoleErrors.length === 0, problems.consoleErrors.slice(0, 3).join(' | '));
+    report.check('no uncaught exceptions while theming', problems.exceptions.length === 0, problems.exceptions.slice(0, 2).join(' | '));
     await page.close();
   }
 }

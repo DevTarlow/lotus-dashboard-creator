@@ -6,6 +6,7 @@ import { ToastViewport } from '@/components/feedback/ToastViewport';
 import { DashboardCanvas, HeaderBar, ImportDropZone, StatusBar } from '@/components/layout';
 import {
   AddWidgetDrawer,
+  AppearanceDialog,
   ImportDialog,
   ShortcutsDialog,
   TemplatesDialog,
@@ -77,6 +78,7 @@ export default function App() {
       <AddWidgetDrawer />
       <WidgetSettingsModal />
       <TemplatesDialog />
+      <AppearanceDialog />
       <ImportDialog />
       <WidgetDeleteFlow />
       <ShortcutsDialog />

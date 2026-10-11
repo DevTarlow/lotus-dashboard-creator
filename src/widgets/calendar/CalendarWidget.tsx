@@ -156,7 +156,7 @@ function DayCell({
           !cell.inMonth
             ? 'text-slate-400 dark:text-slate-500'
             : cell.isToday
-              ? 'bg-violet-600 text-white dark:bg-violet-500'
+              ? 'bg-violet-600 text-accent-fg dark:bg-violet-500'
               : 'text-slate-600 dark:text-slate-300',
         )}
       >

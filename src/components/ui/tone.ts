@@ -39,7 +39,7 @@ export const TONE_FILL: Record<AccentTone, string> = {
 
 /** Foreground text colour. */
 export const TONE_TEXT: Record<AccentTone, string> = {
-  violet: 'text-violet-600 dark:text-violet-400',
+  violet: 'text-violet-600 dark:text-violet-300',
   sky: 'text-sky-600 dark:text-sky-400',
   amber: 'text-amber-600 dark:text-amber-400',
   emerald: 'text-emerald-600 dark:text-emerald-400',

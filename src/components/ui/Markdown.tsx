@@ -45,7 +45,7 @@ function InlineTokens({ tokens }: { tokens: readonly InlineToken[] }): ReactNode
             href={token.href}
             target="_blank"
             rel="noreferrer noopener"
-            className="font-medium text-violet-600 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-500 dark:text-violet-400 dark:decoration-violet-500/50"
+            className="font-medium text-violet-600 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-500 dark:text-violet-300 dark:decoration-violet-500/50"
           >
             {token.value}
           </a>
@@ -121,7 +121,7 @@ export function Markdown({ source, className, placeholder }: MarkdownProps) {
                         className={cn(
                           'mr-1.5 inline-flex h-3.5 w-3.5 translate-y-[1px] items-center justify-center rounded border text-[9px] font-bold',
                           item.checked
-                            ? 'border-violet-500 bg-violet-500 text-white'
+                            ? 'border-violet-500 bg-violet-500 text-accent-fg'
                             : 'border-slate-300 text-transparent dark:border-slate-600',
                         )}
                         aria-hidden="true"

@@ -21,12 +21,12 @@ the git policy.
 | `npm run dev` | Vite dev server with HMR. Port **5173 is pinned** — if it is busy the server refuses to start rather than hopping to 5174, because `localStorage` is per-origin and a port change looks like data loss. | instant |
 | `npm run typecheck` | `tsc --noEmit`, strict. | ~2 s |
 | `npm run lint` | ESLint (flat config, TS + React hooks rules). | ~2 s |
-| `npm test` | Vitest, single run (824 tests, 40 files). | ~2 s |
+| `npm test` | Vitest, single run (920 tests, 43 files). | ~2 s |
 | `npm run test:watch` | Vitest watch mode — use while iterating on pure logic. | — |
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
 | `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
-| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (45 checks; 92 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~20 s |
+| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (90 checks; 137 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~20 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 
@@ -102,6 +102,10 @@ Things that must stay true:
   `location.pathname` on `file:`, because every `file://` document shares one
   origin. The inline theme script in `index.html` duplicates that expression
   (it runs before the bundle) — change one and you must change the other.
+- **The pre-paint palette.** The same script replays the resolved theme tokens
+  from preferences, because it cannot import `src/lib/theme.ts`. The token
+  prefixes and the `data-theme` attribute are therefore duplicated too;
+  `theme.test.ts` pins them together, and `storageKeys.test.ts` pins the key.
 - **Never embed the Finnhub key.** `prefsStore` promises it stays in
   `localStorage`; a saved file is shareable.
 - **Inject the snapshot through the DOM**, never with `html.replace(/<\/body>/, …)`.

@@ -66,4 +66,63 @@ describe('templates', () => {
     expect(referenceItem!.w).toBeLessThanOrEqual(REFERENCE_COLUMNS);
     expect(mobileItem!.w).toBeLessThanOrEqual(GRID_COLUMNS.xs);
   });
+
+  it('preloads the complete workspace on a first visit', () => {
+    const built = buildDefaultWorkspace();
+    expect(built.widgets).toHaveLength(16);
+    expect(built.title).toBe('Complete workspace');
+
+    const types = new Set(built.widgets.map((widget) => widget.type));
+    for (const type of [
+      'clock',
+      'weather',
+      'sun',
+      'worldclock',
+      'tasks',
+      'calendar',
+      'timer',
+      'market',
+      'news',
+      'notes',
+      'habits',
+      'countdown',
+      'onthisday',
+      'air',
+      'converter',
+      'links',
+    ]) {
+      expect(types, type).toContain(type);
+    }
+  });
+
+  it('lays the preloaded workspace out without overlapping cards', () => {
+    const built = buildDefaultWorkspace();
+
+    for (const breakpoint of ['xl', 'lg'] as const) {
+      const layout = built.layouts[breakpoint] ?? [];
+      expect(layout, breakpoint).toHaveLength(built.widgets.length);
+
+      for (let a = 0; a < layout.length; a += 1) {
+        for (let b = a + 1; b < layout.length; b += 1) {
+          const first = layout[a];
+          const second = layout[b];
+          const apart =
+            first.x + first.w <= second.x ||
+            second.x + second.w <= first.x ||
+            first.y + first.h <= second.y ||
+            second.y + second.h <= first.y;
+          expect(apart, `${breakpoint}: ${first.i} overlaps ${second.i}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('keeps every preloaded card within the phone grid', () => {
+    const built = buildDefaultWorkspace();
+    const layout = built.layouts.xs ?? [];
+    for (const item of layout) {
+      expect(item.w, item.i).toBeLessThanOrEqual(GRID_COLUMNS.xs);
+      expect(item.minW ?? 1, item.i).toBeLessThanOrEqual(GRID_COLUMNS.xs);
+    }
+  });
 });

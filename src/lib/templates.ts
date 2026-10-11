@@ -65,30 +65,68 @@ function buildTemplate(spec: TemplateSpec): DashboardSnapshot & { title: string;
 }
 
 const PERSONAL: TemplateSpec = {
-  title: 'My dashboard',
-  description: 'Clock, weather, notes, markets and bookmarks at a glance.',
+  title: 'Complete workspace',
+  description: 'Sixteen panels: the time and the weather, what is on today, markets and headlines, and the notebooks beside them.',
   widgets: [
+    // The "now" strip: where you are, when it is, and what the sky is doing.
     { type: 'clock', x: 0, y: 0, w: 3, h: 6 },
     { type: 'weather', x: 3, y: 0, w: 3, h: 6 },
-    { type: 'notes', x: 6, y: 0, w: 6, h: 6 },
-    { type: 'market', x: 0, y: 6, w: 6, h: 7 },
-    { type: 'news', x: 6, y: 6, w: 6, h: 7 },
-    { type: 'links', x: 0, y: 13, w: 12, h: 4, minH: 3 },
+    { type: 'sun', x: 6, y: 0, w: 3, h: 6, config: { city: 'Lisbon' } },
+    { type: 'worldclock', x: 9, y: 0, w: 3, h: 6 },
+
+    // The day itself: a list, a month, and a dial for the work you are doing.
+    { type: 'tasks', x: 0, y: 6, w: 3, h: 7 },
+    { type: 'calendar', x: 3, y: 6, w: 6, h: 7 },
+    { type: 'timer', x: 9, y: 6, w: 3, h: 7 },
+
+    { type: 'market', x: 0, y: 13, w: 6, h: 7 },
+    { type: 'news', x: 6, y: 13, w: 6, h: 7 },
+
+    // Writing, keeping count, and the dates worth waiting for.
+    { type: 'notes', x: 0, y: 20, w: 6, h: 7 },
+    { type: 'habits', x: 6, y: 20, w: 3, h: 7 },
+    {
+      type: 'countdown',
+      x: 9,
+      y: 20,
+      w: 3,
+      h: 7,
+      // One honest example rather than invented plans: a date everybody has.
+      config: {
+        events: [
+          { id: 'countdown-new-year', label: 'New Year’s Day', date: '2026-01-01', time: null, annual: true, tone: 'violet' },
+        ],
+      },
+    },
+
+    { type: 'onthisday', x: 0, y: 27, w: 6, h: 6 },
+    { type: 'air', x: 6, y: 27, w: 3, h: 6, config: { city: 'Lisbon' } },
+    { type: 'converter', x: 9, y: 27, w: 3, h: 6, config: { mode: 'currency', base: 'USD', quote: 'EUR' } },
+
+    { type: 'links', x: 0, y: 33, w: 12, h: 4, minH: 3 },
   ],
 };
 
 const TRADING_DESK: TemplateSpec = {
   title: 'Markets desk',
-  description: 'A trading focused workspace with live tickers, headlines and exchange shortcuts.',
+  description: 'A trading focused workspace with live tickers, a currency converter, headlines and exchange shortcuts.',
   widgets: [
     { type: 'market', x: 0, y: 0, w: 8, h: 9, config: { symbols: 'BTC, ETH, SOL, NVDA, AAPL, TSLA', kind: 'all' } },
     { type: 'clock', x: 8, y: 0, w: 4, h: 4, config: { hour12: false, showSeconds: true, label: 'Market clock' } },
     {
-      type: 'news',
+      type: 'converter',
       x: 8,
       y: 4,
       w: 4,
-      h: 11,
+      h: 6,
+      config: { mode: 'currency', base: 'USD', quote: 'EUR', showSeries: true },
+    },
+    {
+      type: 'news',
+      x: 8,
+      y: 10,
+      w: 4,
+      h: 9,
       // No "markets" feed exists without a key, so a desk watching the tape gets
       // the world desk's macro headlines instead of invented market copy.
       config: { topic: 'world', limit: 8 },
@@ -105,6 +143,46 @@ const TRADING_DESK: TemplateSpec = {
           { id: 'ex-2', label: 'TradingView', url: 'https://www.tradingview.com' },
           { id: 'ex-3', label: 'Yahoo Finance', url: 'https://finance.yahoo.com' },
           { id: 'ex-4', label: 'SEC Filings', url: 'https://www.sec.gov/edgar' },
+        ],
+      },
+    },
+  ],
+};
+
+const WELLNESS: TemplateSpec = {
+  title: 'Wellness week',
+  description: 'Habits, a focus timer and the outdoor readings: daylight, air quality and the day’s plan.',
+  widgets: [
+    { type: 'habits', x: 0, y: 0, w: 4, h: 8 },
+    { type: 'timer', x: 4, y: 0, w: 4, h: 8 },
+    { type: 'sun', x: 8, y: 0, w: 4, h: 6 },
+    { type: 'air', x: 8, y: 6, w: 4, h: 6 },
+    { type: 'tasks', x: 0, y: 8, w: 4, h: 7 },
+    { type: 'notes', x: 4, y: 8, w: 4, h: 7, config: { mode: 'edit' } },
+  ],
+};
+
+const ENGINEER: TemplateSpec = {
+  title: 'Engineer desk',
+  description: 'A repository, the machine it runs on, the task list and today’s technology headlines.',
+  widgets: [
+    { type: 'github', x: 0, y: 0, w: 4, h: 6 },
+    { type: 'system', x: 4, y: 0, w: 4, h: 7, config: { showNetwork: false } },
+    { type: 'tasks', x: 8, y: 0, w: 4, h: 7 },
+    { type: 'timer', x: 0, y: 6, w: 4, h: 7 },
+    { type: 'news', x: 4, y: 7, w: 8, h: 6, config: { topic: 'technology', limit: 6 } },
+    {
+      type: 'links',
+      x: 0,
+      y: 13,
+      w: 12,
+      h: 4,
+      config: {
+        links: [
+          { id: 'eng-1', label: 'GitHub', url: 'https://github.com' },
+          { id: 'eng-2', label: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
+          { id: 'eng-3', label: 'Can I use', url: 'https://caniuse.com' },
+          { id: 'eng-4', label: 'Hacker News', url: 'https://news.ycombinator.com' },
         ],
       },
     },
@@ -147,8 +225,10 @@ const MINIMAL: TemplateSpec = {
 
 /** All templates, default first. */
 export const DASHBOARD_TEMPLATES: readonly DashboardTemplate[] = [
-  { id: 'personal', name: 'Personal workspace', description: PERSONAL.description, build: () => buildTemplate(PERSONAL) },
+  { id: 'personal', name: 'Complete workspace', description: PERSONAL.description, build: () => buildTemplate(PERSONAL) },
   { id: 'markets', name: 'Markets desk', description: TRADING_DESK.description, build: () => buildTemplate(TRADING_DESK) },
+  { id: 'wellness', name: 'Wellness week', description: WELLNESS.description, build: () => buildTemplate(WELLNESS) },
+  { id: 'engineer', name: 'Engineer desk', description: ENGINEER.description, build: () => buildTemplate(ENGINEER) },
   { id: 'focus', name: 'Focus desk', description: FOCUS_DESK.description, build: () => buildTemplate(FOCUS_DESK) },
   { id: 'minimal', name: 'Minimal', description: MINIMAL.description, build: () => buildTemplate(MINIMAL) },
 ];

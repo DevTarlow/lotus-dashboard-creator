@@ -9,6 +9,23 @@ import { prefsStorageKey } from '@/lib/storageKeys';
 import { asNumber } from '@/lib/utils';
 import type { ThemeMode } from '@/types';
 
+/**
+ * Preference fields that hold a secret a widget setting may write to.
+ *
+ * The settings form binds a `password` field whose key appears here to the
+ * preferences store instead of to the widget's config — so the value is kept in
+ * `localStorage`, never exported and never embedded in a saved file. It is also
+ * the allow-list that stops a schema-driven write reaching an arbitrary field.
+ */
+export const PREF_SECRET_KEYS = ['finnhubKey', 'githubToken'] as const;
+
+export type PrefSecretKey = (typeof PREF_SECRET_KEYS)[number];
+
+/** `true` when a settings key names a preference rather than a config field. */
+export function isPrefSecretKey(key: string): key is PrefSecretKey {
+  return (PREF_SECRET_KEYS as readonly string[]).includes(key);
+}
+
 export interface PrefsState {
   /** Colour scheme preference. */
   theme: ThemeMode;

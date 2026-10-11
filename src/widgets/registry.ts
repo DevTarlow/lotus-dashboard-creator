@@ -6,21 +6,61 @@
  * modal, validation, persistence — picks it up automatically.
  */
 import type { WidgetCategory, WidgetDefinition } from '@/types';
+import { airWidget } from './air';
+import { calendarWidget } from './calendar';
 import { clockWidget } from './clock';
+import { converterWidget } from './converter';
+import { countdownWidget } from './countdown';
+import { earthquakeWidget } from './earthquake';
+import { githubWidget } from './github';
+import { habitsWidget } from './habits';
 import { linksWidget } from './links';
 import { marketWidget } from './market';
 import { newsWidget } from './news';
 import { notesWidget } from './notes';
+import { onThisDayWidget } from './onthisday';
+import { sunWidget } from './sun';
+import { systemWidget } from './system';
+import { tasksWidget } from './tasks';
+import { timerWidget } from './timer';
 import { weatherWidget } from './weather';
+import { worldClockWidget } from './worldclock';
 
-/** Every registered widget, in gallery order. */
+/**
+ * Every registered widget, in gallery order.
+ *
+ * The order groups the catalogue by what a person is looking at rather than by
+ * when it was written, so the drawer reads as a tour of the dashboard.
+ */
 export const WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
+  // Essentials: what it is like outside, and what time it is.
   clockWidget,
   weatherWidget,
+  sunWidget,
+  worldClockWidget,
+
+  // Productivity: the day's work.
+  tasksWidget,
+  timerWidget,
+  habitsWidget,
+  calendarWidget,
+  countdownWidget,
   notesWidget,
   linksWidget,
+
+  // Markets and news.
   marketWidget,
   newsWidget,
+  onThisDayWidget,
+
+  // Environment.
+  airWidget,
+  earthquakeWidget,
+
+  // Utilities.
+  converterWidget,
+  systemWidget,
+  githubWidget,
 ];
 
 /** Fast lookup by widget type. */

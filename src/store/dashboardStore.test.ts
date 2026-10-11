@@ -25,7 +25,7 @@ describe('dashboard store', () => {
   it('starts from the default template', () => {
     const state = useDashboardStore.getState();
     expect(state.widgets.length).toBeGreaterThanOrEqual(4);
-    expect(state.title).toBe('My dashboard');
+    expect(state.title).toBe('Complete workspace');
   });
 
   it('adds a widget and places it on every breakpoint', () => {
@@ -135,7 +135,7 @@ describe('dashboard store', () => {
     expect(useDashboardStore.getState().widgets.length).toBeGreaterThan(0);
 
     useDashboardStore.getState().resetDashboard();
-    expect(useDashboardStore.getState().title).toBe('My dashboard');
+    expect(useDashboardStore.getState().title).toBe('Complete workspace');
   });
 
   it('clears the canvas', () => {

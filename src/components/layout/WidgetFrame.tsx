@@ -109,6 +109,8 @@ export const WidgetFrame = memo(
         ref={ref}
         style={style}
         {...gridProps}
+        // Lets the browser checks identify a card without scraping its title.
+        data-widget-type={instance.type}
         className={cn(
           'group/widget flex h-full w-full flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-sm transition-shadow',
           'hover:shadow-md dark:border-slate-700/70 dark:bg-slate-900/90 dark:shadow-none dark:hover:border-slate-600',

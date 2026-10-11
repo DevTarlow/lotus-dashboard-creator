@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   dashboardFileDescription,
+  preferredSaveName,
   suggestedDashboardFileName,
 } from '@/lib/singleFile';
 
@@ -34,5 +35,30 @@ describe('dashboardFileDescription', () => {
 
   it('handles a blank title', () => {
     expect(dashboardFileDescription('  ')).toContain('Untitled');
+  });
+});
+
+describe('preferredSaveName', () => {
+  const DISK = { protocol: 'file:', pathname: '/home/me/dashboards/ops-wall.html' };
+
+  it('proposes the file the dashboard was opened from', () => {
+    // The bug this guards: naming the copy after the dashboard title sent a
+    // received dashboard to the downloads folder, leaving the sent file stale.
+    expect(preferredSaveName('Someone else’s desk', DISK)).toBe('ops-wall.html');
+  });
+
+  it('accepts .htm as well as .html', () => {
+    expect(preferredSaveName('x', { protocol: 'file:', pathname: '/tmp/dash.htm' })).toBe('dash.htm');
+  });
+
+  it('slugifies the title on the web and in tests without a location', () => {
+    expect(preferredSaveName('Ops wall', { protocol: 'https:', pathname: '/' })).toBe('lotus-dashboard-ops-wall.html');
+    expect(preferredSaveName('Ops wall', undefined)).toBe('lotus-dashboard-ops-wall.html');
+  });
+
+  it('falls back to the title when the open document is not an HTML file', () => {
+    expect(preferredSaveName('Ops wall', { protocol: 'file:', pathname: '/home/me/notes.txt' })).toBe(
+      'lotus-dashboard-ops-wall.html',
+    );
   });
 });

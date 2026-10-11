@@ -20,6 +20,7 @@
 import { APP_NAME, EXPORT_FILE_PREFIX } from '@/constants/app';
 import { suggestedSlug } from '@/lib/document';
 import { encodeEmbeddedState, EMBEDDED_ELEMENT_ID, type EmbeddedState } from '@/lib/embedded';
+import { currentDocumentLocation, type LocationLike } from '@/lib/storageKeys';
 
 /**
  * Serialise the current document, with the workspace snapshot inside it.
@@ -62,6 +63,26 @@ export function serializeDashboardFile(doc: Document, state: EmbeddedState): str
 export function suggestedDashboardFileName(title: string): string {
   const slug = suggestedSlug(title);
   return `${EXPORT_FILE_PREFIX}${slug ? `-${slug}` : ''}.html`;
+}
+
+/** The file name of the document the app is running from, when opened from disk. */
+function openedFileName(location: LocationLike | undefined): string | null {
+  if (!location || location.protocol !== 'file:') return null;
+  const base = location.pathname.split('/').pop() ?? '';
+  return /\.html?$/i.test(base) ? base : null;
+}
+
+/**
+ * The name a save should propose.
+ *
+ * When the dashboard was opened from disk, the file the user is looking at *is*
+ * the file they mean. Proposing a name derived from the dashboard title instead
+ * sent a received dashboard to the downloads folder as a second copy, leaving
+ * the file they were sent untouched. On the web, and for a document that is not
+ * an `.html` file, the title still names the download.
+ */
+export function preferredSaveName(title: string, location: LocationLike | undefined = currentDocumentLocation()): string {
+  return openedFileName(location) ?? suggestedDashboardFileName(title);
 }
 
 /** Human readable summary used in toasts and the save dialog. */

@@ -13,6 +13,7 @@ import {
   SunIcon,
   MonitorIcon,
   UndoIcon,
+  UnlinkIcon,
   UnlockIcon,
   UploadIcon,
   WandIcon,
@@ -101,7 +102,7 @@ function DashboardTitle() {
 /** Sticky application toolbar. */
 export function HeaderBar() {
   const actions = useDashboardActions();
-  const { save } = useSaveDashboardFile();
+  const { save, saveAs, forgetLink, linkedFileName } = useSaveDashboardFile();
   const { theme, resolved, setTheme } = useTheme();
   const widgetCount = useDashboardStore((state) => state.widgets.length);
   const locked = useDashboardStore((state) => state.locked);
@@ -235,6 +236,23 @@ export function HeaderBar() {
                 },
               },
               {
+                id: 'save-copy',
+                label: 'Save a copy…',
+                icon: <CopyIcon className="h-4 w-4" />,
+                onSelect: () => {
+                  void saveAs();
+                },
+              },
+              {
+                id: 'forget-file',
+                label: 'Forget this file',
+                icon: <UnlinkIcon className="h-4 w-4" />,
+                disabled: !linkedFileName,
+                onSelect: () => {
+                  void forgetLink();
+                },
+              },
+              {
                 id: 'export',
                 label: 'Export layout as JSON',
                 icon: <DownloadIcon className="h-4 w-4" />,
@@ -300,26 +318,35 @@ export function HeaderBar() {
 /** Compact footer with persistence status and grid information. */
 export function StatusBar() {
   const widgetCount = useDashboardStore((state) => state.widgets.length);
-  const activeBreakpoint = useDashboardStore((state) => state.activeBreakpoint);
   const locked = useDashboardStore((state) => state.locked);
   const openShortcuts = useUiStore((state) => state.openShortcuts);
+  const { linkedFileName, canWriteInPlace } = useSaveDashboardFile();
   // Constant for the lifetime of the page.
   const persistent = isPersistentStorage();
+
+  /**
+   * One honest line about where the work is being kept. "Saved in this browser"
+   * on its own read as "saved", while the file the user was sent was only ever
+   * updated by Save to file.
+   */
+  const saveState = !persistent
+    ? { tone: 'bg-amber-500', label: "Can't save in this browser — use Save to file" }
+    : linkedFileName
+      ? { tone: 'bg-emerald-500', label: `Saved to ${linkedFileName}` }
+      : canWriteInPlace
+        ? { tone: 'bg-emerald-500', label: 'Saved in this browser — use Save to file to keep the file up to date' }
+        : { tone: 'bg-emerald-500', label: 'Saved in this browser — Save to file downloads a copy' };
 
   return (
     <footer className="border-t border-slate-200/80 bg-white/70 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/70">
       <div className="mx-auto flex max-w-[1800px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-[11px] text-slate-400 sm:px-6 lg:px-8 dark:text-slate-500">
         <span className="inline-flex items-center gap-1.5">
-          <span
-            className={cn('h-1.5 w-1.5 rounded-full', persistent ? 'bg-emerald-500' : 'bg-amber-500')}
-            aria-hidden="true"
-          />
-          {persistent ? 'Saved in this browser' : 'Not saved — storage blocked'}
+          <span className={cn('h-1.5 w-1.5 rounded-full', saveState.tone)} aria-hidden="true" />
+          {saveState.label}
         </span>
         <span className="inline-flex items-center gap-1">
           <GridIcon className="h-3 w-3" />
-          {widgetCount} {widgetCount === 1 ? 'widget' : 'widgets'} · {activeBreakpoint} ·{' '}
-          {GRID_COLUMNS[activeBreakpoint]} cols
+          {widgetCount} {widgetCount === 1 ? 'widget' : 'widgets'}
         </span>
         {locked ? <span>Layout locked</span> : null}
         <button

@@ -34,7 +34,7 @@ const DEFAULT_LINKS_CONFIG: LinksConfig = {
 
 const SETTINGS: readonly SettingField[] = [
   { key: 'openInNewTab', label: 'Open in a new tab', type: 'switch' },
-  { key: 'showFavicons', label: 'Show favicons', type: 'switch' },
+  { key: 'showFavicons', label: 'Show site icons', type: 'switch' },
 ];
 
 /** Favicon with a graceful initial-chip fallback (offline, blocked, unknown host). */

@@ -31,6 +31,30 @@ function persistedWorkspace(): {
   return JSON.parse(raw as string);
 }
 
+/** Pretend the page carries an embedded snapshot, newest at `savedAt`. */
+function embedSnapshot(prefs: unknown, savedAt: number): void {
+  const text = JSON.stringify({
+    format: 'lotus-embedded/v1',
+    version: 1,
+    generator: { name: 'Lotus Dashboard Creator', version: '1.0.0' },
+    savedAt,
+    workspace: { title: '', description: '', widgets: [], layouts: {}, locked: false, updatedAt: savedAt },
+    prefs,
+  });
+  Object.defineProperty(globalThis, 'document', {
+    value: {
+      getElementById: (id: string) =>
+        id === 'lotus-embedded-workspace' ? { textContent: text } : null,
+    },
+    configurable: true,
+    writable: true,
+  });
+}
+
+function clearEmbeddedSnapshot(): void {
+  delete (globalThis as { document?: unknown }).document;
+}
+
 describe('persistence', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -104,6 +128,87 @@ describe('persistence', () => {
   });
 });
 
+/**
+ * "First visit" has to be a real state rather than an inference from a failed
+ * validation: it decides whether the welcome panel is shown, and a dashboard
+ * that could not be read must not be mistaken for a new one.
+ */
+describe('where the workspace came from', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    clearEmbeddedSnapshot();
+  });
+
+  it('reports a genuinely new visitor', async () => {
+    const store = await loadDashboardStore();
+    expect(store.getState().seedOrigin).toBe('fresh');
+  });
+
+  it('reports ordinary browser storage after a refresh', async () => {
+    const first = await loadDashboardStore();
+    first.getState().setTitle('Ops wall');
+
+    const second = await loadDashboardStore();
+    expect(second.getState().seedOrigin).toBe('browser');
+    expect(second.getState().title).toBe('Ops wall');
+  });
+
+  it('reports an unparseable stored workspace instead of pretending it is a new one', async () => {
+    localStorage.setItem(STORAGE_KEYS.workspace, '{ this is not json');
+
+    const store = await loadDashboardStore();
+    expect(store.getState().seedOrigin).toBe('recovered');
+    // Dropped, so the next load can start cleanly rather than failing again.
+    expect(localStorage.getItem(STORAGE_KEYS.workspace)).toBeNull();
+  });
+
+  it('reports a stored document whose contents are unusable', async () => {
+    localStorage.setItem(STORAGE_KEYS.workspace, JSON.stringify({ state: { widgets: 'nope' }, version: 1 }));
+
+    const store = await loadDashboardStore();
+    expect(store.getState().seedOrigin).toBe('recovered');
+  });
+
+  it('reports a saved file when its snapshot is newer than this browser', async () => {
+    embedSnapshot(null, Date.now() + 10_000);
+
+    const store = await loadDashboardStore();
+    expect(store.getState().seedOrigin).toBe('file');
+  });
+
+  it('lets a saved file win over an unreadable browser copy', async () => {
+    // The corrupt value is dropped, so hydration continues far enough to read
+    // the snapshot the user was actually sent.
+    localStorage.setItem(STORAGE_KEYS.workspace, '{ this is not json');
+    embedSnapshot(
+      {
+        theme: 'dark',
+        themeId: 'lotus',
+        customAccentHex: '',
+        customNeutralHue: null,
+        themeTokens: {},
+        showGridHints: true,
+        confirmDelete: true,
+      },
+      Date.now() + 10_000,
+    );
+
+    const store = await loadDashboardStore();
+    expect(store.getState().seedOrigin).toBe('file');
+  });
+
+  it('never persists the seed origin', async () => {
+    const store = await loadDashboardStore();
+    store.getState().setTitle('Something');
+
+    const persisted = persistedWorkspace() as unknown as { state: Record<string, unknown> };
+    expect(persisted.state).not.toHaveProperty('seedOrigin');
+  });
+});
+
 describe('theme persistence', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -116,26 +221,6 @@ describe('theme persistence', () => {
   /** Write a preference payload straight to storage, as an older build would. */
   function seedPrefs(state: Record<string, unknown>): void {
     localStorage.setItem(STORAGE_KEYS.prefs, JSON.stringify({ state, version: 1 }));
-  }
-
-  /** Pretend the page carries an embedded snapshot, newest at `savedAt`. */
-  function embedSnapshot(prefs: unknown, savedAt: number): void {
-    const text = JSON.stringify({
-      format: 'lotus-embedded/v1',
-      version: 1,
-      generator: { name: 'Lotus Dashboard Creator', version: '1.0.0' },
-      savedAt,
-      workspace: { title: '', description: '', widgets: [], layouts: {}, locked: false, updatedAt: savedAt },
-      prefs,
-    });
-    Object.defineProperty(globalThis, 'document', {
-      value: {
-        getElementById: (id: string) =>
-          id === 'lotus-embedded-workspace' ? { textContent: text } : null,
-      },
-      configurable: true,
-      writable: true,
-    });
   }
 
   it('restores the preset and the colour overrides after a refresh', async () => {

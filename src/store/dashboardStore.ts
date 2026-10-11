@@ -57,6 +57,12 @@ export interface DashboardState {
   updatedAt: number;
 
   /* ------------------------------------------------------------ transient */
+  /**
+   * Where this tab's workspace came from, decided once at load. Drives the
+   * first-run welcome and the "we could not read your saved dashboard" notice;
+   * never persisted, because the next load has to answer the question again.
+   */
+  seedOrigin: SeedOrigin;
   /** Breakpoint currently rendered by the grid (reported by react-grid-layout). */
   activeBreakpoint: BreakpointId;
   /** Undo stack (oldest first). */
@@ -104,14 +110,34 @@ type PersistedWorkspace = Pick<
   'title' | 'description' | 'widgets' | 'layouts' | 'locked' | 'updatedAt'
 >;
 
+/**
+ * Where the workspace on screen came from.
+ *
+ * `fresh` is a genuinely new visitor, `recovered` is a stored dashboard that
+ * could not be read (today's silent swap for the starter layout), `file` is a
+ * snapshot embedded in a saved HTML file, and `browser` is ordinary
+ * `localStorage` state.
+ */
+export type SeedOrigin = 'fresh' | 'browser' | 'file' | 'recovered';
+
+/** Result of normalising a stored or embedded workspace. */
+interface SanitizedWorkspace {
+  workspace: Omit<PersistedWorkspace, 'updatedAt'>;
+  /** `true` when the payload was unreadable and the starter layout was used. */
+  recovered: boolean;
+}
+
 /** Registry-aware validation hooks — shared by persistence and import. */
 const registryOptions = registryValidationOptions;
 
 /**
  * Normalise any workspace shaped payload (persisted state or imported document)
  * into a valid, self-consistent workspace.
+ *
+ * An unreadable payload falls back to the starter layout, and says so: silently
+ * substituting it made a corrupt save indistinguishable from a first visit.
  */
-function sanitizeWorkspace(input: unknown): Omit<PersistedWorkspace, 'updatedAt'> {
+function sanitizeWorkspace(input: unknown): SanitizedWorkspace {
   const record = (input ?? {}) as Record<string, unknown>;
   const result = validateDashboardDocument(
     {
@@ -126,16 +152,18 @@ function sanitizeWorkspace(input: unknown): Omit<PersistedWorkspace, 'updatedAt'
   );
 
   if (!result.ok) {
-    const fallback = buildDefaultWorkspace();
-    return { ...fallback, locked: false };
+    return { workspace: { ...buildDefaultWorkspace(), locked: false }, recovered: true };
   }
 
   return {
-    title: result.document.dashboard.title,
-    description: result.document.dashboard.description,
-    widgets: result.document.widgets,
-    layouts: result.document.layouts,
-    locked: record.locked === true,
+    recovered: false,
+    workspace: {
+      title: result.document.dashboard.title,
+      description: result.document.dashboard.description,
+      widgets: result.document.widgets,
+      layouts: result.document.layouts,
+      locked: record.locked === true,
+    },
   };
 }
 
@@ -181,6 +209,35 @@ function resetHistoryWindow(): void {
 
 const initialWorkspace = buildDefaultWorkspace();
 
+/**
+ * Drop a stored workspace that cannot even be parsed, and report it.
+ *
+ * zustand's `createJSONStorage` throws inside its own read, which abandons
+ * rehydration entirely: `merge` never runs, so a snapshot embedded in a saved
+ * file is never read either and the app silently shows the starter layout.
+ * Removing the unreadable value lets hydration continue normally — and lets the
+ * embedded snapshot win, which is what the user was actually sent.
+ */
+function discardUnreadableStoredWorkspace(): boolean {
+  let raw: string | null;
+  try {
+    raw = zustandStorage.getItem(workspaceStorageKey()) as string | null;
+  } catch {
+    return false;
+  }
+  if (typeof raw !== 'string' || raw === '') return false;
+  try {
+    JSON.parse(raw);
+    return false;
+  } catch {
+    zustandStorage.removeItem(workspaceStorageKey());
+    return true;
+  }
+}
+
+/** `true` when a stored dashboard existed but could not be read. */
+const lostStoredWorkspace = discardUnreadableStoredWorkspace();
+
 export const useDashboardStore = create<DashboardState>()(
   persist(
     (set, get) => {
@@ -205,6 +262,7 @@ export const useDashboardStore = create<DashboardState>()(
         layouts: initialWorkspace.layouts,
         locked: false,
         updatedAt: Date.now(),
+        seedOrigin: lostStoredWorkspace ? 'recovered' : 'fresh',
         activeBreakpoint: 'lg',
         past: [],
         future: [],
@@ -404,13 +462,28 @@ export const useDashboardStore = create<DashboardState>()(
       merge: (persisted, current) => {
         const stored = persisted as { updatedAt?: unknown } | undefined;
         const embedded = readEmbeddedState();
-        const seed = shouldPreferEmbedded(embedded, asNumber(stored?.updatedAt, 0)) ? embedded : null;
-        const workspace = sanitizeWorkspace(seed ? seed.workspace : persisted);
+        const preferEmbedded = shouldPreferEmbedded(embedded, asNumber(stored?.updatedAt, 0));
+        const seed = preferEmbedded ? embedded : null;
+        const { workspace, recovered } = sanitizeWorkspace(seed ? seed.workspace : persisted);
+        // Nothing stored at all is a first visit, not a recovery: `sanitizeWorkspace`
+        // rejects an empty payload for the same reason it rejects a broken one.
+        const seedOrigin: SeedOrigin = seed
+          ? recovered
+            ? 'recovered'
+            : 'file'
+          : stored === undefined
+            ? lostStoredWorkspace
+              ? 'recovered'
+              : 'fresh'
+            : recovered
+              ? 'recovered'
+              : 'browser';
         return {
           ...current,
           ...workspace,
           updatedAt: seed ? seed.savedAt : asNumber(stored?.updatedAt, Date.now()),
           title: asString(workspace.title, current.title),
+          seedOrigin,
         };
       },
     },

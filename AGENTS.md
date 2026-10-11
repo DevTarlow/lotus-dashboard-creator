@@ -26,7 +26,7 @@ the git policy.
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
 | `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
-| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (115 checks; 162 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~25 s |
+| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (117 checks; 164 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~25 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 

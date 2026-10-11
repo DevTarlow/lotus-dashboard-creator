@@ -717,7 +717,7 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 115 assertions there — 162 with a server —
+single-file checks need no server at all. 117 assertions there — 164 with a server —
 cover the first run (the welcome appears once and each of its four points is
 really there, the six-panel starter, the weather asking for a city, the honest
 footer line, the tab named after the dashboard, no grid vocabulary in the chrome,

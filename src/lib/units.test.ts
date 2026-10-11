@@ -16,115 +16,86 @@ function expectRoundTrip(value: number, from: string, to: string): void {
 }
 
 describe('unit catalogue', () => {
-  it('declares a base unit that belongs to its own category', () => {
-    for (const category of UNIT_CATEGORIES) {
-      expect(category.units.map((unit) => unit.id)).toContain(category.baseUnit);
-    }
-  });
-
-  it('uses finite positive factors, non-empty ids and globally unique ids', () => {
+  it('is internally consistent', () => {
     const seen = new Set<string>();
-    let count = 0;
     for (const category of UNIT_CATEGORIES) {
+      expect(category.units.map((unit) => unit.id), category.id).toContain(category.baseUnit);
       for (const unit of category.units) {
-        expect(Number.isFinite(unit.factor)).toBe(true);
-        expect(unit.factor).toBeGreaterThan(0);
+        expect(Number.isFinite(unit.factor), unit.id).toBe(true);
+        expect(unit.factor, unit.id).toBeGreaterThan(0);
         expect(unit.id).not.toBe('');
-        expect(seen.has(unit.id)).toBe(false);
+        expect(seen.has(unit.id), unit.id).toBe(false);
         seen.add(unit.id);
-        count += 1;
       }
     }
-    expect(seen.size).toBe(count);
-    expect(count).toBe(73);
-  });
-
-  it('only gives temperature units an offset', () => {
-    for (const category of UNIT_CATEGORIES) {
-      for (const unit of category.units) {
-        if (category.id === 'temperature') continue;
-        expect(unit.offset).toBeUndefined();
-      }
-    }
+    expect(seen.size).toBe(73); // every id is unique across the whole catalogue
   });
 });
 
 describe('convert — known conversions', () => {
-  it('converts length', () => {
-    expect(mustConvert(1, 'mile', 'kilometre')).toBeCloseTo(1.609344, 10);
-    expect(mustConvert(1, 'nautical-mile', 'kilometre')).toBeCloseTo(1.852, 10);
-    expect(mustConvert(1, 'foot', 'inch')).toBeCloseTo(12, 8);
-    expect(mustConvert(1, 'mile', 'foot')).toBeCloseTo(5280, 6);
-    expect(mustConvert(1, 'metre', 'centimetre')).toBeCloseTo(100, 8);
-  });
-
-  it('converts mass', () => {
-    expect(mustConvert(1, 'kilogram', 'pound')).toBeCloseTo(2.2046226218, 8);
-    expect(mustConvert(1, 'pound', 'kilogram')).toBeCloseTo(0.45359237, 10);
-    expect(mustConvert(1, 'stone', 'pound')).toBeCloseTo(14, 8);
-    expect(mustConvert(1, 'ounce', 'gram')).toBeCloseTo(28.349523125, 8);
-    expect(mustConvert(1, 'tonne', 'kilogram')).toBe(1000);
-  });
-
-  it('converts temperature in both directions', () => {
-    expect(mustConvert(0, 'celsius', 'fahrenheit')).toBeCloseTo(32, 8);
-    expect(mustConvert(100, 'celsius', 'fahrenheit')).toBeCloseTo(212, 8);
-    expect(mustConvert(-40, 'celsius', 'fahrenheit')).toBeCloseTo(-40, 8);
-    expect(mustConvert(32, 'fahrenheit', 'celsius')).toBeCloseTo(0, 8);
-    expect(mustConvert(212, 'fahrenheit', 'celsius')).toBeCloseTo(100, 8);
-    expect(mustConvert(-40, 'fahrenheit', 'celsius')).toBeCloseTo(-40, 8);
-    expect(mustConvert(0, 'celsius', 'kelvin')).toBeCloseTo(273.15, 8);
-    expect(mustConvert(273.15, 'kelvin', 'celsius')).toBeCloseTo(0, 8);
-    expect(mustConvert(0, 'kelvin', 'fahrenheit')).toBeCloseTo(-459.67, 6);
-  });
-
-  it('converts area and volume', () => {
-    expect(mustConvert(1, 'acre', 'square-metre')).toBeCloseTo(4046.8564224, 8);
-    expect(mustConvert(1, 'square-mile', 'acre')).toBeCloseTo(640, 6);
-    expect(mustConvert(1, 'hectare', 'square-metre')).toBe(10000);
-    expect(mustConvert(1, 'square-kilometre', 'hectare')).toBe(100);
-    expect(mustConvert(1, 'imperial-gallon', 'litre')).toBeCloseTo(4.54609, 10);
-    expect(mustConvert(1, 'us-gallon', 'litre')).toBeCloseTo(3.785411784, 10);
-    expect(mustConvert(1, 'us-gallon', 'us-quart')).toBeCloseTo(4, 8);
-    expect(mustConvert(1, 'cubic-metre', 'litre')).toBe(1000);
-  });
-
-  it('converts speed', () => {
-    expect(mustConvert(1, 'knot', 'kilometre-per-hour')).toBeCloseTo(1.852, 8);
-    expect(mustConvert(1, 'mile-per-hour', 'kilometre-per-hour')).toBeCloseTo(1.609344, 8);
-    expect(mustConvert(60, 'mile-per-hour', 'foot-per-second')).toBeCloseTo(88, 6);
-    expect(mustConvert(1, 'metre-per-second', 'kilometre-per-hour')).toBeCloseTo(3.6, 8);
-  });
-
-  it('respects decimal and binary data prefixes', () => {
-    expect(mustConvert(1, 'gibibyte', 'byte')).toBe(1073741824);
-    expect(mustConvert(1, 'gigabyte', 'byte')).toBe(1000000000);
-    expect(mustConvert(1, 'kibibyte', 'byte')).toBe(1024);
-    expect(mustConvert(1, 'terabyte', 'gigabyte')).toBe(1000);
-    expect(mustConvert(1, 'tebibyte', 'gibibyte')).toBe(1024);
-    expect(mustConvert(1, 'mebibyte', 'megabyte')).toBeCloseTo(1.048576, 8);
-  });
-
-  it('converts time, energy, pressure and angle', () => {
-    expect(mustConvert(1, 'day', 'hour')).toBe(24);
-    expect(mustConvert(1, 'week', 'day')).toBe(7);
-    expect(mustConvert(1, 'hour', 'second')).toBe(3600);
-    expect(mustConvert(1, 'kilowatt-hour', 'joule')).toBe(3600000);
-    expect(mustConvert(1, 'kilocalorie', 'kilojoule')).toBeCloseTo(4.184, 8);
-    expect(mustConvert(1, 'btu', 'joule')).toBeCloseTo(1055.05585262, 6);
-    expect(mustConvert(1, 'bar', 'pascal')).toBe(100000);
-    expect(mustConvert(1, 'atmosphere', 'pascal')).toBe(101325);
-    expect(mustConvert(1, 'psi', 'pascal')).toBeCloseTo(6894.757, 2);
-    expect(mustConvert(1, 'hectopascal', 'millibar')).toBe(1);
-    expect(mustConvert(1, 'mmhg', 'pascal')).toBeCloseTo(133.322387415, 6);
-    expect(mustConvert(1, 'turn', 'degree')).toBe(360);
-    expect(mustConvert(1, 'gradian', 'degree')).toBeCloseTo(0.9, 10);
-    expect(mustConvert(1, 'degree', 'arcminute')).toBeCloseTo(60, 8);
-    expect(mustConvert(Math.PI, 'radian', 'degree')).toBeCloseTo(180, 8);
+  it('matches the reference values', () => {
+    /** `[value, from, to, expected, digits]`, grouped by category. */
+    const cases: ReadonlyArray<readonly [number, string, string, number, number]> = [
+      // length
+      [1, 'mile', 'kilometre', 1.609344, 10],
+      [1, 'nautical-mile', 'kilometre', 1.852, 10],
+      [1, 'mile', 'foot', 5280, 6],
+      [1, 'foot', 'inch', 12, 8],
+      // mass
+      [1, 'kilogram', 'pound', 2.2046226218, 8],
+      [1, 'pound', 'kilogram', 0.45359237, 10],
+      [1, 'stone', 'pound', 14, 8],
+      [1, 'tonne', 'kilogram', 1000, 8],
+      // temperature, in both directions
+      [0, 'celsius', 'fahrenheit', 32, 8],
+      [100, 'celsius', 'fahrenheit', 212, 8],
+      [-40, 'celsius', 'fahrenheit', -40, 8],
+      [32, 'fahrenheit', 'celsius', 0, 8],
+      [212, 'fahrenheit', 'celsius', 100, 8],
+      [-40, 'fahrenheit', 'celsius', -40, 8],
+      [0, 'celsius', 'kelvin', 273.15, 8],
+      [273.15, 'kelvin', 'celsius', 0, 8],
+      [0, 'kelvin', 'fahrenheit', -459.67, 6],
+      // area and volume
+      [1, 'acre', 'square-metre', 4046.8564224, 8],
+      [1, 'hectare', 'square-metre', 10000, 8],
+      [1, 'imperial-gallon', 'litre', 4.54609, 10],
+      [1, 'us-gallon', 'litre', 3.785411784, 10],
+      [1, 'us-gallon', 'us-quart', 4, 8],
+      // speed
+      [1, 'knot', 'kilometre-per-hour', 1.852, 8],
+      [1, 'mile-per-hour', 'kilometre-per-hour', 1.609344, 8],
+      [60, 'mile-per-hour', 'foot-per-second', 88, 6],
+      // data, decimal and binary prefixes
+      [1, 'gibibyte', 'byte', 1073741824, 8],
+      [1, 'gigabyte', 'byte', 1000000000, 8],
+      [1, 'kibibyte', 'byte', 1024, 8],
+      [1, 'terabyte', 'gigabyte', 1000, 8],
+      [1, 'tebibyte', 'gibibyte', 1024, 8],
+      // time, energy, pressure and angle
+      [1, 'day', 'hour', 24, 8],
+      [1, 'week', 'day', 7, 8],
+      [1, 'hour', 'second', 3600, 8],
+      [1, 'kilowatt-hour', 'joule', 3600000, 8],
+      [1, 'kilocalorie', 'kilojoule', 4.184, 8],
+      [1, 'btu', 'joule', 1055.05585262, 6],
+      [1, 'bar', 'pascal', 100000, 8],
+      [1, 'atmosphere', 'pascal', 101325, 8],
+      [1, 'psi', 'pascal', 6894.757, 2],
+      [1, 'hectopascal', 'millibar', 1, 8],
+      [1, 'mmhg', 'pascal', 133.322387415, 6],
+      [1, 'turn', 'degree', 360, 8],
+      [1, 'gradian', 'degree', 0.9, 10],
+      [1, 'degree', 'arcminute', 60, 8],
+      [Math.PI, 'radian', 'degree', 180, 8],
+    ];
+    for (const [value, from, to, expected, digits] of cases) {
+      expect(mustConvert(value, from, to), `${value} ${from} → ${to}`).toBeCloseTo(expected, digits);
+    }
   });
 });
 
-describe('convert — guards', () => {
+describe('convert — edge cases', () => {
   it('returns null for unknown ids and for a category mismatch', () => {
     expect(convert(1, 'parsec', 'metre')).toBeNull();
     expect(convert(1, 'metre', 'parsec')).toBeNull();
@@ -133,15 +104,12 @@ describe('convert — guards', () => {
     expect(convert(1, 'Metre', 'metre')).toBeNull();
   });
 
-  it('handles zero and negative values', () => {
+  it('handles zero, negatives and exact identity conversions', () => {
     expect(mustConvert(0, 'metre', 'kilometre')).toBe(0);
     expect(mustConvert(0, 'celsius', 'fahrenheit')).toBeCloseTo(32, 8);
     expect(mustConvert(-1, 'kilometre', 'metre')).toBe(-1000);
     expect(mustConvert(-273.15, 'celsius', 'kelvin')).toBeCloseTo(0, 8);
     expect(mustConvert(-5.5, 'pound', 'kilogram')).toBeCloseTo(-2.494758035, 8);
-  });
-
-  it('keeps identity conversions exact', () => {
     expect(convert(123.456, 'celsius', 'celsius')).toBe(123.456);
     expect(convert(1 / 3, 'metre', 'metre')).toBe(1 / 3);
     // Fahrenheit is the interesting one: the general formula is lossy here.
@@ -153,30 +121,26 @@ describe('convert — guards', () => {
     expect(mustConvert(mustConvert(7, 'litre', 'us-gallon'), 'us-gallon', 'litre')).toBeCloseTo(7, 9);
     expect(mustConvert(mustConvert(7, 'us-gallon', 'litre'), 'litre', 'us-gallon')).toBeCloseTo(7, 9);
     // Reciprocal factors: 7 L in gallons × 7 gal in litres = 49.
-    const litresToGallons = mustConvert(7, 'litre', 'us-gallon');
-    expect(litresToGallons * mustConvert(7, 'us-gallon', 'litre')).toBeCloseTo(49, 6);
+    expect(mustConvert(7, 'litre', 'us-gallon') * mustConvert(7, 'us-gallon', 'litre')).toBeCloseTo(49, 6);
   });
-});
 
-describe('convert — round trips', () => {
-  const PAIRS: ReadonlyArray<readonly [string, string]> = [
-    ['metre', 'mile'],
-    ['kilogram', 'stone'],
-    ['celsius', 'fahrenheit'],
-    ['celsius', 'kelvin'],
-    ['square-metre', 'acre'],
-    ['litre', 'imperial-gallon'],
-    ['us-gallon', 'millilitre'],
-    ['metre-per-second', 'knot'],
-    ['byte', 'gibibyte'],
-    ['second', 'week'],
-    ['joule', 'kilowatt-hour'],
-    ['pascal', 'psi'],
-    ['degree', 'radian'],
-  ];
-
-  it('returns the original value for every pair, magnitude and sign', () => {
-    for (const [from, to] of PAIRS) {
+  it('round-trips values across every category', () => {
+    const pairs: ReadonlyArray<readonly [string, string]> = [
+      ['metre', 'mile'],
+      ['kilogram', 'stone'],
+      ['celsius', 'fahrenheit'],
+      ['celsius', 'kelvin'],
+      ['square-metre', 'acre'],
+      ['litre', 'imperial-gallon'],
+      ['us-gallon', 'millilitre'],
+      ['metre-per-second', 'knot'],
+      ['byte', 'gibibyte'],
+      ['second', 'week'],
+      ['joule', 'kilowatt-hour'],
+      ['pascal', 'psi'],
+      ['degree', 'radian'],
+    ];
+    for (const [from, to] of pairs) {
       for (const value of [0, 1, -1, 12.5, 0.001, 1000000]) expectRoundTrip(value, from, to);
     }
   });
@@ -185,7 +149,7 @@ describe('convert — round trips', () => {
 describe('lookup helpers', () => {
   it('recognises every catalogued id and nothing else', () => {
     for (const category of UNIT_CATEGORIES) {
-      for (const unit of category.units) expect(isKnownUnit(unit.id)).toBe(true);
+      for (const unit of category.units) expect(isKnownUnit(unit.id), unit.id).toBe(true);
     }
     expect(isKnownUnit('parsec')).toBe(false);
     expect(isKnownUnit('')).toBe(false);

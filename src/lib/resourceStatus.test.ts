@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { progressValue, resourceStatus } from '@/lib/resourceStatus';
+import { isPending, progressValue, resourceStatus } from '@/lib/resourceStatus';
 
 describe('resourceStatus', () => {
   it('reports live data as live', () => {
@@ -66,5 +66,27 @@ describe('progressValue', () => {
     expect(progressValue(12)).toBe(1);
     expect(progressValue(Number.NaN)).toBe(0);
     expect(progressValue(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+describe('isPending', () => {
+  it('is true before the first answer for a key', () => {
+    expect(isPending(null, true)).toBe(true);
+  });
+
+  it('is true while a load has neither data nor an error', () => {
+    expect(isPending({ data: null, error: null }, true)).toBe(true);
+  });
+
+  it('is false once there is data, or a failure to show', () => {
+    expect(isPending({ data: { value: 1 }, error: null }, true)).toBe(false);
+    expect(isPending({ data: null, error: 'nope' }, true)).toBe(false);
+    // A failed refresh keeps the last good payload, which is not pending either.
+    expect(isPending({ data: { value: 1 }, error: 'nope' }, true)).toBe(false);
+  });
+
+  it('is never pending while the resource is switched off', () => {
+    expect(isPending(null, false)).toBe(false);
+    expect(isPending({ data: null, error: null }, false)).toBe(false);
   });
 });

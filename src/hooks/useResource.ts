@@ -18,6 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HttpError } from '@/lib/http';
+import { isPending } from '@/lib/resourceStatus';
 import { useTimeBucket } from './useNow';
 
 /** What the loader hands back: the payload plus where it came from. */
@@ -189,7 +190,7 @@ export function useResource<T>(options: UseResourceOptions<T>): UseResourceResul
     error: current?.error ?? null,
     errorCode: current?.errorCode ?? null,
     errorStatus: current?.errorStatus ?? null,
-    pending: enabled && current?.data === null && current?.error === null,
+    pending: isPending(current, enabled),
     fromCache: current?.fromCache ?? false,
     lastUpdatedAt: current?.at ?? null,
     refresh,

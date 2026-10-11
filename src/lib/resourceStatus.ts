@@ -84,6 +84,25 @@ export function resourceStatus(input: ResourceStatusInput): ResourceStatus {
   return withDetail('live');
 }
 
+/**
+ * The state of a load, for the three separate questions a widget asks.
+ *
+ * `pending` must be true *before* the first answer as well as during it: a card
+ * that had not loaded yet used to read "Live", which is the one label it must
+ * never wear. Hence "no snapshot for this key" counts as pending, and a failed
+ * first attempt does not (the widget shows the failure instead).
+ */
+export interface ResourceSnapshotLike {
+  data: unknown;
+  error: string | null;
+}
+
+export function isPending(snapshot: ResourceSnapshotLike | null, enabled: boolean): boolean {
+  if (!enabled) return false;
+  if (snapshot === null) return true;
+  return snapshot.data === null && snapshot.error === null;
+}
+
 /** Clamp a 0..1 progress value, tolerating `NaN` from a provider. */
 export function progressValue(value: number): number {
   return Number.isFinite(value) ? clamp(value, 0, 1) : 0;

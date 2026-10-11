@@ -53,10 +53,20 @@ export interface ImportSuccess {
   warnings: string[];
 }
 
+/**
+ * A file the importer recognised as *not* a layout document.
+ *
+ * `saved-dashboard-html` is a file this app wrote with "Save to file": HTML with
+ * the workspace embedded inside it. Plain `html` is any other page.
+ */
+export type DetectedFileKind = 'saved-dashboard-html' | 'html';
+
 /** Failed import result. */
 export interface ImportFailure {
   ok: false;
   errors: string[];
+  /** Set when the input is a recognised non-layout file, so the UI can explain it. */
+  detectedAs?: DetectedFileKind;
 }
 
 export type ImportResult = ImportSuccess | ImportFailure;

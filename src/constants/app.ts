@@ -25,8 +25,15 @@ export const EXPORT_FILE_PREFIX = 'lotus-dashboard';
 /** Custom MIME type used when dragging a widget from the drawer to the canvas. */
 export const WIDGET_DRAG_MIME = 'application/x-lotus-widget';
 
-/** Mimetype accepted by the import file picker. */
-export const IMPORT_ACCEPT = 'application/json,.json';
+/**
+ * Mimetype accepted by the import file picker.
+ *
+ * `.html`/`.htm` are included so a "Save to file" dashboard stays *selectable*:
+ * the import dialog then explains that it is a standalone dashboard to open, not
+ * a layout to import. Filtering it out of the picker only hid that explanation
+ * behind a greyed-out file.
+ */
+export const IMPORT_ACCEPT = 'application/json,.json,.html,.htm';
 
 /** Layout changes closer together than this are merged into one undo step. */
 export const LAYOUT_HISTORY_COALESCE_MS = 900;

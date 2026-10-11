@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AlertIcon, CheckIcon, DownloadIcon, UploadIcon } from '@/components/icons';
+import { AlertIcon, CheckIcon, DownloadIcon, InfoIcon, UploadIcon } from '@/components/icons';
 import { Badge, Button, Modal } from '@/components/ui';
 import { parseDashboardJson } from '@/lib/validation';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -29,6 +29,17 @@ export function ImportDialog() {
 
   const close = () => clearImport();
 
+  // A file the importer recognised as something other than a layout (see
+  // `detectMarkupFile`) gets an explanation instead of the generic error list.
+  const detectedAs = result.ok ? null : (result.detectedAs ?? null);
+  const title = result.ok
+    ? 'Import this layout?'
+    : detectedAs === 'saved-dashboard-html'
+      ? 'This is a saved dashboard, not a layout file'
+      : detectedAs
+        ? 'This is not a layout file'
+        : 'This file cannot be imported';
+
   const apply = () => {
     if (!result.ok) return;
     loadDocument(result.document);
@@ -44,7 +55,7 @@ export function ImportDialog() {
     <Modal
       open
       onClose={close}
-      title={result.ok ? 'Import this layout?' : 'This file cannot be imported'}
+      title={title}
       description={pendingImport.fileName}
       size="md"
       footer={
@@ -121,6 +132,30 @@ export function ImportDialog() {
               <CheckIcon className="h-3.5 w-3.5" /> Everything in this file is valid.
             </p>
           )}
+        </div>
+      ) : detectedAs ? (
+        <div className="space-y-3">
+          <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-3 dark:border-sky-500/30 dark:bg-sky-500/5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
+              <InfoIcon className="h-3.5 w-3.5" /> {result.errors[0]}
+            </p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-sky-700/90 dark:text-sky-300/90">
+              {detectedAs === 'saved-dashboard-html' ? (
+                <>
+                  <strong>Save to file</strong> froze your whole dashboard into a standalone HTML page. Open that file
+                  — double-click it, or drag it into a browser tab — and the dashboard inside it comes back.
+                </>
+              ) : (
+                <>Import expects the JSON written by <strong>Export layout as JSON</strong>.</>
+              )}
+            </p>
+          </div>
+          <p className="flex items-start gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <UploadIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            To move a layout between dashboards, use <strong>Export layout as JSON</strong> (
+            <kbd className="rounded border border-slate-300 px-1 dark:border-slate-600">⌘/Ctrl + Shift + S</kbd>), then
+            import the <code>.json</code> file it downloads.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

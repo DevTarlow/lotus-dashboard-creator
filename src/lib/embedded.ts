@@ -22,7 +22,7 @@
  * file the user might email would break that promise.
  */
 import { APP_NAME, APP_VERSION, SCHEMA_VERSION } from '@/constants/app';
-import type { ThemeMode } from '@/types';
+import type { DetectedFileKind, ThemeMode } from '@/types';
 
 /** Format discriminator written into the embedded block. */
 export const EMBEDDED_FORMAT = 'lotus-embedded/v1' as const;
@@ -128,6 +128,34 @@ export function readEmbeddedState(doc: DocumentLike | undefined = currentDocumen
   } catch {
     return null;
   }
+}
+
+/**
+ * Decide whether a text that failed to parse as JSON is really markup.
+ *
+ * Feeding a saved dashboard file to "Import layout from JSON" used to produce
+ * only `Unexpected token '<'`, which tells the user nothing. Recognising markup
+ * lets the import dialog explain what the file is and what to do with it instead.
+ *
+ * Pure and deliberately forgiving: it only needs to be right about files this app
+ * wrote, and about obviously-markup text. `null` means "not markup, run the
+ * normal JSON error path".
+ */
+export function detectMarkupFile(text: string): DetectedFileKind | null {
+  // A saved page starts with a doctype or a tag, possibly after a BOM/blank line.
+  if (!text.slice(0, 1024).trimStart().startsWith('<')) return null;
+  return hasEmbeddedSnapshot(text) ? 'saved-dashboard-html' : 'html';
+}
+
+/**
+ * `true` when the markup contains one of our embedded snapshot blocks.
+ *
+ * Matched on the element id rather than the whole serialised tag, so attribute
+ * order or extra attributes cannot make a file saved by this app unrecognisable.
+ */
+export function hasEmbeddedSnapshot(text: string): boolean {
+  const idThenClosing = new RegExp(`<script[^>]*\\bid\\s*=\\s*["']?${EMBEDDED_ELEMENT_ID}["'\\s>]`, 'i');
+  return idThenClosing.test(text);
 }
 
 /**

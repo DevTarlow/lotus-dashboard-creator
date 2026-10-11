@@ -148,7 +148,7 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (810 tests, 40 files). |
+| `npm test` | Vitest unit suite (824 tests, 40 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
@@ -363,6 +363,10 @@ available (Chrome, Edge) the app remembers the file you chose and overwrites it 
 place, so saving is one keystroke; elsewhere it downloads a copy. **Export layout
 as JSON** (`⌘/Ctrl + Shift + S`) is still there for a plain, diffable backup.
 
+The two are not interchangeable: the `.html` is an app to *open*, the `.json` is a
+layout to *import*. Picking a saved `.html` in **Import layout from JSON** is
+allowed, and tells you exactly that instead of failing with a JSON syntax error.
+
 There are two layers, and it is worth knowing which is which:
 
 | Layer | Holds | Lifetime |
@@ -515,12 +519,15 @@ On import the file is validated and normalised before it touches your workspace:
 - coordinates are clamped to the grid, malformed entries are dropped;
 - widgets whose plugin is missing are **kept** and shown as unavailable;
 - widgets with no layout entry are placed automatically;
-- duplicated ids are made unique instead of losing data.
+- duplicated ids are made unique instead of losing data;
+- a **saved dashboard file** (the `.html` written by *Save to file*) is recognised
+  and explained — it is a standalone dashboard to open, not a layout to import,
+  so you get that message instead of a raw JSON syntax error.
 
 ## Testing & verification
 
 ```bash
-npm test          # 810 unit tests, 40 files
+npm test          # 824 unit tests, 40 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -580,7 +587,7 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 44 assertions there — 91 with a server —
+single-file checks need no server at all. 45 assertions there — 92 with a server —
 cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, the notes file panel (create, autosave across a reload, delete
 confirmation, and a pre-panel scratchpad migrating into a note), the notes panes
@@ -592,7 +599,9 @@ matters most: the saved file is reopened **from a different path**, so a differe
 `localStorage` scope means a restored setting can only have come from the embedded
 snapshot. That check caught a genuine bug — a string-level `</body>` insertion
 landing inside the minified bundle — which is why the snapshot is now written
-through the DOM.
+through the DOM. The same group also feeds the freshly saved file back into the
+**Import layout from JSON** picker (a real CDP file-input upload) and asserts the
+dialog explains it is a saved dashboard rather than reporting a JSON syntax error.
 
 The catalogue has its own group, driven against the built file with **no network
 at all** — which is the point: every provider-backed panel is exercised while it

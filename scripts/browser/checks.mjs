@@ -185,6 +185,26 @@ export async function runSingleFileChecks({ port, singleFile, downloadDir, repor
         scopes.size >= 2 || !reopened.storageKeys.some((key) => key.includes('dist-single')),
         [...scopes].join(', ') || 'no keys',
       );
+
+      // The import picker must recognise this app's own output: choosing a saved
+      // dashboard has to explain what the file is, never quote a JSON syntax
+      // error. Driven through the real picker (CDP sets the file on the input).
+      const { root } = await page.session.send('DOM.getDocument', { depth: 1 });
+      const { nodeId } = await page.session.send('DOM.querySelector', {
+        nodeId: root.nodeId,
+        selector: 'input[type="file"]',
+      });
+      await page.session.send('DOM.setFileInputFiles', { nodeId, files: [savedFile] });
+      await wait(700);
+      const importDialog = await page.session.evaluate(`(() => {
+        const dialog = document.querySelector('[role="dialog"]');
+        return dialog ? dialog.innerText : null;
+      })()`);
+      report.check(
+        'a saved dashboard picked for import is explained, not called bad JSON',
+        Boolean(importDialog) && /saved dashboard/i.test(importDialog) && !/not valid JSON/i.test(importDialog),
+        importDialog ? importDialog.split('\\n')[0] : 'no dialog',
+      );
     }
   } finally {
     report.check('no console errors on file://', problems.consoleErrors.length === 0, problems.consoleErrors.slice(0, 3).join(' | '));

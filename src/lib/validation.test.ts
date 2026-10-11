@@ -59,6 +59,31 @@ describe('document import', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors[0]).toContain('not valid JSON');
+    // Ordinary bad JSON is *not* reported as a recognised file kind.
+    expect(result.detectedAs).toBeUndefined();
+  });
+
+  it('explains a "Save to file" dashboard instead of quoting a JSON parse error', () => {
+    const saved = [
+      '<!doctype html>',
+      '<html lang="en"><head><title>Lotus</title></head><body>',
+      '<script type="application/json" id="lotus-embedded-workspace">{"format":"lotus-embedded/v1"}</script>',
+      '</body></html>',
+    ].join('\n');
+    const result = parseDashboardJson(saved);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.detectedAs).toBe('saved-dashboard-html');
+    expect(result.errors[0]).toContain('saved dashboard file');
+    expect(result.errors[0]).not.toContain('Unexpected token');
+  });
+
+  it('recognises some other web page as markup rather than bad JSON', () => {
+    const result = parseDashboardJson('<!doctype html><html><body>not ours</body></html>');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.detectedAs).toBe('html');
+    expect(result.errors[0]).toContain('web page');
   });
 
   it('rejects an empty file and a foreign format', () => {

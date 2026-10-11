@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   createEmbeddedState,
+  detectMarkupFile,
   EMBEDDED_ELEMENT_ID,
   EMBEDDED_FORMAT,
   encodeEmbeddedState,
+  hasEmbeddedSnapshot,
   readEmbeddedState,
   shouldPreferEmbedded,
   type DocumentLike,
@@ -94,6 +96,42 @@ describe('readEmbeddedState', () => {
   it('tolerates a missing or non-numeric timestamp', () => {
     const read = readEmbeddedState(documentWith('{"format":"lotus-embedded/v1","workspace":{}}'));
     expect(read?.savedAt).toBe(0);
+  });
+});
+
+describe('detectMarkupFile', () => {
+  /** Roughly what "Save to file" writes: a page plus the snapshot element. */
+  const saved = `<!doctype html>
+<html lang="en"><head><title>Lotus</title></head>
+<body><div id="root"></div>
+<script type="application/json" id="${EMBEDDED_ELEMENT_ID}">${encodeEmbeddedState(makeState(7))}</script>
+</body></html>`;
+
+  it('recognises a file this app saved', () => {
+    expect(detectMarkupFile(saved)).toBe('saved-dashboard-html');
+    expect(hasEmbeddedSnapshot(saved)).toBe(true);
+  });
+
+  it('recognises a snapshot element whatever the attribute order', () => {
+    expect(hasEmbeddedSnapshot(`<script id="${EMBEDDED_ELEMENT_ID}" type="application/json">{}</script>`)).toBe(true);
+    expect(hasEmbeddedSnapshot(`<script type="application/json" ID='${EMBEDDED_ELEMENT_ID}'></script>`)).toBe(true);
+  });
+
+  it('does not mistake a similar but different id for our snapshot', () => {
+    expect(hasEmbeddedSnapshot(`<script id="${EMBEDDED_ELEMENT_ID}-backup"></script>`)).toBe(false);
+    expect(hasEmbeddedSnapshot('<script id="other"></script>')).toBe(false);
+  });
+
+  it('flags any other markup as a plain web page', () => {
+    expect(detectMarkupFile('<!doctype html><html><body>hello</body></html>')).toBe('html');
+    expect(detectMarkupFile('\n  <?xml version="1.0"?><svg/>')).toBe('html');
+  });
+
+  it('returns null for text that is not markup', () => {
+    expect(detectMarkupFile('{ not json')).toBeNull();
+    expect(detectMarkupFile('')).toBeNull();
+    // JSON that merely contains a "<" much later is still not markup.
+    expect(detectMarkupFile(`{"note":"${'x'.repeat(2000)}<b>"}`)).toBeNull();
   });
 });
 

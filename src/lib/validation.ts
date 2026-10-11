@@ -19,6 +19,7 @@ import type {
   WidgetConfig,
 } from '@/types';
 import { normalizeLayout, reconcileLayouts } from './grid';
+import { detectMarkupFile } from './embedded';
 import { asNumber, asRecord, asString, createId, isRecord } from './utils';
 
 /** Registry hooks, injected to keep this module free of widget imports. */
@@ -213,6 +214,25 @@ export function parseDashboardJson(text: string, options: ValidateOptions = {}):
   try {
     parsed = JSON.parse(trimmed);
   } catch (error) {
+    // A file this app saved with "Save to file" is a whole HTML page, not JSON.
+    // Saying so is far more useful than the raw `Unexpected token '<'`.
+    const detectedAs = detectMarkupFile(trimmed);
+    if (detectedAs === 'saved-dashboard-html') {
+      return {
+        ok: false,
+        detectedAs,
+        errors: [
+          'This is a saved dashboard file, not a layout JSON. Open it in your browser to use the dashboard inside it.',
+        ],
+      };
+    }
+    if (detectedAs === 'html') {
+      return {
+        ok: false,
+        detectedAs,
+        errors: ['This is a web page, not a layout JSON file.'],
+      };
+    }
     return {
       ok: false,
       errors: [`The file is not valid JSON: ${error instanceof Error ? error.message : 'unknown error'}.`],

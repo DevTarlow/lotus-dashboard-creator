@@ -67,19 +67,21 @@ const describeWelcome = `(() => {
   };
 })()`;
 
-/** Dismiss the welcome the way a user who wants to look around first would. */
-const dismissWelcome = `(() => {
-  const later = [...document.querySelectorAll('[role="dialog"] button')]
-    .find((b) => /maybe later/i.test(b.innerText || ''));
-  if (!later) return false;
-  later.click();
+/** Close the open dialog with its X, the way a user would. */
+const closeTopDialog = `(() => {
+  const button = document.querySelector('[role="dialog"] button[aria-label="Close"]');
+  if (!button) return false;
+  button.click();
   return true;
 })()`;
+
+/** Dismiss the welcome the way a user who wants to look around first would. */
+const dismissWelcome = closeTopDialog;
 
 /** Take the welcome's offer of a full example (the sixteen-panel showcase). */
 const showExampleFromWelcome = `(() => {
   const button = [...document.querySelectorAll('[role="dialog"] button')]
-    .find((b) => /show me an example/i.test(b.innerText || ''));
+    .find((b) => /show (?:me )?an example/i.test(b.innerText || ''));
   if (!button) return false;
   button.click();
   return true;
@@ -418,6 +420,11 @@ export async function runOnboardingChecks({ port, singleFile, report }) {
       `document.querySelector('[role="dialog"]')?.innerText || ''`,
     );
     report.check('a first visit opens the welcome', welcome.open, welcome.buttons.join(', '));
+    report.check(
+      'the welcome offers a way forward and a way out',
+      ['Start blank', 'Show an example', 'Add my first widget'].every((label) => welcome.buttons.includes(label)),
+      welcome.buttons.join(', '),
+    );
     for (const [label, pattern] of [
       ['adding a widget', /Add widget/i],
       ['moving and resizing', /resize/i],
@@ -538,8 +545,12 @@ export async function runOnboardingChecks({ port, singleFile, report }) {
       /keyboard|shortcut|⌘/i.test(helpText ?? ''),
       (helpText ?? '').split('\n').slice(-1)[0],
     );
-    await page.session.evaluate(closeDialog);
+    await page.session.evaluate(closeTopDialog);
     await wait(300);
+    report.check(
+      'Help is closed again',
+      (await page.session.evaluate(`Boolean(document.querySelector('[role="dialog"]'))`)) === false,
+    );
 
     // 7. The blank canvas the app could not previously reach.
     await page.session.evaluate(`(() => {

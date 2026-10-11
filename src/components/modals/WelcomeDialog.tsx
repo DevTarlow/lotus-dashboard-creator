@@ -53,18 +53,11 @@ export function WelcomeDialog() {
       description="Nothing here is permanent. Move things around, add widgets, change the colours — everything can be undone."
       footer={
         <>
-          <button
-            type="button"
-            onClick={dismiss}
-            className="mr-auto text-xs text-slate-400 underline-offset-2 transition hover:text-slate-600 hover:underline dark:text-slate-500 dark:hover:text-slate-300"
-          >
-            Maybe later
-          </button>
           <Button variant="ghost" size="sm" icon={<TrashIcon className="h-3.5 w-3.5" />} onClick={startBlank}>
             Start blank
           </Button>
           <Button variant="secondary" size="sm" icon={<SparklesIcon className="h-3.5 w-3.5" />} onClick={showExample}>
-            Show me an example
+            Show an example
           </Button>
           <Button variant="primary" size="sm" onClick={addFirstWidget}>
             Add my first widget

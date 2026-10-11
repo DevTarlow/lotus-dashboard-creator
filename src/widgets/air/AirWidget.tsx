@@ -42,7 +42,7 @@ const SETTINGS: readonly SettingField[] = [
     type: 'text',
     placeholder: 'Lisbon',
     maxLength: 48,
-    help: 'Live from Open-Meteo — no API key needed. Narrow the search with a country, e.g. “Portland, Maine”.',
+    help: 'Live from Open-Meteo. No key needed. Add a country to narrow the search, for example “Portland, Maine”.',
   },
   { key: 'showUv', label: 'Show the UV index', type: 'switch' },
   { key: 'showHours', label: 'Show the next hours', type: 'switch' },
@@ -131,7 +131,7 @@ export function AirWidget({ config }: WidgetProps<AirConfig>) {
         size="sm"
         icon={<AirIcon className="h-4 w-4" />}
         title="No reading for this place"
-        description="Open-Meteo answered without current air-quality data here. Pollen is only modelled in some regions."
+        description="Open-Meteo has no current air quality figures for this place. Pollen is only measured in some regions."
       />
     );
   }
@@ -232,7 +232,7 @@ export function AirWidget({ config }: WidgetProps<AirConfig>) {
 export const airWidget = defineWidget<AirConfig>({
   type: 'air',
   name: 'Air quality & UV',
-  summary: 'Air quality, UV index and pollen, live from Open-Meteo.',
+  summary: 'Air quality, UV index and pollen for a place.',
   category: 'environment',
   keywords: ['air', 'aqi', 'pollution', 'pm2.5', 'uv', 'pollen', 'allergy', 'smog'],
   icon: AirIcon,

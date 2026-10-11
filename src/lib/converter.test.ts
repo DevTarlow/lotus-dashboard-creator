@@ -187,11 +187,11 @@ describe('unit picker options', () => {
     expect(mismatched).toHaveLength(unitOptions('length').length + 1);
     expect(mismatched[mismatched.length - 1]).toEqual({
       value: 'kilogram',
-      label: 'Kilogram — not in Length',
+      label: 'Kilogram (not in Length)',
     });
 
     const unknown = unitOptions('length', ['furlong']);
-    expect(unknown[unknown.length - 1]).toEqual({ value: 'furlong', label: 'furlong — unknown unit' });
+    expect(unknown[unknown.length - 1]).toEqual({ value: 'furlong', label: 'furlong (unknown unit)' });
   });
 
   it('never duplicates an option, and ignores blank ids', () => {

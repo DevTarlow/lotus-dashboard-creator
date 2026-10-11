@@ -388,11 +388,11 @@ describe('habitGrid', () => {
     const { columns } = habitGrid([weekdays], 2, at(SUN));
     const byKey = new Map(columns.flatMap((column) => column.cells).map((cell) => [cell.key, cell]));
 
-    expect(byKey.get(FRI)?.label).toBe('Fri 13 Feb — done');
+    expect(byKey.get(FRI)?.label).toBe('Fri 13 Feb: done');
     expect(byKey.get(FRI)?.done).toBe(true);
-    expect(byKey.get(MON)?.label).toBe('Mon 9 Feb — missed');
+    expect(byKey.get(MON)?.label).toBe('Mon 9 Feb: missed');
     expect(byKey.get(MON)?.scheduled).toBe(true);
-    expect(byKey.get(SAT)?.label).toBe('Sat 14 Feb — not scheduled');
+    expect(byKey.get(SAT)?.label).toBe('Sat 14 Feb: not scheduled');
     expect(byKey.get(SAT)?.scheduled).toBe(false);
     // A rest day that was logged anyway is not a day the habit counted.
     expect(byKey.get(SAT)?.done).toBe(false);

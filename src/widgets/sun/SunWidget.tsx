@@ -46,7 +46,7 @@ const SETTINGS: readonly SettingField[] = [
     type: 'text',
     placeholder: 'Lisbon',
     maxLength: 48,
-    help: 'The place decides the time zone the times are shown in — sunrise is printed on its clock, not yours. Add a country to narrow the match.',
+    help: 'The times are shown on that place’s clock, not yours. Add a country to narrow the match.',
   },
   { key: 'showMoon', label: 'Show the moon phase', type: 'switch' },
   { key: 'showTwilight', label: 'Show civil twilight', type: 'switch' },

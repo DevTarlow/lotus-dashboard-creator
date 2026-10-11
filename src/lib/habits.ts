@@ -396,7 +396,7 @@ export function habitGrid(
       const scheduled = due.length > 0;
       const done = scheduled && due.every((habit) => isDoneOn(habit, key));
       const state = done ? 'done' : scheduled ? 'missed' : 'not scheduled';
-      cells.push({ key, done, scheduled, label: `${dayLabel(date)} — ${state}` });
+      cells.push({ key, done, scheduled, label: `${dayLabel(date)}: ${state}` });
     }
     columns.push({ key: cells[0].key, cells });
   }

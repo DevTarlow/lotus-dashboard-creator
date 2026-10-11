@@ -215,7 +215,7 @@ export function NotesResizablePanes({
           tabIndex={0}
           onPointerDown={beginDrag}
           onKeyDown={onKeyDown}
-          title="Drag — or focus and use the arrow keys — to resize"
+          title="Drag to resize, or use the arrow keys"
           className={cn(
             'widget-no-drag group/resize relative z-10 flex shrink-0 touch-none select-none items-center justify-center',
             stacked ? 'h-2 w-full cursor-row-resize' : 'h-2 w-full cursor-row-resize sm:h-auto sm:w-2 sm:cursor-col-resize',

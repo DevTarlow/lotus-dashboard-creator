@@ -239,7 +239,7 @@ export async function fetchCryptoQuotes(
 
   if (response.status === 429) {
     // The keyless pool is shared per IP and is documented to be tight.
-    throw new MarketError('CoinGecko rate limit reached — showing simulated prices.');
+    throw new MarketError('CoinGecko is asking us to slow down, so these prices are simulated.');
   }
   if (!response.ok) throw new MarketError(`CoinGecko responded with ${response.status}.`);
 
@@ -339,7 +339,7 @@ export async function fetchStockQuotes(
   { signal, fetchImpl = fetch, now = Date.now() }: FetchQuotesOptions = {},
 ): Promise<Quote[]> {
   const key = apiKey.trim();
-  if (!key) throw new MarketError('No Finnhub API key set.', 'missing-key');
+  if (!key) throw new MarketError('No Finnhub key yet.', 'missing-key');
 
   const wanted = [...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean))];
   if (wanted.length === 0) return [];
@@ -356,7 +356,7 @@ export async function fetchStockQuotes(
       }
 
       if (response.status === 401 || response.status === 403) {
-        throw new MarketError('Finnhub rejected the API key.', 'invalid-key');
+        throw new MarketError('Finnhub did not accept that key.', 'invalid-key');
       }
       if (response.status === 429) {
         throw new MarketError('Finnhub rate limit reached.', 'rate-limit');

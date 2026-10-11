@@ -10,7 +10,7 @@ describe('resourceStatus', () => {
   it('reports a cache hit as cached, not live', () => {
     const status = resourceStatus({ fromCache: true });
     expect(status.id).toBe('cached');
-    expect(status.label).toBe('Cached');
+    expect(status.label).toBe('Saved copy');
   });
 
   it('prefers loading over cached before the first payload', () => {

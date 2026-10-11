@@ -35,17 +35,17 @@ const SETTINGS: readonly SettingField[] = [
     type: 'text',
     placeholder: 'owner/name',
     maxLength: 120,
-    help: 'A public repository needs no key. The name is read from api.github.com, 60 times an hour per address.',
+    help: 'A public repository needs no key. Without one, GitHub allows 60 lookups an hour from a single address.',
   },
   { key: 'showReleases', label: 'Show the latest release', type: 'switch' },
   { key: 'showWorkflow', label: 'Show the latest workflow run', type: 'switch' },
   {
     key: 'githubToken',
-    label: 'GitHub token',
+    label: 'GitHub key',
     type: 'password',
     placeholder: 'ghp_…',
-    help: 'Optional. Raises the hourly limit to 5,000 and reaches private repositories. Kept in this browser and sent only to GitHub.',
-    link: { href: 'https://github.com/settings/tokens', label: 'Create a token' },
+    help: 'Optional. Raises the hourly limit to 5,000 and reaches private repositories. It is kept in this browser and sent to GitHub alone.',
+    link: { href: 'https://github.com/settings/tokens', label: 'Create a GitHub key' },
   },
 ];
 
@@ -93,7 +93,7 @@ export function GithubWidget({ config }: WidgetProps<GithubConfig>) {
         size="sm"
         icon={<RepoIcon className="h-4 w-4" />}
         title="Which repository?"
-        description={`Enter a repository as “owner/name” in the settings — “${config.repo || 'react/react'}” is not one.`}
+        description={`Enter a repository as “owner/name” in the settings. “${config.repo || 'react/react'}” is not one.`}
       />
     );
   }
@@ -224,7 +224,7 @@ export function GithubWidget({ config }: WidgetProps<GithubConfig>) {
 export const githubWidget = defineWidget<GithubConfig>({
   type: 'github',
   name: 'Repository',
-  summary: 'Stars, issues, the latest release and the newest workflow run.',
+  summary: 'How a GitHub project is doing: stars, issues and the latest release.',
   category: 'utilities',
   keywords: ['github', 'repo', 'stars', 'issues', 'release', 'ci', 'workflow', 'developer'],
   icon: RepoIcon,

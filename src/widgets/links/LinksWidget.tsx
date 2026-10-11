@@ -349,7 +349,7 @@ export function LinksWidget({ config, updateConfig }: WidgetProps<LinksConfig>) 
 export const linksWidget = defineWidget<LinksConfig>({
   type: 'links',
   name: 'Quick links',
-  summary: 'A launcher for your most used bookmarks, with favicons.',
+  summary: 'A launcher for the sites you use most.',
   category: 'productivity',
   keywords: ['bookmarks', 'links', 'launcher', 'shortcuts', 'favicon'],
   icon: LinksIcon,

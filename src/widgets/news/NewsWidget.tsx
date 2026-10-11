@@ -55,7 +55,7 @@ export function NewsWidget({ config, updateConfig }: WidgetProps<NewsConfig>) {
   const providerNames = providers.join(', ');
   const badgeTitle = live
     ? `Live from ${providerNames}${failed.length > 0 ? `. Unavailable: ${failed.join(', ')}` : ''}`
-    : (error ?? 'No live news provider answered — showing the simulated feed.');
+    : (error ?? 'No news source answered, so this feed is simulated.');
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -182,7 +182,7 @@ export function NewsWidget({ config, updateConfig }: WidgetProps<NewsConfig>) {
 export const newsWidget = defineWidget<NewsConfig>({
   type: 'news',
   name: 'News feed',
-  summary: 'Live headlines from keyless providers with topic filters, source links and expandable summaries.',
+  summary: 'Headlines by topic, from sources that need no account.',
   category: 'news',
   keywords: ['rss', 'news', 'headlines', 'feed', 'reader'],
   icon: NewsIcon,

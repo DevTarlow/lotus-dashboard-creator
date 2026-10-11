@@ -34,7 +34,7 @@ const SETTINGS: readonly SettingField[] = [
     label: 'Desk',
     type: 'select',
     options: ONTHISDAY_KINDS.map((entry) => ({ label: entry.label, value: entry.id })),
-    help: 'From the Wikimedia “on this day” feeds — no API key needed. Content is CC BY-SA.',
+    help: 'From the Wikimedia “on this day” feeds. No key needed. The content is CC BY-SA.',
   },
   { key: 'limit', label: 'Items shown', type: 'number', min: 1, max: 12, step: 1 },
   { key: 'showImages', label: 'Show article thumbnails', type: 'switch' },
@@ -164,7 +164,7 @@ export function OnThisDayWidget({ config }: WidgetProps<OnThisDayConfig>) {
 export const onThisDayWidget = defineWidget<OnThisDayConfig>({
   type: 'onthisday',
   name: 'On this day',
-  summary: 'What happened on today’s date, from Wikipedia.',
+  summary: 'What happened on this date, from Wikipedia.',
   category: 'news',
   keywords: ['history', 'wikipedia', 'anniversary', 'birthday', 'today', 'this day'],
   icon: OnThisDayIcon,

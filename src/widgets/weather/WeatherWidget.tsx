@@ -37,7 +37,7 @@ const SETTINGS: readonly SettingField[] = [
     type: 'text',
     placeholder: 'Lisbon',
     maxLength: 48,
-    help: 'Live weather from wttr.in — no API key needed. Narrow the search with a country, e.g. “Portland, Maine”.',
+    help: 'Live weather from wttr.in. No key needed. Add a country to narrow the search, for example “Portland, Maine”.',
   },
   {
     key: 'unit',
@@ -93,7 +93,7 @@ function CityPrompt({ city, onSet }: { city: string; onSet: (city: string) => vo
       <Button size="sm" variant="primary" type="submit" disabled={draft.trim() === ''}>
         Show the forecast
       </Button>
-      <p className="text-[10px] text-slate-400 dark:text-slate-500">No API key needed.</p>
+      <p className="text-[10px] text-slate-400 dark:text-slate-500">No account needed.</p>
     </form>
   );
 }
@@ -231,7 +231,7 @@ export function WeatherWidget({ config, updateConfig }: WidgetProps<WeatherConfi
           title={
             live
               ? `Live from wttr.in${weather.observedAt ? `, observed ${weather.observedAt} local` : ''}`
-              : error ?? 'Simulated locally — live weather unavailable'
+              : error ?? 'Simulated locally. Live weather was not available.'
           }
         >
           {live ? 'Live' : 'Simulated'}
@@ -249,7 +249,7 @@ export function WeatherWidget({ config, updateConfig }: WidgetProps<WeatherConfi
 export const weatherWidget = defineWidget<WeatherConfig>({
   type: 'weather',
   name: 'Weather',
-  summary: 'Live forecast from wttr.in with a simulated offline fallback — no API key required.',
+  summary: 'Live forecast from wttr.in, with a simulated forecast when it is out of reach.',
   category: 'essentials',
   keywords: ['forecast', 'temperature', 'city', 'climate'],
   icon: WeatherIcon,

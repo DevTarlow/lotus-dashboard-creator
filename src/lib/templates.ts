@@ -132,7 +132,7 @@ const PERSONAL: TemplateSpec = {
 
 const TRADING_DESK: TemplateSpec = {
   title: 'Markets desk',
-  description: 'A trading focused workspace with live tickers, a currency converter, headlines and exchange shortcuts.',
+  description: 'Market prices, a currency converter, headlines and links to the exchanges.',
   widgets: [
     { type: 'market', x: 0, y: 0, w: 8, h: 9, config: { symbols: 'BTC, ETH, SOL, NVDA, AAPL, TSLA', kind: 'all' } },
     { type: 'clock', x: 8, y: 0, w: 4, h: 4, config: { hour12: false, showSeconds: true, label: 'Market clock' } },
@@ -187,7 +187,7 @@ const WELLNESS: TemplateSpec = {
 
 const ENGINEER: TemplateSpec = {
   title: 'Engineer desk',
-  description: 'A repository, the machine it runs on, the task list and today’s technology headlines.',
+  description: 'A GitHub repository, this machine’s readings, your task list and today’s technology headlines.',
   widgets: [
     { type: 'github', x: 0, y: 0, w: 4, h: 6 },
     { type: 'system', x: 4, y: 0, w: 4, h: 7, config: { showNetwork: false } },
@@ -239,7 +239,7 @@ const FOCUS_DESK: TemplateSpec = {
 
 const MINIMAL: TemplateSpec = {
   title: 'Minimal',
-  description: 'Just the essentials — a clock and a scratchpad.',
+  description: 'Just the essentials: a clock and a scratchpad.',
   widgets: [
     { type: 'clock', x: 0, y: 0, w: 4, h: 6 },
     { type: 'notes', x: 4, y: 0, w: 8, h: 6 },

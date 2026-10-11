@@ -180,6 +180,6 @@ describe('document import', () => {
     if (!result.ok) return;
     const ids = result.document.widgets.map((entry) => entry.id);
     expect(new Set(ids).size).toBe(2);
-    expect(result.warnings.some((warning) => warning.includes('same identifier'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('same ID'))).toBe(true);
   });
 });

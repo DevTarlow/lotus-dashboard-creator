@@ -365,14 +365,14 @@ export function ConverterWidget({ config, updateConfig }: WidgetProps<ConverterC
     typedAmount === null
       ? 'Enter an amount to convert.'
       : identity
-        ? `Both sides are ${pair.base} — the rate is exactly 1, so no rate is fetched.`
+        ? `Both sides are ${pair.base}, so the rate is exactly 1 and nothing needs fetching.`
         : publishedRate === null
           ? (rate.error ?? 'Waiting for the ECB reference rate…')
           : null;
 
   const sourceLine = rate.data
-    ? `ECB reference rate · ${rate.data.date} · working days only — not a trading rate`
-    : 'ECB reference rate · working days only — not a trading rate';
+    ? `ECB reference rate · ${rate.data.date} · working days only. This is not a live trading rate.`
+    : 'ECB reference rate · working days only. This is not a live trading rate.';
   const staleNote = rate.error && rate.data ? ' · showing the last published rate' : '';
 
   const swap = () => {
@@ -511,7 +511,7 @@ export function ConverterWidget({ config, updateConfig }: WidgetProps<ConverterC
               <Badge
                 tone="slate"
                 className="self-start"
-                title="Both sides are the same currency, so there is nothing to fetch."
+                title="Both sides are the same currency, so there is nothing to look up."
               >
                 Same currency
               </Badge>
@@ -544,7 +544,7 @@ export function ConverterWidget({ config, updateConfig }: WidgetProps<ConverterC
 export const converterWidget = defineWidget<ConverterConfig>({
   type: 'converter',
   name: 'Converter',
-  summary: 'Convert units, or currencies at the ECB reference rate.',
+  summary: 'Convert units, or look up currency exchange rates.',
   category: 'utilities',
   keywords: ['convert', 'unit', 'currency', 'exchange', 'rate', 'metric', 'imperial', 'temperature'],
   icon: ConverterIcon,

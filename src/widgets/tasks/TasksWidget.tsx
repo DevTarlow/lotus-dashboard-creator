@@ -176,7 +176,7 @@ export function TasksWidget({ config, updateConfig }: WidgetProps<TasksConfig>) 
           <EmptyState
             size="sm"
             icon={<TasksIcon className="h-4 w-4" />}
-            title="Nothing on the list yet — add your first task above."
+            title="Nothing on the list yet. Add your first task above."
           />
         </div>
       ) : visible.length === 0 ? (

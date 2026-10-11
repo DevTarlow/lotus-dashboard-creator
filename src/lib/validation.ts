@@ -74,7 +74,9 @@ function coerceWidget(value: unknown, options: ValidateOptions, warnings: string
   const createdAt = asNumber(value.createdAt, Date.now());
 
   if (options.isKnownType && !options.isKnownType(type)) {
-    warnings.push(`“${type}” is not part of this copy of the app — that card will show as unavailable, and your data for it is kept.`);
+    warnings.push(
+      `“${type}” is not part of this copy of the app, so that card will show as unavailable. Whatever was saved in it is kept.`,
+    );
   }
 
   return { id, type, title: title === '' ? fallbackTitle : title, config, createdAt };
@@ -94,7 +96,7 @@ export function validateDashboardDocument(input: unknown, options: ValidateOptio
     return { ok: false, errors: [`That file was written by a different app (it names the format “${format}”).`] };
   }
   if (format === '') {
-    warnings.push('That file does not say what wrote it, so it was read as best it could be.');
+    warnings.push('That file does not say what wrote it. It was read anyway.');
   }
 
   const version = asNumber(input.version, 0);
@@ -121,7 +123,7 @@ export function validateDashboardDocument(input: unknown, options: ValidateOptio
     if (!widget) continue;
     if (seenIds.has(widget.id)) {
       widget.id = createId(widget.type);
-      warnings.push('Two widgets were using the same identifier, so one was given a new one.');
+      warnings.push('Two widgets in that file used the same ID, so one was given a new one.');
     }
     seenIds.add(widget.id);
     widgets.push(widget);

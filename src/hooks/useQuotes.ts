@@ -80,7 +80,7 @@ export function useQuotes(symbols: readonly string[], apiKey: string, now: numbe
     const stockRequest = wantedStocks.length
       ? hasKey
         ? fetchStockQuotes(wantedStocks, apiKey, options)
-        : Promise.reject(new MarketError('No Finnhub API key set.', 'missing-key'))
+        : Promise.reject(new MarketError('No Finnhub key yet.', 'missing-key'))
       : Promise.resolve<Quote[]>([]);
 
     Promise.allSettled([cryptoRequest, stockRequest]).then(([cryptoResult, stockResult]) => {

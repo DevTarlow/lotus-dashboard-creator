@@ -54,7 +54,7 @@ const SETTINGS: readonly SettingField[] = [
     label: 'Feed',
     type: 'select',
     options: QUAKE_FEEDS.map((entry) => ({ label: entry.label, value: entry.id })),
-    help: 'Live from the USGS “latest earthquakes” feeds — no API key needed. Their “significant” digest is published for the past day and week only.',
+    help: 'Live from the USGS “latest earthquakes” feeds. No key needed. Their “significant” list covers the past day or week only.',
   },
   {
     key: 'window',
@@ -101,7 +101,7 @@ function asWindow(value: unknown): QuakeWindow {
 
 /** A quake the feed could not place is still a real quake, so it gets a dash. */
 function depthLabel(depthKm: number | null): string {
-  return depthKm === null ? 'depth —' : `depth ${Math.round(depthKm)} km`;
+  return depthKm === null ? 'depth unknown' : `depth ${Math.round(depthKm)} km`;
 }
 
 function feltLabel(quake: Quake): string | null {
@@ -311,8 +311,8 @@ export function EarthquakeWidget({ config }: WidgetProps<EarthquakeConfig>) {
         {shown.length === 0 ? (
           <p className="flex flex-1 items-center justify-center px-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
             {data.nearOnly
-              ? `Nothing above ${FEED_LABEL(feedChoice)} within ${formatDistance(radiusKm)} of ${data.place?.name ?? city} in the ${WINDOW_LABEL(served.window)} — widen the radius or lower the threshold.`
-              : `Nothing at ${FEED_LABEL(feedChoice)} in the ${WINDOW_LABEL(served.window)} — lower the threshold.`}
+              ? `Nothing above ${FEED_LABEL(feedChoice)} within ${formatDistance(radiusKm)} of ${data.place?.name ?? city} in the ${WINDOW_LABEL(served.window)}. Try a wider radius or a lower strength.`
+              : `Nothing at ${FEED_LABEL(feedChoice)} in the ${WINDOW_LABEL(served.window)}. Try a lower strength.`}
           </p>
         ) : (
           <ul role="list">
@@ -374,7 +374,7 @@ export function EarthquakeWidget({ config }: WidgetProps<EarthquakeConfig>) {
 export const earthquakeWidget = defineWidget<EarthquakeConfig>({
   type: 'earthquake',
   name: 'Seismic watch',
-  summary: 'Recent earthquakes worldwide, and any near a place you care about.',
+  summary: 'Recent earthquakes worldwide, or near a place you choose.',
   category: 'environment',
   keywords: ['earthquake', 'quake', 'seismic', 'usgs', 'magnitude', 'tsunami', 'richter'],
   icon: QuakeIcon,

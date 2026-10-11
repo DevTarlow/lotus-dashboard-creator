@@ -58,21 +58,21 @@ interface Headline {
 const HEADLINES: readonly Headline[] = [
   {
     topic: 'technology',
-    title: 'Type-safe plugin architectures are quietly becoming the default',
+    title: 'Type-safe plugin architectures are becoming the default',
     summary:
-      'Registry-based widget systems keep bundles small while letting teams ship features independently — and TypeScript does the guarding.',
+      'Registry-based widget systems keep bundles small, and let teams ship features independently. TypeScript keeps them honest.',
   },
   {
     topic: 'technology',
     title: 'Why local-first apps are winning back power users',
     summary:
-      'Instant interactions, offline tolerance and data ownership are proving to be features, not nostalgia.',
+      'Instant interactions, offline tolerance and owning your own data turn out to matter more than sync.',
   },
   {
     topic: 'technology',
-    title: 'The quiet return of the dashboard',
+    title: 'The dashboard comes back around',
     summary:
-      'After a decade of notification streams, teams are rebuilding focused, glanceable workspaces they actually arrange themselves.',
+      'After a decade of notification streams, teams are building small screens of information they arrange themselves.',
   },
   {
     topic: 'technology',
@@ -81,8 +81,8 @@ const HEADLINES: readonly Headline[] = [
   },
   {
     topic: 'technology',
-    title: 'Bundle budgets: the metric that finally stuck',
-    summary: 'Teams report shipping less code after making payload size a reviewable, visible number.',
+    title: 'Bundle budgets are sticking this time',
+    summary: 'Teams ship less code once download size is on the review checklist.',
   },
   {
     topic: 'product',
@@ -96,12 +96,12 @@ const HEADLINES: readonly Headline[] = [
   },
   {
     topic: 'product',
-    title: 'Undo is the feature users never ask for and always miss',
-    summary: 'Coalescing rapid edits into a single history step keeps the mental model simple.',
+    title: 'Undo is the feature nobody asks for and everybody misses',
+    summary: 'Grouping rapid edits into one history step keeps undo predictable.',
   },
   {
     topic: 'product',
-    title: 'Empty states are onboarding',
+    title: 'The empty state is doing more work than you think',
     summary: 'The first screen after a reset decides whether a workspace feels alive or abandoned.',
   },
   {

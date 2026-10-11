@@ -31,24 +31,24 @@ export interface ResourceStatus {
 }
 
 const STATUSES: Record<ResourceStatusId, Omit<ResourceStatus, 'id'>> = {
-  loading: { label: 'Loading', tone: 'slate', detail: 'Waiting for the provider to answer.' },
-  live: { label: 'Live', tone: 'emerald', detail: 'Fetched from the provider just now.' },
+  loading: { label: 'Loading', tone: 'slate', detail: 'Waiting for an answer.' },
+  live: { label: 'Live', tone: 'emerald', detail: 'Fresh from the provider.' },
   cached: {
-    label: 'Cached',
+    label: 'Saved copy',
     tone: 'slate',
-    detail: 'Served from this session’s cache; the provider is not re-asked until the refresh window passes.',
+    detail: 'This is the copy saved earlier in this session. It will be fetched again a little later.',
   },
-  offline: { label: 'Offline', tone: 'amber', detail: 'This device reports no network connection.' },
+  offline: { label: 'Offline', tone: 'amber', detail: 'This device says it has no network connection.' },
   'timed-out': { label: 'Timed out', tone: 'amber', detail: 'The provider did not answer in time.' },
   'rate-limited': {
-    label: 'Rate limited',
+    label: 'Too many requests',
     tone: 'amber',
-    detail: 'The provider refused this request for now; it will be retried in the next refresh window.',
+    detail: 'The provider asked us to slow down. It will be tried again later.',
   },
   'key-required': {
-    label: 'Key required',
+    label: 'Needs a key',
     tone: 'violet',
-    detail: 'This provider refuses anonymous requests. Add your own free key in the widget settings.',
+    detail: 'This provider will not answer without a key of your own. You can add a free one in the widget settings.',
   },
   unavailable: { label: 'Unavailable', tone: 'rose', detail: 'The provider could not be read.' },
 };

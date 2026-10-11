@@ -200,14 +200,14 @@ export function goldenHourLabel(times: SolarTimes, timeZone: string, hour12 = fa
 /** The one-line truth about a polar day or polar night, or null on an ordinary day. */
 function polarNoteFor(times: SolarTimes, timeZone: string, hour12: boolean): string | null {
   if (times.polarDay) {
-    return 'The sun stays above the horizon all day — it does not rise or set.';
+    return 'The sun stays above the horizon all day, so it never rises or sets.';
   }
   if (!times.polarNight) return null;
 
   const twilight = twilightWindowLabel(times, timeZone, hour12);
   // A polar night without a civil-twilight window is possible: it just means the
   // sun never even reaches 6° below the horizon.
-  if (!twilight) return 'The sun stays below the horizon all day — it does not rise.';
+  if (!twilight) return 'The sun stays below the horizon all day, so it never rises.';
   return `The sun stays below the horizon all day; civil twilight runs ${twilight}.`;
 }
 

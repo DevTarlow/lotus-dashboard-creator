@@ -372,7 +372,7 @@ export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps
 export const notesWidget = defineWidget<NotesConfig>({
   type: 'notes',
   name: 'Markdown notes',
-  summary: 'A multi-note markdown editor with a file panel, live preview and auto-save.',
+  summary: 'A notebook with as many pages as you like, saved as you type.',
   category: 'productivity',
   keywords: ['notes', 'markdown', 'scratchpad', 'todo', 'editor', 'files'],
   icon: NotesIcon,

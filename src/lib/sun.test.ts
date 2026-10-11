@@ -142,7 +142,7 @@ describe('buildSunDay', () => {
     expect(day.daylightLabel).toBe('Midnight sun');
     expect(day.sunriseLabel).toBe('—');
     expect(day.sunsetLabel).toBe('—');
-    expect(day.polarNote).toMatch(/does not rise or set/);
+    expect(day.polarNote).toMatch(/never rises or sets/);
     // Nothing to compare and nothing to be a fraction of.
     expect(day.daylightDeltaMinutes).toBeNull();
     expect(day.progress).toBeNull();

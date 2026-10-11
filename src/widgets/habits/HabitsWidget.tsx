@@ -187,7 +187,7 @@ function HabitEditor({ habit, onPatch }: { habit: Habit; onPatch: (patch: Partia
       <p className="text-[10px] leading-snug text-slate-400 dark:text-slate-500">
         {habit.schedule === 'custom' && habit.days.length === 0
           ? 'No days chosen yet, so this habit never counts.'
-          : 'Saved when you leave a field — ⌘/Ctrl + Z undoes.'}
+          : 'Saved when you leave the field. ⌘/Ctrl + Z undoes.'}
       </p>
     </div>
   );
@@ -277,7 +277,7 @@ export function HabitsWidget({ config, updateConfig }: WidgetProps<HabitsConfig>
           className="min-h-0 flex-1"
           icon={<HabitsIcon className="h-4 w-4" />}
           title="No habits yet"
-          description="A habit is one daily checkbox with a streak — running, reading, practising an instrument. Add the first one below and tick it off each day."
+          description="A habit is one checkbox a day: running, reading, practising an instrument. Add one below and tick it each day."
         />
       ) : (
         <>
@@ -297,7 +297,7 @@ export function HabitsWidget({ config, updateConfig }: WidgetProps<HabitsConfig>
                   <div className="flex items-center gap-2 rounded-lg px-1 py-1 transition hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <HabitTick
                       label={`${habit.name} done today`}
-                      title={scheduled ? `${habit.name} — done today` : `${habit.name} — not scheduled today`}
+                      title={scheduled ? `${habit.name} · done today` : `${habit.name} · not scheduled today`}
                       checked={done}
                       disabled={!scheduled}
                       onToggle={() => toggleToday(habit)}
@@ -338,7 +338,7 @@ export function HabitsWidget({ config, updateConfig }: WidgetProps<HabitsConfig>
                     </span>
                     <IconButton
                       label={`Remove ${habit.name}`}
-                      title={`Remove ${habit.name} — undo with ⌘/Ctrl + Z`}
+                      title={`Remove ${habit.name}. Undo with ⌘/Ctrl + Z`}
                       size="icon-sm"
                       variant="danger"
                       icon={<TrashIcon className="h-3.5 w-3.5" />}
@@ -372,7 +372,7 @@ export function HabitsWidget({ config, updateConfig }: WidgetProps<HabitsConfig>
                       <Heatmap
                         columns={toHeatmapCells(columns)}
                         tone="emerald"
-                        label={`${habit.name} — the last ${weeks} weeks`}
+                        label={`${habit.name}: the last ${weeks} weeks`}
                       />
                     </div>
                   </Fragment>

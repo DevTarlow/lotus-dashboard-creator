@@ -81,7 +81,7 @@ const SETTINGS: readonly SettingField[] = [
       { label: 'None', value: '' },
       ...HOLIDAY_COUNTRIES.map((country) => ({ label: country.name, value: country.code })),
     ],
-    help: 'Holiday dates come from date.nager.at — no key or signup needed.',
+    help: 'Holiday dates come from date.nager.at. No key or signup needed.',
   },
 ];
 

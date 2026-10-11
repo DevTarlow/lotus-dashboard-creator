@@ -186,7 +186,7 @@ export function unitPairMessage(problem: UnitPairProblem): string {
     case 'unknown-to':
       return 'The “to” unit is not one this widget knows.';
     case 'mismatch':
-      return 'These two units measure different things — pick both from the same category.';
+      return 'These two units measure different things. Pick both from the same category.';
   }
 }
 
@@ -211,7 +211,7 @@ export function unitOptions(category: UnitCategoryId, stored: readonly string[] 
     const found = findUnit(id);
     options.push({
       value: id,
-      label: found ? `${found.unit.label} — not in ${categoryLabel}` : `${id} — unknown unit`,
+      label: found ? `${found.unit.label} (not in ${categoryLabel})` : `${id} (unknown unit)`,
     });
   }
   return options;

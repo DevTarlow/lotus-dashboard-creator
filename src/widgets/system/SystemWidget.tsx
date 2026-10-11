@@ -43,7 +43,7 @@ const SETTINGS: readonly SettingField[] = [
     key: 'showDevice',
     label: 'Show device details',
     type: 'switch',
-    help: 'Platform, processor count, memory, screen and language — all read locally.',
+    help: 'Platform, processor count, memory, screen and language, all read locally.',
   },
   { key: 'showBattery', label: 'Show battery', type: 'switch', help: 'Chromium browsers only.' },
   { key: 'showStorage', label: 'Show storage usage', type: 'switch' },
@@ -51,7 +51,7 @@ const SETTINGS: readonly SettingField[] = [
     key: 'showNetwork',
     label: 'Look up the public IP address',
     type: 'switch',
-    help: 'Off by default. Turning this on sends one request to ipwho.is, which sees your IP address — the dashboard itself sends it nowhere else.',
+    help: 'Off by default. When it is on, it sends one request to ipwho.is, which sees your IP address. The dashboard sends that address nowhere else.',
   },
 ];
 

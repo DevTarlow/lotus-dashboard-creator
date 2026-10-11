@@ -36,16 +36,16 @@ const SETTINGS: readonly SettingField[] = [
     label: 'Symbols',
     type: 'text',
     placeholder: 'BTC, ETH, NVDA',
-    help: 'Comma separated. Crypto is priced live via CoinGecko. Stocks need the Finnhub key below — they are never simulated.',
+    help: 'Separate symbols with commas. Crypto prices come live from CoinGecko. Stocks need the Finnhub key below, and their prices are never invented.',
   },
   {
     key: 'finnhubKey',
-    label: 'Finnhub API key (optional)',
+    label: 'Finnhub key (optional)',
     type: 'password',
     placeholder: 'Paste your free key',
     maxLength: 64,
-    help: 'Only needed for stocks. Stored in this browser and sent only to Finnhub; it is never included in a dashboard export.',
-    link: { href: FINNHUB_SIGNUP_URL, label: 'Get a free Finnhub key (no card required) →' },
+    help: 'Only needed for stocks. It is kept in this browser and sent to Finnhub alone. A saved dashboard never carries it.',
+    link: { href: FINNHUB_SIGNUP_URL, label: 'Get a free Finnhub key. No card needed →' },
   },
   {
     key: 'kind',
@@ -57,7 +57,7 @@ const SETTINGS: readonly SettingField[] = [
       { label: 'Stocks only', value: 'stock' },
     ],
   },
-  { key: 'showSparkline', label: 'Show 4h sparkline', type: 'switch' },
+  { key: 'showSparkline', label: 'Show the last four hours as a line', type: 'switch' },
   { key: 'showNames', label: 'Show asset names', type: 'switch' },
 ];
 
@@ -80,7 +80,7 @@ function QuoteRow({
         <p className="flex items-center gap-1 truncate text-xs font-bold tracking-wide text-slate-800 dark:text-slate-100">
           {quote.symbol}
           <span
-            title={live ? 'Live quote' : 'Simulated locally'}
+            title={live ? 'Live quote' : 'Simulated, not a live quote'}
             className={cn(
               'h-1.5 w-1.5 shrink-0 rounded-full',
               live ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600',
@@ -167,7 +167,7 @@ export function MarketWidget({ config, updateConfig }: WidgetProps<MarketConfig>
       ? {
           tone: stockPrompt?.reason === 'failed' ? ('amber' as const) : ('sky' as const),
           label: stockPrompt?.reason === 'failed' ? 'Stocks unavailable' : 'Stocks need a key',
-          title: stockPrompt?.message ?? 'Stock quotes need a Finnhub API key.',
+          title: stockPrompt?.message ?? 'Stock quotes need a Finnhub key.',
         }
       : {
           tone: 'emerald' as const,
@@ -290,7 +290,7 @@ export function MarketWidget({ config, updateConfig }: WidgetProps<MarketConfig>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                 {stockPrompt?.reason === 'invalid-key'
-                  ? 'API key rejected'
+                  ? 'Key not accepted'
                   : stockPrompt?.reason === 'failed'
                     ? 'Could not reach the quote service'
                     : 'No live price yet'}
@@ -322,7 +322,7 @@ export function MarketWidget({ config, updateConfig }: WidgetProps<MarketConfig>
 
       <p className="text-[10px] text-slate-400 dark:text-slate-500">
         {visible.length === 0 && unpriced.length > 0
-          ? 'Stock quotes need a free Finnhub key — no stock prices are simulated.'
+          ? 'Stock quotes need a free Finnhub key. Without one they stay blank rather than made up.'
           : 'Crypto from CoinGecko; stocks from Finnhub with your own free key. Not investment data.'}
       </p>
     </div>
@@ -332,7 +332,7 @@ export function MarketWidget({ config, updateConfig }: WidgetProps<MarketConfig>
 export const marketWidget = defineWidget<MarketConfig>({
   type: 'market',
   name: 'Market ticker',
-  summary: 'Live crypto quotes (CoinGecko) and live stocks (Finnhub, your own free key) with sparklines and per-symbol add/remove.',
+  summary: 'Live crypto prices, and live stocks with a key of your own.',
   category: 'markets',
   keywords: ['crypto', 'stocks', 'ticker', 'prices', 'bitcoin', 'finance'],
   icon: MarketIcon,

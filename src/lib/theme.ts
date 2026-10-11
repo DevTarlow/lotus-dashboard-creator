@@ -168,7 +168,7 @@ const PRESETS = [
   {
     id: 'graphite',
     name: 'Graphite',
-    description: 'Almost no colour at all — just grey.',
+    description: 'Hardly any colour: just grey.',
     group: 'neutral',
     accent: { hue: 265, chromaFactor: 0.5 },
     neutral: { hue: 265, chromaFactor: 0.4 },

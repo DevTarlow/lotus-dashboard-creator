@@ -144,7 +144,7 @@ describe('fetchCryptoQuotes', () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response('slow down', { status: 429 }));
     await expect(
       fetchCryptoQuotes(['BTC'], { fetchImpl: fetchImpl as unknown as typeof fetch }),
-    ).rejects.toThrow(/rate limit/i);
+    ).rejects.toThrow(/slow down/i);
   });
 
   it('treats an empty array as the failure it is', async () => {

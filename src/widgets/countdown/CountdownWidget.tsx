@@ -189,7 +189,7 @@ function NextEventCard({ row, showSeconds, onEdit }: { row: CountdownRow; showSe
         onClick={onEdit}
         className="absolute right-1 top-1 text-slate-400 dark:text-slate-500"
       />
-      <Ring value={row.progress} tone={row.event.tone} size={78} thickness={7} label={`${row.event.label} — ${row.label}`}>
+      <Ring value={row.progress} tone={row.event.tone} size={78} thickness={7} label={`${row.event.label}: ${row.label}`}>
         <span className="text-lg font-semibold leading-none tabular-nums">{parts.primary}</span>
         {parts.secondary ? (
           <span className="mt-1 text-[10px] font-medium leading-none tabular-nums opacity-75">{parts.secondary}</span>

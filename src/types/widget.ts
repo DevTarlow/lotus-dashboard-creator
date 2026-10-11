@@ -18,7 +18,7 @@ export interface IconProps {
 export type WidgetConfig = Record<string, unknown>;
 
 /** Used purely for grouping widgets inside the "Add widget" drawer. */
-export type WidgetCategory = 'essentials' | 'productivity' | 'markets' | 'news' | 'utilities';
+export type WidgetCategory = 'essentials' | 'productivity' | 'markets' | 'news' | 'environment' | 'utilities';
 
 /** Accent tone used for icon chips and previews. */
 export type AccentTone = 'violet' | 'sky' | 'amber' | 'emerald' | 'rose' | 'slate';

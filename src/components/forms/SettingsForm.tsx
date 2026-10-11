@@ -5,7 +5,7 @@ import { asBoolean, asNumber, asString } from '@/lib/utils';
 import type { SettingField, WidgetConfig, WidgetDefinition } from '@/types';
 
 /** Preference fields a widget setting is allowed to bind to. */
-const PREF_SECRET_KEYS = ['finnhubKey'] as const;
+const PREF_SECRET_KEYS = ['finnhubKey', 'githubToken'] as const;
 type PrefSecretKey = (typeof PREF_SECRET_KEYS)[number];
 
 function isPrefSecretKey(key: string): key is PrefSecretKey {

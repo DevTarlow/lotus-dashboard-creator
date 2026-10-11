@@ -33,6 +33,7 @@ export const WIDGET_CATEGORIES: readonly { id: WidgetCategory; label: string }[]
   { id: 'productivity', label: 'Productivity' },
   { id: 'markets', label: 'Markets' },
   { id: 'news', label: 'News' },
+  { id: 'environment', label: 'Environment' },
   { id: 'utilities', label: 'Utilities' },
 ];
 

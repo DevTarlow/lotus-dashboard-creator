@@ -13,6 +13,7 @@ import {
 import { serializeDashboardFile, suggestedDashboardFileName } from '@/lib/singleFile';
 import { downloadTextFile } from '@/lib/utils';
 import { useDashboardStore } from '@/store/dashboardStore';
+import { shareablePrefs } from '@/lib/prefs';
 import { usePrefsStore } from '@/store/prefsStore';
 import { useToastStore } from '@/store/toastStore';
 
@@ -74,12 +75,8 @@ export function useSaveDashboardFile(): SaveDashboardFile {
         layouts: dashboard.layouts,
         locked: dashboard.locked,
       },
-      // The Finnhub key is intentionally absent — see `lib/embedded`.
-      prefs: {
-        theme: prefs.theme,
-        showGridHints: prefs.showGridHints,
-        confirmDelete: prefs.confirmDelete,
-      },
+      // API keys are excluded by construction — see `lib/prefs`.
+      prefs: shareablePrefs(prefs),
     });
 
     let html: string;

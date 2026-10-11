@@ -357,3 +357,158 @@ export const SplitIcon = (props: IconProps) => (
     <path d="M12 4v16" />
   </Icon>
 );
+
+export const TasksIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 6.5 5.8 8.3 9 5" />
+    <path d="M4 17.5 5.8 19.3 9 16" />
+    <path d="M12 7h8M12 12h5M12 17h8" />
+  </Icon>
+);
+
+export const TimerIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="13" r="7.5" />
+    <path d="M12 9.5V13l2.5 1.7M9.5 2.5h5" />
+  </Icon>
+);
+
+export const HabitsIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="3.5" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3.5" width="7" height="7" rx="1.5" />
+    <rect x="3" y="13.5" width="7" height="7" rx="1.5" />
+    <path d="m14.5 16.5 1.8 1.8 3.2-3.4" />
+  </Icon>
+);
+
+export const CalendarIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4" />
+    <path d="M7.5 14h2M12 14h2M16.5 14h.01M7.5 17.5h2M12 17.5h2" />
+  </Icon>
+);
+
+export const CountdownIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M5.6 5.6A9 9 0 1 0 12 3" />
+    <path d="M3 7V4h3M12 3V1" />
+    <path d="M12 7v5l3 2" />
+  </Icon>
+);
+
+export const GlobeIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18" />
+    <path d="M12 3c2.6 2.6 3.9 6 3.9 9S14.6 18.4 12 21c-2.6-2.6-3.9-6-3.9-9S9.4 5.6 12 3Z" />
+  </Icon>
+);
+
+export const ConverterIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 8h13l-3-3M20 16H7l3 3" />
+    <path d="M20 8h-1M4 16h1" />
+  </Icon>
+);
+
+export const SunMoonIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
+  </Icon>
+);
+
+export const AirIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3 8h9.5a2.5 2.5 0 1 0-2.5-2.5" />
+    <path d="M3 12.5h13a2.5 2.5 0 1 1-2.5 2.5" />
+    <path d="M3 17h6" />
+  </Icon>
+);
+
+export const QuakeIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M2 13h3l2-6 3 12 2.5-9L15 17l2-4h5" />
+  </Icon>
+);
+
+export const OnThisDayIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5.5A1.5 1.5 0 0 1 4 18.5v-13Z" />
+    <path d="M19 8h1.5A1.5 1.5 0 0 1 22 9.5v9a1.5 1.5 0 0 1-1.5 1.5H6" />
+    <path d="M8 8h7M8 11.5h7M8 15h4" />
+  </Icon>
+);
+
+export const SystemIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M8 20h8M12 16v4" />
+    <path d="M7 12h2l1.5-3 2 5 1.5-2h3" />
+  </Icon>
+);
+
+export const RepoIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15l-3-2-3 2-3-2-3 2V5A1.5 1.5 0 0 1 6 3.5Z" />
+    <path d="M9 8h5M9 11.5h3" />
+  </Icon>
+);
+
+/* -------------------------------------------------------- control glyphs */
+
+export const PlayIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+  </Icon>
+);
+
+export const PauseIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M9 5v14M15 5v14" />
+  </Icon>
+);
+
+export const RotateIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+    <path d="M20 5v6h-6" />
+  </Icon>
+);
+
+export const BellIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 2.5h-15L6 16.5Z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </Icon>
+);
+
+export const MapPinIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 21s6.5-6 6.5-11a6.5 6.5 0 1 0-13 0C5.5 15 12 21 12 21Z" />
+    <circle cx="12" cy="10" r="2.5" />
+  </Icon>
+);
+
+export const FlameIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M12 3s5 4.2 5 8.4A5 5 0 0 1 7 12c0-1.6.7-2.9 1.6-4 .3 1.1 1 1.8 2 2 0-2.6 1.4-5.4 1.4-7Z" />
+  </Icon>
+);
+
+export const BatteryIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <rect x="2.5" y="8" width="16" height="9" rx="2" />
+    <path d="M21 11v3" />
+    <path d="M6 11v3M9.5 11v3" />
+  </Icon>
+);
+
+export const WifiIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M3.5 9a13 13 0 0 1 17 0M6.5 12.5a8.5 8.5 0 0 1 11 0M9.5 16a4 4 0 0 1 5 0" />
+    <path d="M12 19.5h.01" />
+  </Icon>
+);

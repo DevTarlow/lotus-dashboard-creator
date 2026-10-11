@@ -25,16 +25,29 @@ export interface PrefsState {
    * market widget shows no stock prices at all without it.
    */
   finnhubKey: string;
+  /**
+   * Optional GitHub personal access token, used for the repository widget.
+   *
+   * Anonymous `api.github.com` requests are limited to 60 per hour per address,
+   * which a dashboard watching a few repositories can exhaust. A token raises
+   * that to 5,000. Like the Finnhub key it stays in `localStorage`: it is never
+   * embedded in a saved file and is sent only to GitHub.
+   */
+  githubToken: string;
   /** Epoch ms of the last preference change, used for embedded-state precedence. */
   updatedAt: number;
   setTheme: (theme: ThemeMode) => void;
   setShowGridHints: (value: boolean) => void;
   setConfirmDelete: (value: boolean) => void;
   setFinnhubKey: (value: string) => void;
+  setGithubToken: (value: string) => void;
 }
 
 /** Preferences worth carrying inside a single-file dashboard. */
-type PersistedPrefs = Pick<PrefsState, 'theme' | 'showGridHints' | 'confirmDelete' | 'finnhubKey' | 'updatedAt'>;
+type PersistedPrefs = Pick<
+  PrefsState,
+  'theme' | 'showGridHints' | 'confirmDelete' | 'finnhubKey' | 'githubToken' | 'updatedAt'
+>;
 
 export const usePrefsStore = create<PrefsState>()(
   persist(
@@ -43,12 +56,14 @@ export const usePrefsStore = create<PrefsState>()(
       showGridHints: true,
       confirmDelete: false,
       finnhubKey: '',
+      githubToken: '',
       updatedAt: 0,
       // Each setter stamps `updatedAt`, so a local edit outranks the file.
       setTheme: (theme) => set({ theme, updatedAt: Date.now() }),
       setShowGridHints: (showGridHints) => set({ showGridHints, updatedAt: Date.now() }),
       setConfirmDelete: (confirmDelete) => set({ confirmDelete, updatedAt: Date.now() }),
       setFinnhubKey: (finnhubKey) => set({ finnhubKey, updatedAt: Date.now() }),
+      setGithubToken: (githubToken) => set({ githubToken, updatedAt: Date.now() }),
     }),
     {
       name: prefsStorageKey(),
@@ -59,6 +74,7 @@ export const usePrefsStore = create<PrefsState>()(
         showGridHints: state.showGridHints,
         confirmDelete: state.confirmDelete,
         finnhubKey: state.finnhubKey,
+        githubToken: state.githubToken,
         updatedAt: state.updatedAt,
       }),
       /**

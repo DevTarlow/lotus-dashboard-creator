@@ -224,7 +224,7 @@ export function GithubWidget({ config }: WidgetProps<GithubConfig>) {
 export const githubWidget = defineWidget<GithubConfig>({
   type: 'github',
   name: 'Repository',
-  summary: 'How a GitHub project is doing: stars, issues and the latest release.',
+  summary: 'How a GitHub project is doing, with stars, issues and its latest release.',
   category: 'utilities',
   keywords: ['github', 'repo', 'stars', 'issues', 'release', 'ci', 'workflow', 'developer'],
   icon: RepoIcon,

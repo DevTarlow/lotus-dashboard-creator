@@ -214,7 +214,7 @@ const ENGINEER: TemplateSpec = {
 
 const FOCUS_DESK: TemplateSpec = {
   title: 'Focus desk',
-  description: 'A calm writing setup: one big scratchpad, a clock and research links.',
+  description: 'A calm writing setup with one big scratchpad, a clock and research links.',
   widgets: [
     { type: 'notes', x: 0, y: 0, w: 8, h: 12, config: { mode: 'split' } },
     { type: 'clock', x: 8, y: 0, w: 4, h: 5, config: { showSeconds: false, label: 'Deep work' } },
@@ -239,7 +239,7 @@ const FOCUS_DESK: TemplateSpec = {
 
 const MINIMAL: TemplateSpec = {
   title: 'Minimal',
-  description: 'Just the essentials: a clock and a scratchpad.',
+  description: 'Two cards: a clock and a scratchpad.',
   widgets: [
     { type: 'clock', x: 0, y: 0, w: 4, h: 6 },
     { type: 'notes', x: 4, y: 0, w: 8, h: 6 },

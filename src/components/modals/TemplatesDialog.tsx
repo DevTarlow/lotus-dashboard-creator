@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { CheckIcon, GridIcon, RefreshIcon, SparklesIcon } from '@/components/icons';
-import { Badge, Button, Modal } from '@/components/ui';
+import { GridIcon, RefreshIcon, SparklesIcon } from '@/components/icons';
+import { Button, Modal } from '@/components/ui';
 import { GRID_COLUMNS } from '@/constants/grid';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 import { DASHBOARD_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/lib/templates';
@@ -60,11 +60,8 @@ function TemplateRow({ template, isDefault, onApply }: TemplateRowProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <h3 className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{template.name}</h3>
-          {isDefault ? (
-            <Badge tone="violet" icon={<CheckIcon className="h-3 w-3" />}>
-              starter
-            </Badge>
-          ) : null}
+          {/* No badge on the starter row: the name says which one it is, and its
+              button says Restore where the others say Apply. */}
         </div>
         <p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{template.description}</p>
         <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">

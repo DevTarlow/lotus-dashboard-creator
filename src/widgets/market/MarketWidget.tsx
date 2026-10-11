@@ -332,7 +332,7 @@ export function MarketWidget({ config, updateConfig }: WidgetProps<MarketConfig>
 export const marketWidget = defineWidget<MarketConfig>({
   type: 'market',
   name: 'Market ticker',
-  summary: 'Live crypto prices, and live stocks with a key of your own.',
+  summary: 'Live crypto prices, and live stocks once you add a free key.',
   category: 'markets',
   keywords: ['crypto', 'stocks', 'ticker', 'prices', 'bitcoin', 'finance'],
   icon: MarketIcon,

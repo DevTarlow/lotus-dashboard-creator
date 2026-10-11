@@ -324,7 +324,7 @@ export function StickyNotesWidget({ config, updateConfig, replaceConfig }: Widge
       <p className="shrink-0 text-[10px] text-slate-400 dark:text-slate-500">
         {atLimit
           ? `That is the limit of ${MAX_STICKY_NOTES} notes. Delete one to add another.`
-          : 'Pin a note to keep it on top. Notes are stored with the dashboard.'}
+          : 'Notes are stored with the dashboard, so they travel in a copy of the file.'}
       </p>
     </div>
   );

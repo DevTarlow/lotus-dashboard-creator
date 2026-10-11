@@ -299,39 +299,41 @@ export function EarthquakeWidget({ config }: WidgetProps<EarthquakeConfig>) {
         </p>
       ) : null}
 
-      {top === null ? null : (
-        <div className="rounded-lg bg-slate-50 p-2 dark:bg-slate-800/60">
-          <div className="flex items-baseline gap-2">
-            <span className={cn('text-2xl font-semibold leading-none tabular-nums', TONE_TEXT[magnitudeBand(top.magnitude).tone])}>
-              {top.magnitude === null ? '—' : `M${top.magnitude.toFixed(1)}`}
-            </span>
-            <Badge tone={magnitudeBand(top.magnitude).tone}>{magnitudeBand(top.magnitude).label}</Badge>
-            {top.tsunami ? <Badge tone="sky">Tsunami flag</Badge> : null}
-          </div>
-          <p className="mt-1 truncate text-xs font-medium text-slate-700 dark:text-slate-200" title={top.place}>
-            {top.place || 'Unknown location'}
-          </p>
-          <p className="mt-0.5 truncate text-[10px] text-slate-400 dark:text-slate-500">
-            {[
-              depthLabel(top.depthKm),
-              formatRelativeTime(top.time, now),
-              topFelt,
-              top.distanceKm === undefined ? null : `${formatDistance(top.distanceKm)} away`,
-            ]
-              .filter((part): part is string => Boolean(part))
-              .join(' · ')}
-          </p>
-        </div>
-      )}
-
       {shown.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center px-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
+        <p className="flex min-h-0 flex-1 items-center justify-center px-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
           {data.nearOnly
             ? `Nothing above ${FEED_LABEL(feedChoice)} within ${formatDistance(radiusKm)} of ${data.place?.name ?? city} in the ${WINDOW_LABEL(served.window)} — widen the radius or lower the threshold.`
             : `Nothing at ${FEED_LABEL(feedChoice)} in the ${WINDOW_LABEL(served.window)} — lower the threshold.`}
         </p>
       ) : (
         <ul role="list" className="min-h-0 flex-1 overflow-y-auto">
+          {/* The strongest quake gets a highlighted row at the top of the list:
+              it scrolls with the rest rather than pushing the list (and the
+              footer under it) out of a short widget. */}
+          {top === null ? null : (
+            <li className="mb-1 rounded-lg bg-slate-50 px-2 py-1 dark:bg-slate-800/60">
+              <div className="flex items-baseline gap-1.5">
+                <span className={cn('text-lg font-semibold leading-none tabular-nums', TONE_TEXT[magnitudeBand(top.magnitude).tone])}>
+                  {top.magnitude === null ? '—' : `M${top.magnitude.toFixed(1)}`}
+                </span>
+                <Badge tone={magnitudeBand(top.magnitude).tone}>Strongest · {magnitudeBand(top.magnitude).label}</Badge>
+                {top.tsunami ? <Badge tone="sky">Tsunami</Badge> : null}
+              </div>
+              <p className="mt-0.5 truncate text-[11px] font-medium text-slate-700 dark:text-slate-200" title={top.place}>
+                {top.place || 'Unknown location'}
+              </p>
+              <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">
+                {[
+                  depthLabel(top.depthKm),
+                  formatRelativeTime(top.time, now),
+                  topFelt,
+                  top.distanceKm === undefined ? null : `${formatDistance(top.distanceKm)} away`,
+                ]
+                  .filter((part): part is string => Boolean(part))
+                  .join(' · ')}
+              </p>
+            </li>
+          )}
           {shown.map((quake) => (
             <QuakeRow key={quake.id} quake={quake} now={now} />
           ))}

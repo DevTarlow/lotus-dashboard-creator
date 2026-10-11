@@ -27,6 +27,11 @@ function currentLocation(): LocationLike | undefined {
   return (globalThis as { location?: LocationLike }).location;
 }
 
+/** The location this module scopes by, for callers that need the path itself. */
+export function currentDocumentLocation(): LocationLike | undefined {
+  return currentLocation();
+}
+
 /**
  * `':/path/to/dashboard.html'` when the page was opened from disk, `''` on the
  * web (and in non-browser contexts such as the unit tests).

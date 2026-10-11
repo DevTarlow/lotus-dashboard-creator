@@ -6,14 +6,31 @@
  * overwrite. The chosen handle is structured-cloneable, so it is kept in
  * IndexedDB and later sessions can save without asking again.
  *
+ * The remembered handle is scoped the same way `localStorage` is (see
+ * `storageKeys.ts`): every `file://` document shares one origin *and therefore
+ * one IndexedDB*, so a single global key would let a dashboard opened later
+ * overwrite the file linked to an earlier one. On the web the origin already
+ * separates apps and the key is left alone.
+ *
  * Every part of this is optional: when the API is missing (Firefox, Safari) or
  * the handle is gone, callers fall back to a plain download.
  */
+import { scopedStorageKey, type LocationLike } from './storageKeys';
 
 const DB_NAME = 'lotus-dashboard-creator';
 const DB_VERSION = 1;
 const STORE_NAME = 'handles';
 const HANDLE_KEY = 'dashboard-file';
+
+/**
+ * The IndexedDB key the save target for *this document* is remembered under.
+ *
+ * Exported so the scoping can be unit tested without an IndexedDB implementation
+ * and so the browser checks can assert the same expression.
+ */
+export function handleStorageKey(location?: LocationLike): string {
+  return scopedStorageKey(HANDLE_KEY, location);
+}
 
 /** Structural subset of `FileSystemFileHandle` that this module relies on. */
 export interface WritableLike {
@@ -138,18 +155,19 @@ async function withStore<T>(
 }
 
 /** The dashboard file this browser last saved to, if it is still remembered. */
-export async function loadStoredHandle(): Promise<FileHandleLike | null> {
-  const handle = await withStore<FileHandleLike | undefined>('readonly', (store) => store.get(HANDLE_KEY));
+export async function loadStoredHandle(location?: LocationLike): Promise<FileHandleLike | null> {
+  const key = handleStorageKey(location);
+  const handle = await withStore<FileHandleLike | undefined>('readonly', (store) => store.get(key));
   if (!handle || typeof handle.createWritable !== 'function') return null;
   return handle;
 }
 
 /** Remember the file so the next session can save without asking. */
-export async function storeHandle(handle: FileHandleLike): Promise<void> {
-  await withStore('readwrite', (store) => store.put(handle, HANDLE_KEY));
+export async function storeHandle(handle: FileHandleLike, location?: LocationLike): Promise<void> {
+  await withStore('readwrite', (store) => store.put(handle, handleStorageKey(location)));
 }
 
 /** Stop auto-saving to the remembered file. */
-export async function forgetHandle(): Promise<void> {
-  await withStore('readwrite', (store) => store.delete(HANDLE_KEY));
+export async function forgetHandle(location?: LocationLike): Promise<void> {
+  await withStore('readwrite', (store) => store.delete(handleStorageKey(location)));
 }

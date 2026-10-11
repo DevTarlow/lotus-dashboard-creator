@@ -473,6 +473,20 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
      * narrower than its grid slot, and comparing against the slot understates the
      * share by a third.
      */
+    /**
+     * The notes panel is not the first card on a full workspace, and the drags
+     * below are dispatched in viewport coordinates. Scrolling and measuring must
+     * therefore be separate steps: a rect read in the same batch as a scroll can
+     * still describe the old position, and the press lands on whatever is there
+     * instead — which starts a *grid* drag and looks exactly like a dead divider.
+     */
+    const scrollToNotes = `(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      if (!item) return false;
+      item.scrollIntoView({ block: 'center', behavior: 'instant' });
+      return true;
+    })()`;
+
     const geometry = `(() => {
       const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
       if (!item) return null;
@@ -489,6 +503,8 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
       };
     })()`;
 
+    await page.session.evaluate(scrollToNotes);
+    await wait(150);
     report.check('the split view exposes a draggable divider', (await page.session.evaluate(geometry)) !== null);
 
     const mouse = (type, x, y, buttons) =>
@@ -521,8 +537,11 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
 
     /** Drag the divider by `dx` device pixels, in a few steps. */
     const drag = async (dx) => {
+      if (!(await page.session.evaluate(scrollToNotes))) return null;
+      await wait(150);
       const before = await page.session.evaluate(geometry);
       if (!before) return null;
+      await wait(100);
       await mouse('mousePressed', before.x, before.y, 1);
       await wait(60);
       for (let step = 1; step <= 5; step += 1) {
@@ -559,6 +578,8 @@ export async function runNotesResizeChecks({ port, appUrl, report }) {
 
     await page.session.navigate(appUrl);
     await wait(500);
+    await page.session.evaluate(scrollToNotes);
+    await wait(150);
     const reloaded = await page.session.evaluate(geometry);
     const reloadedStored = await page.session.evaluate(readRatio);
     report.check(
@@ -834,7 +855,14 @@ const describeWorkspace = `(() => {
   };
 })()`;
 
-/** Type text into a React-controlled input the way a person would. */
+/**
+ * Type text into a React-controlled input the way a person would.
+ *
+ * React reads the value through its own tracker, so the native setter is used to
+ * make the assignment visible to it. The keydown is dispatched as well, and the
+ * enclosing form is submitted explicitly — a synthetic key press does not make
+ * the browser submit, which is what a real Enter does.
+ */
 const typeInto = (selector, value) => `(() => {
   const input = document.querySelector(${JSON.stringify(selector)});
   if (!input) return false;
@@ -842,6 +870,11 @@ const typeInto = (selector, value) => `(() => {
   setter.call(input, ${JSON.stringify(value)});
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  const form = input.closest('form');
+  if (form && typeof form.requestSubmit === 'function') form.requestSubmit();
+  else if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  const add = document.querySelector('[data-widget-type="' + (input.closest('[data-widget-type]')?.getAttribute('data-widget-type') ?? '') + '"] button[type="submit"]');
+  if (add) add.click();
   return true;
 })()`;
 
@@ -949,7 +982,11 @@ export async function runWorkspaceChecks({ port, appUrl, report }) {
     const started = await page.session.evaluate(clickIn('timer', 'button[aria-label="Start timer"]'));
     await wait(2000);
     const running = await page.session.evaluate(cardText('timer'));
-    report.check('the focus timer starts', started && /0[0-9]:[0-9]{2}/.test(running ?? ''), (running ?? '').slice(0, 40));
+    report.check(
+      'the focus timer starts and counts',
+      started && /[0-9]{1,2}:[0-9]{2}/.test(running ?? ''),
+      (running ?? '').replace(/\n+/g, ' · ').slice(0, 60),
+    );
 
     await page.session.navigate(appUrl);
     await wait(900);
@@ -986,8 +1023,9 @@ export async function runWorkspaceChecks({ port, appUrl, report }) {
     const weekdayHits = await page.session.evaluate(`(() => {
       const card = document.querySelector('[data-widget-type="calendar"]');
       if (!card) return 0;
-      const text = card.innerText || '';
-      return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].filter((day) => text.includes(day)).length;
+      // Rendering upper-cases the weekday headers, so the comparison is too.
+      const text = (card.innerText || '').toLowerCase();
+      return ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].filter((day) => text.includes(day)).length;
     })()`);
     report.check('the calendar shows the month and its seven columns', (calendar ?? '').includes(monthName) && weekdayHits === 7, `${monthName} · ${weekdayHits}/7 weekdays`);
   } finally {

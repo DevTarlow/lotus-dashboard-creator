@@ -27,7 +27,8 @@ export type AirConfig = {
 };
 
 const DEFAULT_AIR_CONFIG: AirConfig = {
-  city: 'Lisbon',
+  // No city until the user names one, like the weather and sun panels.
+  city: '',
   showUv: true,
   showPollen: true,
   showPollutants: false,

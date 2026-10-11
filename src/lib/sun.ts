@@ -214,7 +214,8 @@ function polarNoteFor(times: SolarTimes, timeZone: string, hour12: boolean): str
 /** The place as the widget names it, or the typed city while nothing is resolved. */
 export function sunSummarize(input: { place: GeoPlace | null; city: string }): string {
   if (input.place) return placeLabel(input.place);
-  return input.city.trim();
+  // No city at all: the header says what to do rather than leaving a gap.
+  return input.city.trim() || 'Set a place';
 }
 
 /**

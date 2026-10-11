@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { BREAKPOINT_ORDER } from '@/constants/grid';
-import { buildDefaultWorkspace, DASHBOARD_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/lib/templates';
+import { buildDefaultWorkspace, DASHBOARD_TEMPLATES, DEFAULT_TEMPLATE_ID, getTemplate } from '@/lib/templates';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { getWidgetDefinition } from '@/widgets/registry';
 import { widgetTypes } from '@/widgets/registry';
@@ -24,8 +24,9 @@ describe('dashboard store', () => {
 
   it('starts from the default template', () => {
     const state = useDashboardStore.getState();
+    const template = getTemplate(DEFAULT_TEMPLATE_ID);
     expect(state.widgets.length).toBeGreaterThanOrEqual(4);
-    expect(state.title).toBe('Complete workspace');
+    expect(state.title).toBe(template?.build().title);
   });
 
   it('adds a widget and places it on every breakpoint', () => {
@@ -135,7 +136,7 @@ describe('dashboard store', () => {
     expect(useDashboardStore.getState().widgets.length).toBeGreaterThan(0);
 
     useDashboardStore.getState().resetDashboard();
-    expect(useDashboardStore.getState().title).toBe('Complete workspace');
+    expect(useDashboardStore.getState().title).toBe(getTemplate(DEFAULT_TEMPLATE_ID)?.build().title);
   });
 
   it('clears the canvas', () => {

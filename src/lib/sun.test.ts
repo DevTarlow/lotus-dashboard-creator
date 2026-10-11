@@ -270,9 +270,10 @@ describe('sunSummarize', () => {
     expect(sunSummarize({ place: LISBON, city: 'lisbon' })).toBe(placeLabel(LISBON));
   });
 
-  it('shows the typed city while nothing is resolved, trimmed, and is empty with no city', () => {
+  it('shows the typed city while nothing is resolved, and prompts with no city at all', () => {
     expect(sunSummarize({ place: null, city: '  Porto  ' })).toBe('Porto');
-    expect(sunSummarize({ place: null, city: '' })).toBe('');
+    // A blank header line reads as a bug; say what the panel needs instead.
+    expect(sunSummarize({ place: null, city: '' })).toBe('Set a place');
   });
 });
 

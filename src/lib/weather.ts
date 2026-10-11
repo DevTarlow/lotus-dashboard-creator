@@ -28,6 +28,23 @@ export const WTTR_FALLBACK_BASE_URL = 'https://wttr.in';
  */
 export const WEATHER_REFRESH_MS = 15 * 60 * 1000;
 
+/**
+ * Regions whose weather forecasts are conventionally in Fahrenheit.
+ *
+ * A first visit has to pick a unit before the user has chosen anything, and the
+ * browser exposes no direct answer — the locale's region subtag is the best
+ * signal there is. Getting it wrong is one click in the widget's settings; the
+ * list is deliberately the well-known cases rather than a guess at the rest.
+ */
+const IMPERIAL_REGIONS = new Set(['US', 'BS', 'BZ', 'PW', 'FM', 'MH', 'LR', 'MM', 'GU', 'PR', 'VI', 'AS']);
+
+/** The temperature unit a BCP-47 locale implies, defaulting to metric. */
+export function preferredTemperatureUnit(locale: string | undefined): TemperatureUnit {
+  if (!locale) return 'metric';
+  const region = locale.split(/[-_]/)[1];
+  return region && IMPERIAL_REGIONS.has(region.toUpperCase()) ? 'imperial' : 'metric';
+}
+
 /** Thrown when the live lookup fails, so callers can fall back to simulated data. */
 export class WeatherError extends Error {
   constructor(message: string) {

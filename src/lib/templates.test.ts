@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { BREAKPOINT_ORDER, GRID_COLUMNS, REFERENCE_COLUMNS } from '@/constants/grid';
 import { layoutsEqual } from '@/lib/grid';
-import { DASHBOARD_TEMPLATES, buildDefaultWorkspace, getTemplate } from '@/lib/templates';
+import {
+  COMPLETE_TEMPLATE_ID,
+  DASHBOARD_TEMPLATES,
+  DEFAULT_TEMPLATE_ID,
+  buildDefaultWorkspace,
+  getTemplate,
+} from '@/lib/templates';
 import { getWidgetDefinition } from '@/widgets/registry';
 
 describe('templates', () => {
-  it('exposes the default template first', () => {
+  it('keeps the default template, and only the default template, first', () => {
     expect(DASHBOARD_TEMPLATES.length).toBeGreaterThanOrEqual(3);
-    expect(getTemplate('personal')).toBe(DASHBOARD_TEMPLATES[0]);
+    expect(getTemplate(DEFAULT_TEMPLATE_ID)).toBe(DASHBOARD_TEMPLATES[0]);
+    expect(DASHBOARD_TEMPLATES.filter((template) => template.id === DEFAULT_TEMPLATE_ID)).toHaveLength(1);
     expect(getTemplate('nope')).toBeUndefined();
   });
 
@@ -67,10 +74,28 @@ describe('templates', () => {
     expect(mobileItem!.w).toBeLessThanOrEqual(GRID_COLUMNS.xs);
   });
 
-  it('preloads the complete workspace on a first visit', () => {
+  it('starts a first visit on a handful of panels, not the whole showcase', () => {
     const built = buildDefaultWorkspace();
+    expect(built.widgets).toHaveLength(6);
+    expect(built.title).toBe('My dashboard');
+
+    const types = built.widgets.map((widget) => widget.type);
+    expect(types).toEqual(['clock', 'weather', 'links', 'tasks', 'calendar', 'notes']);
+  });
+
+  it('does not bake a city into the starter panels', () => {
+    // A first visit has no idea where the user is; asking is honest, and Lisbon
+    // behind a hover-only settings gear is not.
+    for (const widget of buildDefaultWorkspace().widgets) {
+      if ('city' in widget.config) expect(widget.config.city, widget.type).toBe('');
+    }
+  });
+
+  it('keeps the sixteen-panel showcase available', () => {
+    const complete = getTemplate(COMPLETE_TEMPLATE_ID);
+    expect(complete?.name).toBe('Complete workspace');
+    const built = complete!.build();
     expect(built.widgets).toHaveLength(16);
-    expect(built.title).toBe('Complete workspace');
 
     const types = new Set(built.widgets.map((widget) => widget.type));
     for (const type of [

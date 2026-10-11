@@ -1,6 +1,8 @@
+import { useState, type FormEvent } from 'react';
 import { RefreshIcon, WeatherIcon } from '@/components/icons';
-import { Badge } from '@/components/ui';
+import { Button, Badge } from '@/components/ui';
 import { useWeather } from '@/hooks/useWeather';
+import { preferredTemperatureUnit } from '@/lib/weather';
 import { formatTemperature, temperatureUnit, type TemperatureUnit } from '@/lib/mock/weather';
 import { cn } from '@/lib/utils';
 import type { SettingField, WidgetProps } from '@/types';
@@ -16,8 +18,13 @@ export type WeatherConfig = {
 };
 
 const DEFAULT_WEATHER_CONFIG: WeatherConfig = {
-  city: 'Lisbon',
-  unit: 'metric',
+  // No city until the user names one. Baking in a city made a first visit claim
+  // to know where you are, and the setting was behind a hover-only gear.
+  city: '',
+  // Metric unless the browser's locale says otherwise.
+  unit: preferredTemperatureUnit(
+    typeof navigator === 'undefined' ? undefined : navigator.language,
+  ),
   showForecast: true,
   showDetails: true,
   showLocation: true,
@@ -54,11 +61,63 @@ const OUTLOOK_LABELS = {
   today: 'Today',
 } as const;
 
+/**
+ * The very first thing a weather panel needs is a place.
+ *
+ * Asking for it here, in the card, beats instructing the user to find the
+ * settings gear — the widget already owns the config write either way.
+ */
+function CityPrompt({ city, onSet }: { city: string; onSet: (city: string) => void }) {
+  const [draft, setDraft] = useState(city);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const next = draft.trim();
+    if (next) onSet(next);
+  };
+
+  return (
+    <form onSubmit={submit} className="flex w-full max-w-[13rem] flex-col items-center gap-2">
+      <label className="sr-only" htmlFor="weather-city-prompt">
+        City
+      </label>
+      <input
+        id="weather-city-prompt"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Lisbon"
+        maxLength={48}
+        autoComplete="off"
+        className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-center text-xs text-slate-700 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-violet-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+      />
+      <Button size="sm" variant="primary" type="submit" disabled={draft.trim() === ''}>
+        Show the forecast
+      </Button>
+      <p className="text-[10px] text-slate-400 dark:text-slate-500">No API key needed.</p>
+    </form>
+  );
+}
+
 /** Live weather with a simulated fallback when the network is unavailable. */
-export function WeatherWidget({ config }: WidgetProps<WeatherConfig>) {
+export function WeatherWidget({ config, updateConfig }: WidgetProps<WeatherConfig>) {
   const { weather, source, error, pending } = useWeather(config.city);
   const unit = temperatureUnit(config.unit);
   const live = source === 'live';
+
+  // Nothing to forecast for an unnamed place: ask, rather than showing a
+  // simulated reading for a city that does not exist.
+  if (config.city.trim() === '') {
+    return (
+      <div className="@container flex h-full flex-col items-center justify-center gap-3 text-center">
+        <WeatherIcon className="h-6 w-6 text-slate-300 dark:text-slate-600" />
+        <div>
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Which city?</p>
+          <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">Type a place to see its forecast.</p>
+        </div>
+        <CityPrompt city={config.city} onSet={(city) => updateConfig({ city })} />
+      </div>
+    );
+  }
 
   // Hourly slots while any remain today, otherwise today's summary.
   const mode = weather.hourly.length > 0 ? 'hourly' : 'today';
@@ -198,6 +257,6 @@ export const weatherWidget = defineWidget<WeatherConfig>({
   defaultSize: { w: 3, h: 7, minW: 2, minH: 5 },
   defaultConfig: DEFAULT_WEATHER_CONFIG,
   settings: SETTINGS,
-  summarize: (config) => `${config.city} · ${config.unit === 'metric' ? '°C' : '°F'}`,
+  summarize: (config) => (config.city.trim() ? `${config.city} · ${config.unit === 'metric' ? '°C' : '°F'}` : 'Set a city'),
   component: WeatherWidget,
 });

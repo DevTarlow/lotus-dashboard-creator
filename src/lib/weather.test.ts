@@ -6,6 +6,7 @@ import {
   mapHourlyForecast,
   parseClockHour,
   parseWeatherResponse,
+  preferredTemperatureUnit,
   resolvedRegion,
   WeatherError,
   zoneOffsetFromLongitude,
@@ -323,5 +324,22 @@ describe('fetchWeather', () => {
       }),
     ).rejects.toThrow(/aborted/i);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('preferredTemperatureUnit', () => {
+  it('reads the region subtag of a locale', () => {
+    expect(preferredTemperatureUnit('en-US')).toBe('imperial');
+    expect(preferredTemperatureUnit('en-US-POSIX')).toBe('imperial');
+    expect(preferredTemperatureUnit('en_GB')).toBe('metric');
+    expect(preferredTemperatureUnit('de-DE')).toBe('metric');
+    expect(preferredTemperatureUnit('en-LR')).toBe('imperial');
+  });
+
+  it('defaults to metric when there is no locale at all', () => {
+    // Server rendering and a locked-down browser both hand us nothing.
+    expect(preferredTemperatureUnit(undefined)).toBe('metric');
+    expect(preferredTemperatureUnit('')).toBe('metric');
+    expect(preferredTemperatureUnit('en')).toBe('metric');
   });
 });

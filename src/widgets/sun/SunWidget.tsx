@@ -29,9 +29,10 @@ export type SunConfig = {
 };
 
 const DEFAULT_SUN_CONFIG: SunConfig = {
-  // Lisbon, matching the weather widget, so the two environment panels share one
-  // city and one cached geocode lookup.
-  city: 'Lisbon',
+  // No city until the user names one: the panel asks for a place rather than
+  // reporting another city's sunrise. Templates that mean a specific place set
+  // it explicitly, and all three environment panels share one geocode lookup.
+  city: '',
   showMoon: true,
   showTwilight: true,
   showGoldenHour: true,

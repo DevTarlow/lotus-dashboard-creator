@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { CheckIcon, RefreshIcon, SparklesIcon } from '@/components/icons';
+import { CheckIcon, GridIcon, RefreshIcon, SparklesIcon } from '@/components/icons';
 import { Badge, Button, Modal } from '@/components/ui';
 import { GRID_COLUMNS } from '@/constants/grid';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
-import { DASHBOARD_TEMPLATES } from '@/lib/templates';
+import { DASHBOARD_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/lib/templates';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { useUiStore } from '@/store/uiStore';
 import type { DashboardTemplate, LayoutsByBreakpoint } from '@/types';
@@ -62,7 +62,7 @@ function TemplateRow({ template, isDefault, onApply }: TemplateRowProps) {
           <h3 className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{template.name}</h3>
           {isDefault ? (
             <Badge tone="violet" icon={<CheckIcon className="h-3 w-3" />}>
-              default
+              starter
             </Badge>
           ) : null}
         </div>
@@ -83,7 +83,7 @@ function TemplateRow({ template, isDefault, onApply }: TemplateRowProps) {
         icon={isDefault ? <RefreshIcon className="h-3.5 w-3.5" /> : <SparklesIcon className="h-3.5 w-3.5" />}
         onClick={() => onApply(template)}
       >
-        {isDefault ? 'Reapply' : 'Apply'}
+        {isDefault ? 'Restore' : 'Apply'}
       </Button>
     </article>
   );
@@ -94,6 +94,7 @@ export function TemplatesDialog() {
   const open = useUiStore((state) => state.templatesOpen);
   const close = useUiStore((state) => state.closeTemplates);
   const { applyTemplate, resetDashboard } = useDashboardActions();
+  const clearDashboard = useDashboardStore((state) => state.clearDashboard);
   const widgetCount = useDashboardStore((state) => state.widgets.length);
 
   const handleApply = (template: DashboardTemplate) => {
@@ -105,8 +106,8 @@ export function TemplatesDialog() {
     <Modal
       open={open}
       onClose={close}
-      title="Templates & reset"
-      description="Start from a curated layout, or go back to the default one."
+      title="Templates"
+      description="Start from a ready-made dashboard, or clear the canvas and build your own."
       size="lg"
       footer={
         <>
@@ -125,15 +126,47 @@ export function TemplatesDialog() {
               close();
             }}
           >
-            Reset to default
+            Restore the starter dashboard
           </Button>
         </>
       }
     >
       <div className={cn('space-y-3')}>
-        {DASHBOARD_TEMPLATES.map((template, index) => (
-          <TemplateRow key={template.id} template={template} isDefault={index === 0} onApply={handleApply} />
+        {DASHBOARD_TEMPLATES.map((template) => (
+          <TemplateRow
+            key={template.id}
+            template={template}
+            isDefault={template.id === DEFAULT_TEMPLATE_ID}
+            onApply={handleApply}
+          />
         ))}
+
+        {/* The missing "start over, empty" option: before this the only way to a
+            clean canvas was removing every widget one at a time. */}
+        <article className="flex flex-col gap-3 rounded-xl border border-dashed border-slate-300 p-3 transition sm:flex-row sm:items-center dark:border-slate-700/70">
+          <div className="flex w-full items-center justify-center sm:w-40 sm:shrink-0">
+            <span className="flex h-24 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50">
+              <GridIcon className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">Blank canvas</h3>
+            <p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Remove everything and add only what you want.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="sm:self-center"
+            onClick={() => {
+              clearDashboard();
+              close();
+            }}
+          >
+            Start blank
+          </Button>
+        </article>
       </div>
     </Modal>
   );

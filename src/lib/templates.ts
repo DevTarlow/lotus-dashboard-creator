@@ -64,6 +64,29 @@ function buildTemplate(spec: TemplateSpec): DashboardSnapshot & { title: string;
   return { title: spec.title, description: spec.description, widgets, layouts };
 }
 
+/**
+ * What a first visit starts from.
+ *
+ * Six panels rather than sixteen: enough to look alive and to show what a widget
+ * is, without a wall of cards to scroll past before you understand the page. The
+ * full showcase is one click away in Templates.
+ */
+const STARTER: TemplateSpec = {
+  title: 'My dashboard',
+  description: 'Six panels to begin with: the time and the weather, your links, today’s tasks, a calendar and a notebook.',
+  widgets: [
+    { type: 'clock', x: 0, y: 0, w: 3, h: 6 },
+    // No city baked in: the widget asks for one rather than showing Lisbon.
+    { type: 'weather', x: 3, y: 0, w: 3, h: 6 },
+    { type: 'links', x: 6, y: 0, w: 6, h: 6, minH: 4 },
+
+    { type: 'tasks', x: 0, y: 6, w: 4, h: 7 },
+    { type: 'calendar', x: 4, y: 6, w: 8, h: 8 },
+
+    { type: 'notes', x: 0, y: 14, w: 12, h: 7 },
+  ],
+};
+
 const PERSONAL: TemplateSpec = {
   title: 'Complete workspace',
   description: 'Sixteen panels: the time and the weather, what is on today, markets and headlines, and the notebooks beside them.',
@@ -225,6 +248,7 @@ const MINIMAL: TemplateSpec = {
 
 /** All templates, default first. */
 export const DASHBOARD_TEMPLATES: readonly DashboardTemplate[] = [
+  { id: 'starter', name: 'Starter', description: STARTER.description, build: () => buildTemplate(STARTER) },
   { id: 'personal', name: 'Complete workspace', description: PERSONAL.description, build: () => buildTemplate(PERSONAL) },
   { id: 'markets', name: 'Markets desk', description: TRADING_DESK.description, build: () => buildTemplate(TRADING_DESK) },
   { id: 'wellness', name: 'Wellness week', description: WELLNESS.description, build: () => buildTemplate(WELLNESS) },
@@ -233,8 +257,8 @@ export const DASHBOARD_TEMPLATES: readonly DashboardTemplate[] = [
   { id: 'minimal', name: 'Minimal', description: MINIMAL.description, build: () => buildTemplate(MINIMAL) },
 ];
 
-/** The template used for a first visit and for "Reset dashboard". */
-export const DEFAULT_TEMPLATE_ID = 'personal';
+/** The template a first visit starts from, and that "Restore" brings back. */
+export const DEFAULT_TEMPLATE_ID = 'starter';
 
 /** The full sixteen-panel showcase, offered as an example on a first visit. */
 export const COMPLETE_TEMPLATE_ID = 'personal';

@@ -20,7 +20,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isReachable, launchChrome } from './browser/cdp.mjs';
-import { runAppChecks, runNotesChecks, runReorderChecks, runSingleFileChecks } from './browser/checks.mjs';
+import {
+  runAppChecks,
+  runNotesChecks,
+  runNotesResizeChecks,
+  runReorderChecks,
+  runSingleFileChecks,
+} from './browser/checks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -130,6 +136,13 @@ try {
       await runNotesChecks({ port: chrome.port, appUrl: options.devUrl, report });
     } catch (error) {
       report.check('notes checks completed', false, error.message);
+    }
+
+    report.startGroup('notes split view resizing');
+    try {
+      await runNotesResizeChecks({ port: chrome.port, appUrl: options.devUrl, report });
+    } catch (error) {
+      report.check('notes resize checks completed', false, error.message);
     }
 
     report.startGroup('quick links reordering');

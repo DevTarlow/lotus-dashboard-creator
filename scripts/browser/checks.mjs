@@ -440,6 +440,196 @@ export async function runNotesChecks({ port, appUrl, report }) {
 }
 
 /**
+ * The split view divider: dragging it resizes the panes, the ratio survives a
+ * reload, and the arrow keys/Home/End move it without a pointer at all.
+ */
+export async function runNotesResizeChecks({ port, appUrl, report }) {
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    // A roomy widget so the divider has somewhere to travel.
+    await page.session.send('Emulation.setDeviceMetricsOverride', {
+      width: 1280,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await page.session.navigate(appUrl);
+    await page.session.evaluate(
+      `localStorage.removeItem(Object.keys(localStorage).find((k) => k.includes('workspace')) ?? '')`,
+    );
+    await page.session.navigate(appUrl);
+    await wait(500);
+
+    const readRatio = `(() => {
+      const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+      if (!key) return null;
+      const widget = JSON.parse(localStorage.getItem(key)).state.widgets.find((w) => w.type === 'notes');
+      return widget ? widget.config.editorRatio ?? null : null;
+    })()`;
+    /**
+     * What the divider actually did to the layout. The pane's own width has to be
+     * read against the *split container*, not the grid item: the widget body is
+     * narrower than its grid slot, and comparing against the slot understates the
+     * share by a third.
+     */
+    const geometry = `(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      if (!item) return null;
+      const separator = item.querySelector('[role="separator"][aria-label="Resize the editor and preview"]');
+      const split = separator && separator.parentElement;
+      if (!split) return null;
+      const pane = split.children[0];
+      const rect = separator.getBoundingClientRect();
+      const width = split.getBoundingClientRect().width;
+      return {
+        renderedShare: width === 0 ? 0 : pane.getBoundingClientRect().width / width,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    })()`;
+
+    report.check('the split view exposes a draggable divider', (await page.session.evaluate(geometry)) !== null);
+
+    const mouse = (type, x, y, buttons) =>
+      page.session.send('Input.dispatchMouseEvent', {
+        type,
+        x,
+        y,
+        button: 'left',
+        buttons,
+        clickCount: type === 'mouseMoved' ? 0 : 1,
+      });
+
+    /** Drag the divider by `dx` device pixels, in a few steps. */
+    const drag = async (dx) => {
+      const before = await page.session.evaluate(geometry);
+      if (!before) return null;
+      await mouse('mousePressed', before.x, before.y, 1);
+      await wait(60);
+      for (let step = 1; step <= 5; step += 1) {
+        await mouse('mouseMoved', before.x + (dx * step) / 5, before.y, 1);
+        await wait(40);
+      }
+      await mouse('mouseReleased', before.x + dx, before.y, 0);
+      await wait(400);
+      return {
+        before,
+        after: await page.session.evaluate(geometry),
+        stored: await page.session.evaluate(readRatio),
+      };
+    };
+
+    const right = await drag(160);
+    report.check(
+      'dragging the divider widens the editor pane',
+      right !== null && right.after.renderedShare > right.before.renderedShare + 0.02 && right.stored > 50,
+      JSON.stringify([Number(right?.before.renderedShare?.toFixed(2)), Number(right?.after.renderedShare?.toFixed(2)), right?.stored]),
+    );
+    report.check(
+      'the widened pane matches the persisted ratio',
+      right !== null && Math.abs(right.after.renderedShare * 100 - right.stored) < 2,
+      JSON.stringify([right?.stored, Number((right?.after.renderedShare * 100).toFixed(1))]),
+    );
+
+    const left = await drag(-160);
+    report.check(
+      'dragging the other way narrows it again',
+      left !== null && left.after.renderedShare < left.before.renderedShare - 0.02 && left.stored < right.stored,
+      JSON.stringify([Number(left?.before.renderedShare?.toFixed(2)), Number(left?.after.renderedShare?.toFixed(2)), left?.stored]),
+    );
+
+    await page.session.navigate(appUrl);
+    await wait(500);
+    const reloaded = await page.session.evaluate(geometry);
+    const reloadedStored = await page.session.evaluate(readRatio);
+    report.check(
+      'the chosen ratio comes back after a refresh',
+      reloaded !== null &&
+        reloadedStored !== null &&
+        Math.abs(reloaded.renderedShare * 100 - reloadedStored) < 2,
+      JSON.stringify([reloadedStored, Number((reloaded?.renderedShare * 100).toFixed(1))]),
+    );
+
+    await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const separator = item && item.querySelector('[role="separator"][aria-label="Resize the editor and preview"]');
+      if (separator) separator.focus();
+      return Boolean(separator);
+    })()`);
+    const key = (code, windowsVirtualKeyCode) =>
+      page.session.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', code, key: code, windowsVirtualKeyCode });
+    await key('End', 35);
+    await wait(300);
+    report.check('End aims the divider at the maximum', (await page.session.evaluate(readRatio)) === 85);
+    await key('Home', 36);
+    await wait(300);
+    report.check('Home aims the divider at the minimum', (await page.session.evaluate(readRatio)) === 15);
+    await key('ArrowRight', 39);
+    await wait(300);
+    report.check('the arrow keys nudge the divider', (await page.session.evaluate(readRatio)) === 17);
+
+    // Edit view has one divider — the notes panel — so it has to be draggable on
+    // its own, not only as part of the split layout.
+    const readSidebarRatio = `(() => {
+      const key = Object.keys(localStorage).find((k) => k.includes('workspace'));
+      if (!key) return null;
+      const widget = JSON.parse(localStorage.getItem(key)).state.widgets.find((w) => w.type === 'notes');
+      return widget ? widget.config.sidebarRatio ?? null : null;
+    })()`;
+    const sidebarGeometry = `(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      if (!item) return null;
+      const separator = item.querySelector('[role="separator"][aria-label="Resize the notes panel"]');
+      const split = separator && separator.parentElement;
+      if (!split) return null;
+      const rect = separator.getBoundingClientRect();
+      return {
+        renderedShare: split.getBoundingClientRect().width === 0
+          ? 0
+          : split.children[0].getBoundingClientRect().width / split.getBoundingClientRect().width,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    })()`;
+
+    const switched = await page.session.evaluate(`(() => {
+      const item = [...document.querySelectorAll('.react-grid-item')].find((el) => /Markdown notes/i.test(el.innerText || ''));
+      const edit = item && [...item.querySelectorAll('[role="radio"]')].find((b) => (b.innerText || '').trim() === 'Edit');
+      if (!edit) return false;
+      edit.click();
+      return true;
+    })()`);
+    report.check('the notes widget switches to edit view', switched);
+    await wait(400);
+
+    const sidebarBefore = await page.session.evaluate(sidebarGeometry);
+    const sidebarStoredBefore = await page.session.evaluate(readSidebarRatio);
+    await mouse('mousePressed', sidebarBefore.x, sidebarBefore.y, 1);
+    await wait(60);
+    for (let step = 1; step <= 5; step += 1) {
+      await mouse('mouseMoved', sidebarBefore.x + (80 * step) / 5, sidebarBefore.y, 1);
+      await wait(40);
+    }
+    await mouse('mouseReleased', sidebarBefore.x + 80, sidebarBefore.y, 0);
+    await wait(400);
+    const sidebarAfter = await page.session.evaluate(sidebarGeometry);
+    const sidebarStoredAfter = await page.session.evaluate(readSidebarRatio);
+    report.check(
+      'the notes panel is resizable in edit view too',
+      sidebarStoredBefore !== null &&
+        sidebarStoredAfter > sidebarStoredBefore &&
+        sidebarAfter.renderedShare > sidebarBefore.renderedShare + 0.02,
+      JSON.stringify([sidebarStoredBefore, sidebarStoredAfter, Number(sidebarAfter.renderedShare.toFixed(2))]),
+    );
+  } finally {
+    report.check('no console errors while resizing the notes panes', problems.consoleErrors.length === 0, problems.consoleErrors.slice(0, 3).join(' | '));
+    report.check('no uncaught exceptions while resizing the notes panes', problems.exceptions.length === 0);
+    await page.close();
+  }
+}
+
+/**
  * Quick links drag-to-reorder, driven with real mouse input so Chrome synthesises
  * genuine pointer events (synthetic `PointerEvent`s have no active pointer and
  * would not exercise pointer capture at all).

@@ -66,7 +66,7 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 | --- | --- |
 | **Clock** | Live time in any IANA time zone, 12/24h, optional seconds, day-progress bar. |
 | **Weather** | Live forecast from wttr.in (no API key) with hourly outlook and details, falling back to a locally simulated forecast offline. |
-| **Markdown notes** | Multi-note editor with a left file panel (create, switch, delete with confirmation), auto-save with edit / split / preview modes and a dependency-free markdown renderer. |
+| **Markdown notes** | Multi-note editor with a left file panel (create, switch, delete with confirmation), draggable dividers between the panel and both panes, auto-save with edit / split / preview modes and a dependency-free markdown renderer. |
 | **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove, and drag — or ↑/↓ — to reorder. |
 | **Market ticker** | Live crypto quotes (CoinGecko, keyless) and live stock quotes (Finnhub, your own free key) with sparklines and per-symbol add/remove. |
 | **News feed** | Live headlines from four keyless, CORS-enabled providers (Hacker News, DEV Community, Spaceflight News, Wikipedia's current-events desk) with topic filters, source links and expandable summaries; falls back to a labelled simulated feed offline. |
@@ -454,12 +454,13 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 16 assertions there — 44 with a server —
-cover rendering, assets,
-console cleanliness, storage-key scoping, drag-to-reorder persistence, the notes
-file panel (create, autosave across a reload, delete confirmation, and a
-pre-panel scratchpad migrating into a note), settings
-surviving a refresh, and the save/reopen round trip — including the assertion that
+single-file checks need no server at all. 16 assertions there — 56 with a server —
+cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
+persistence, the notes file panel (create, autosave across a reload, delete
+confirmation, and a pre-panel scratchpad migrating into a note), dragging both
+notes dividers (editor/preview and the notes panel, including their keyboard
+equivalents), settings surviving a refresh, and the save/reopen round trip —
+including the assertion that
 matters most: the saved file is reopened **from a different path**, so a different
 `localStorage` scope means a restored setting can only have come from the embedded
 snapshot. That check caught a genuine bug — a string-level `</body>` insertion
@@ -560,7 +561,10 @@ through the DOM.
   the widget's own config, not an encrypted store: deleting a note is undoable
   with ⌘/Ctrl + Z, and a note deleted before the last export is gone from the file
   you saved. A scratchpad saved before the panel existed opens with its text as
-  the first note.
+  the first note. Both divider positions are kept as percentages, so they mean
+  the same thing after the widget is resized (or on another screen) rather than
+  sliding as the pixel width changes; the editor keeps at least 15% and the notes
+  panel between 15% and 60%, so a pane can never be dragged shut.
 - Drag & drop inside the grid is disabled while the layout is locked, but the
   template/import/reset flows still work — the lock only guards accidental moves.
 - The exported JSON contains everything, so treat a shared file as you would a

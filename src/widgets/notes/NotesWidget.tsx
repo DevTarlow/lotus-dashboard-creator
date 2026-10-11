@@ -3,8 +3,17 @@ import { CheckIcon, NotesIcon, PencilIcon, PanelLeftIcon, SplitIcon, EyeIcon } f
 import { Button, EmptyState, IconButton, Markdown, Segmented } from '@/components/ui';
 import { ConfirmDialog } from '@/components/modals/ConfirmDialog';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import {
+  DEFAULT_EDITOR_RATIO,
   DEFAULT_NOTE_ID,
+  DEFAULT_SIDEBAR_RATIO,
+  MAX_EDITOR_RATIO,
+  MAX_SIDEBAR_RATIO,
+  MIN_EDITOR_RATIO,
+  MIN_SIDEBAR_RATIO,
+  clampEditorRatio,
+  clampSidebarRatio,
   countNoteWords,
   createDefaultNote,
   createNote,
@@ -22,6 +31,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { SettingField, WidgetProps } from '@/types';
 import { defineWidget } from '@/widgets/define';
+import { NotesResizablePanes } from './NotesResizablePanes';
 import { NotesSidebar } from './NotesSidebar';
 
 export type { NotesFontSize, NotesMode } from '@/lib/notes';
@@ -41,7 +51,12 @@ const DEFAULT_NOTES_CONFIG: NotesConfig = {
   mode: 'split',
   fontSize: 'md',
   sidebarOpen: true,
+  sidebarRatio: DEFAULT_SIDEBAR_RATIO,
+  editorRatio: DEFAULT_EDITOR_RATIO,
 };
+
+/** Shared chrome for both panes, so the divider lines up with matching edges. */
+const PANE_BASE = 'h-full min-h-0 rounded-xl border p-3';
 
 const SETTINGS: readonly SettingField[] = [
   {
@@ -95,6 +110,12 @@ export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps
     () => normalizeNotesState(config),
     [config],
   );
+  const editorRatio = clampEditorRatio(config.editorRatio);
+  const sidebarRatio = clampSidebarRatio(config.sidebarRatio);
+  /** Mirrors the `sm:` prefix on the editor/preview splitter's layout classes. */
+  const stackEditorAndPreview = !useMediaQuery('(min-width: 640px)');
+  /** The notes panel sits beside the editor once the widget is at least 768px. */
+  const stackSidebar = !useMediaQuery('(min-width: 768px)');
 
   /**
    * In-progress edit: `noteId` says which note the text belongs to, so a
@@ -198,108 +219,124 @@ export function NotesWidget({ config, updateConfig, replaceConfig }: WidgetProps
 
   return (
     <div className="flex h-full min-h-0 gap-3">
-      {sidebarOpen ? (
-        <NotesSidebar
-          notes={notes}
-          activeNoteId={activeNoteId}
-          onSelect={selectNote}
-          onCreate={createNewNote}
-          onRequestDelete={setDeleteTarget}
-          onClose={() => updateConfig({ sidebarOpen: false })}
-        />
-      ) : null}
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-1">
-            {sidebarOpen ? null : (
-              <IconButton
-                label="Show notes panel"
-                size="icon-sm"
-                icon={<PanelLeftIcon className="h-3.5 w-3.5" />}
-                onClick={() => updateConfig({ sidebarOpen: true })}
-              />
-            )}
-            <Segmented
-              label="Notes view mode"
-              value={mode}
-              onChange={(next) => updateConfig({ mode: next })}
-              options={MODE_OPTIONS}
+      <NotesResizablePanes
+        ratio={sidebarRatio}
+        onRatioChange={(next) => updateConfig({ sidebarRatio: next })}
+        min={MIN_SIDEBAR_RATIO}
+        max={MAX_SIDEBAR_RATIO}
+        label="Resize the notes panel"
+        resizable={sidebarOpen}
+        stacked={stackSidebar}
+        aside={
+          sidebarOpen ? (
+            <NotesSidebar
+              notes={notes}
+              activeNoteId={activeNoteId}
+              onSelect={selectNote}
+              onCreate={createNewNote}
+              onRequestDelete={setDeleteTarget}
+              onClose={() => updateConfig({ sidebarOpen: false })}
             />
+          ) : null
+        }
+      >
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1">
+              {sidebarOpen ? null : (
+                <IconButton
+                  label="Show notes panel"
+                  size="icon-sm"
+                  icon={<PanelLeftIcon className="h-3.5 w-3.5" />}
+                  onClick={() => updateConfig({ sidebarOpen: true })}
+                />
+              )}
+              <Segmented
+                label="Notes view mode"
+                value={mode}
+                onChange={(next) => updateConfig({ mode: next })}
+                options={MODE_OPTIONS}
+              />
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+              {dirty ? (
+                'Saving…'
+              ) : savedAt ? (
+                <>
+                  <CheckIcon className="h-3 w-3 text-emerald-500" /> Saved
+                </>
+              ) : (
+                'Auto-save on'
+              )}
+            </span>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
-            {dirty ? (
-              'Saving…'
-            ) : savedAt ? (
-              <>
-                <CheckIcon className="h-3 w-3 text-emerald-500" /> Saved
-              </>
-            ) : (
-              'Auto-save on'
-            )}
-          </span>
-        </div>
 
-        {activeNote === null ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-            <EmptyState
-              size="sm"
-              icon={<NotesIcon className="h-4 w-4" />}
-              title="No notes yet"
-              description="Create a note to start writing."
-              action={
-                <Button size="sm" variant="primary" onClick={createNewNote}>
-                  New note
-                </Button>
+          {activeNote === null ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              <EmptyState
+                size="sm"
+                icon={<NotesIcon className="h-4 w-4" />}
+                title="No notes yet"
+                description="Create a note to start writing."
+                action={
+                  <Button size="sm" variant="primary" onClick={createNewNote}>
+                    New note
+                  </Button>
+                }
+              />
+            </div>
+          ) : (
+            <NotesResizablePanes
+              ratio={editorRatio}
+              onRatioChange={(next) => updateConfig({ editorRatio: next })}
+              min={MIN_EDITOR_RATIO}
+              max={MAX_EDITOR_RATIO}
+              label="Resize the editor and preview"
+              resizable={showEditor && showPreview}
+              stacked={stackEditorAndPreview}
+              aside={
+                showEditor ? (
+                  <textarea
+                    ref={editorRef}
+                    value={value}
+                    onChange={onChange}
+                    onKeyDown={onKeyDown}
+                    spellCheck
+                    placeholder="Write markdown here…"
+                    aria-label={`Note ${deriveNoteTitle(activeNote.text)}`}
+                    className={cn(
+                      PANE_BASE,
+                      'w-full resize-none bg-slate-50/60 font-mono leading-relaxed text-slate-700',
+                      'placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20',
+                      'dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200 dark:placeholder:text-slate-600',
+                      'dark:focus:border-violet-500/50 dark:focus:bg-slate-950/70',
+                      FONT_SIZES[fontSize],
+                    )}
+                  />
+                ) : null
               }
-            />
-          </div>
-        ) : (
-          <div
-            className={cn(
-              'grid min-h-0 flex-1 gap-3',
-              showEditor && showPreview && 'sm:grid-cols-2',
-            )}
-          >
-            {showEditor ? (
-              <textarea
-                ref={editorRef}
-                value={value}
-                onChange={onChange}
-                onKeyDown={onKeyDown}
-                spellCheck
-                placeholder="Write markdown here…"
-                aria-label={`Note ${deriveNoteTitle(activeNote.text)}`}
-                className={cn(
-                  'h-full w-full resize-none rounded-xl border border-slate-200 bg-slate-50/60 p-3 font-mono leading-relaxed text-slate-700',
-                  'placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20',
-                  'dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200 dark:placeholder:text-slate-600',
-                  'dark:focus:border-violet-500/50 dark:focus:bg-slate-950/70',
-                  FONT_SIZES[fontSize],
-                )}
-              />
-            ) : null}
+            >
+              {showPreview ? (
+                <div
+                  className={cn(
+                    PANE_BASE,
+                    'overflow-y-auto border-slate-100 bg-white/60 dark:border-slate-800 dark:bg-slate-950/20',
+                  )}
+                >
+                  <Markdown source={value} placeholder="Your preview appears here." />
+                </div>
+              ) : null}
+            </NotesResizablePanes>
+          )}
 
-            {showPreview ? (
-              <div
-                className={cn(
-                  'h-full min-w-0 overflow-y-auto rounded-xl border border-slate-100 bg-white/60 p-3',
-                  'dark:border-slate-800 dark:bg-slate-950/20',
-                )}
-              >
-                <Markdown source={value} placeholder="Your preview appears here." />
-              </div>
-            ) : null}
+          <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+            <span className="truncate">{activeNote ? deriveNoteTitle(activeNote.text) : 'No note selected'}</span>
+            <span className="shrink-0 tabular-nums">
+              {stats.words} words · {stats.characters} chars
+            </span>
           </div>
-        )}
-
-        <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-slate-500">
-          <span className="truncate">{activeNote ? deriveNoteTitle(activeNote.text) : 'No note selected'}</span>
-          <span className="shrink-0 tabular-nums">
-            {stats.words} words · {stats.characters} chars
-          </span>
         </div>
-      </div>
+      </NotesResizablePanes>
 
       <ConfirmDialog
         open={deleteTarget !== null}

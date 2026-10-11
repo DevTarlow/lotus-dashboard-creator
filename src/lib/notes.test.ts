@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_NOTE_ID,
   WELCOME_NOTE_TEXT,
+  clampEditorRatio,
+  clampSidebarRatio,
   countNoteWords,
   createDefaultNote,
   createNote,
@@ -183,6 +185,36 @@ describe('normalizeNotesState', () => {
   });
 });
 
+describe('clampEditorRatio', () => {
+  it('keeps a stored ratio and rounds fractional ones', () => {
+    expect(clampEditorRatio(65)).toBe(65);
+    expect(clampEditorRatio(64.6)).toBe(65);
+    expect(clampEditorRatio(0)).toBe(15);
+    expect(clampEditorRatio(1000)).toBe(85);
+  });
+
+  it('falls back to the default for anything that is not a finite number', () => {
+    // A missing key is the common case: a config saved before the divider existed.
+    expect(clampEditorRatio(undefined)).toBe(50);
+    expect(clampEditorRatio(null)).toBe(50);
+    expect(clampEditorRatio('wide')).toBe(50);
+    expect(clampEditorRatio(Number.NaN)).toBe(50);
+  });
+});
+
+describe('clampSidebarRatio', () => {
+  it('keeps a stored panel width inside its own, narrower range', () => {
+    expect(clampSidebarRatio(25)).toBe(25);
+    expect(clampSidebarRatio(0)).toBe(15);
+    expect(clampSidebarRatio(90)).toBe(60);
+  });
+
+  it('falls back to the default for junk', () => {
+    expect(clampSidebarRatio(undefined)).toBe(25);
+    expect(clampSidebarRatio('wide')).toBe(25);
+  });
+});
+
 describe('needsNotesMigration', () => {
   const migrated = normalizeNotesState({ text: 'hi' });
 
@@ -195,6 +227,22 @@ describe('needsNotesMigration', () => {
     expect(needsNotesMigration({ ...migrated, activeNoteId: 'gone' })).toBe(true);
     const duplicate = createNote('duplicate', 5);
     expect(needsNotesMigration({ ...migrated, notes: [...migrated.notes, duplicate, duplicate] })).toBe(true);
+  });
+
+  it('flags a missing or out-of-range split ratio', () => {
+    const withoutRatio = { ...migrated, editorRatio: undefined };
+    expect(needsNotesMigration(withoutRatio)).toBe(true);
+    expect(needsNotesMigration({ ...migrated, editorRatio: 400 })).toBe(true);
+    expect(needsNotesMigration({ ...migrated, editorRatio: 'half' })).toBe(true);
+    expect(needsNotesMigration({ ...migrated, editorRatio: 15 })).toBe(false);
+    expect(needsNotesMigration({ ...migrated, editorRatio: 85 })).toBe(false);
+  });
+
+  it('flags a missing or out-of-range notes panel width', () => {
+    expect(needsNotesMigration({ ...migrated, sidebarRatio: undefined })).toBe(true);
+    expect(needsNotesMigration({ ...migrated, sidebarRatio: 95 })).toBe(true);
+    expect(needsNotesMigration({ ...migrated, sidebarRatio: 15 })).toBe(false);
+    expect(needsNotesMigration({ ...migrated, sidebarRatio: 60 })).toBe(false);
   });
 
   it('accepts an already normalised config, including an emptied list', () => {

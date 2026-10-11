@@ -34,7 +34,7 @@ export function NotesSidebar({
   onClose,
 }: NotesSidebarProps) {
   return (
-    <div className="flex h-full min-h-0 w-36 shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-950/30">
+    <div className="flex h-full min-h-0 min-w-0 flex-col rounded-xl border border-slate-200 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-950/30">
       <div className="flex shrink-0 items-center gap-1 pb-2">
         <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Notes

@@ -33,6 +33,10 @@ export interface NotesState {
   fontSize: NotesFontSize;
   /** Whether the file-manager panel is expanded. */
   sidebarOpen: boolean;
+  /** Notes panel width share, in percent (see `clampSidebarRatio`). */
+  sidebarRatio: number;
+  /** Editor pane width share in split view, in percent (see `clampEditorRatio`). */
+  editorRatio: number;
 }
 
 export const NOTES_MODES: readonly NotesMode[] = ['edit', 'split', 'preview'];
@@ -48,6 +52,45 @@ export function isNotesFontSize(value: unknown): value is NotesFontSize {
 
 /** Longest derived title, in characters. */
 export const NOTE_TITLE_MAX = 48;
+
+/* --------------------------------------------------------------- split view */
+
+/** Width share of the editor pane in split view, as a percentage. */
+export const DEFAULT_EDITOR_RATIO = 50;
+
+/**
+ * How far the editor/preview divider can travel, in percent.
+ *
+ * Kept well inside the edges: a pane dragged to nothing is impossible to grab
+ * back, and two panes at 15% still show a usable column at the widget's smallest
+ * allowed width.
+ */
+export const MIN_EDITOR_RATIO = 15;
+export const MAX_EDITOR_RATIO = 85;
+
+/** Width share of the notes panel, as a percentage, and its travel limits. */
+export const DEFAULT_SIDEBAR_RATIO = 25;
+export const MIN_SIDEBAR_RATIO = 15;
+export const MAX_SIDEBAR_RATIO = 60;
+
+/** Keyboard step, in percent, for a divider's arrow keys. */
+export const EDITOR_RATIO_STEP = 2;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+/** Clamp a split ratio into the allowed range, tolerating junk input. */
+export function clampEditorRatio(value: unknown): number {
+  const ratio = typeof value === 'number' && Number.isFinite(value) ? value : DEFAULT_EDITOR_RATIO;
+  return clamp(ratio, MIN_EDITOR_RATIO, MAX_EDITOR_RATIO);
+}
+
+/** Clamp the notes panel's width share. */
+export function clampSidebarRatio(value: unknown): number {
+  const ratio = typeof value === 'number' && Number.isFinite(value) ? value : DEFAULT_SIDEBAR_RATIO;
+  return clamp(ratio, MIN_SIDEBAR_RATIO, MAX_SIDEBAR_RATIO);
+}
 
 /**
  * Copy for the first note of a brand-new widget. Also the text every scratchpad
@@ -244,7 +287,14 @@ export function normalizeNotesState(config: unknown, now = Date.now()): NotesSta
     mode: isNotesMode(record.mode) ? record.mode : 'split',
     fontSize: isNotesFontSize(record.fontSize) ? record.fontSize : 'md',
     sidebarOpen: asBoolean(record.sidebarOpen, true),
+    sidebarRatio: clampSidebarRatio(record.sidebarRatio),
+    editorRatio: clampEditorRatio(record.editorRatio),
   };
+}
+
+/** `true` when a value is a ratio this config can keep as-is. */
+function isStoredRatio(value: unknown, clampRatio: (input: unknown) => number): boolean {
+  return typeof value === 'number' && Number.isFinite(value) && clampRatio(value) === value;
 }
 
 /**
@@ -264,7 +314,11 @@ export function needsNotesMigration(config: unknown): boolean {
   if (!notes.every(isCompleteNote)) return true;
   const ids = new Set(notes.map((note) => note.id));
   if (ids.size !== notes.length) return true;
-  if (notes.length === 0) return !isNotesFontSize(record.fontSize) || typeof record.sidebarOpen !== 'boolean';
+  if (!isStoredRatio(record.editorRatio, clampEditorRatio)) return true;
+  if (!isStoredRatio(record.sidebarRatio, clampSidebarRatio)) return true;
+  if (notes.length === 0) {
+    return !isNotesFontSize(record.fontSize) || typeof record.sidebarOpen !== 'boolean';
+  }
   if (!ids.has(asString(record.activeNoteId, ''))) return true;
 
   return (

@@ -26,6 +26,7 @@ import {
   runNotesResizeChecks,
   runReorderChecks,
   runSingleFileChecks,
+  runWorkspaceChecks,
 } from './browser/checks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -121,6 +122,19 @@ try {
     });
   } catch (error) {
     report.check('single-file checks completed', false, error.message);
+  }
+
+  // The preloaded catalogue, driven offline: sixteen panels, no overlaps at any
+  // width, and the local widgets holding their state across a reload.
+  report.startGroup('complete workspace (file://)');
+  try {
+    await runWorkspaceChecks({
+      port: chrome.port,
+      appUrl: `file://${options.single}`,
+      report,
+    });
+  } catch (error) {
+    report.check('workspace checks completed', false, error.message);
   }
 
   if (options.dev && (await isReachable(options.devUrl))) {

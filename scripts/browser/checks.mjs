@@ -789,3 +789,210 @@ export async function runReorderChecks({ port, appUrl, report }) {
     await page.close();
   }
 }
+
+/* ---------------------------------------------- the widget catalogue, in situ */
+
+/** The widget types the first-run "Complete workspace" preloads. */
+const WORKSPACE_TYPES = [
+  'clock',
+  'weather',
+  'sun',
+  'worldclock',
+  'tasks',
+  'calendar',
+  'timer',
+  'market',
+  'news',
+  'notes',
+  'habits',
+  'countdown',
+  'onthisday',
+  'air',
+  'converter',
+  'links',
+];
+
+/** Every card, its type and its box — the raw material for the layout checks. */
+const describeWorkspace = `(() => {
+  window.scrollTo(0, 0);
+  const items = [...document.querySelectorAll('.react-grid-item')];
+  return {
+    count: items.length,
+    types: items.map((el) => {
+      const card = el.querySelector('[data-widget-type]') || (el.matches('[data-widget-type]') ? el : null);
+      return card ? card.getAttribute('data-widget-type') : null;
+    }),
+    boxes: items.map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+        top: Math.round(rect.top + window.scrollY),
+        bottom: Math.round(rect.bottom + window.scrollY),
+      };
+    }),
+  };
+})()`;
+
+/** Type text into a React-controlled input the way a person would. */
+const typeInto = (selector, value) => `(() => {
+  const input = document.querySelector(${JSON.stringify(selector)});
+  if (!input) return false;
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+  setter.call(input, ${JSON.stringify(value)});
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  return true;
+})()`;
+
+const cardText = (type) => `(() => {
+  const card = document.querySelector('[data-widget-type="${type}"]');
+  return card ? card.innerText || '' : null;
+})()`;
+
+const clickIn = (type, selector) => `(() => {
+  const card = document.querySelector('[data-widget-type="${type}"]');
+  const target = card && card.querySelector(${JSON.stringify(selector)});
+  if (!target) return false;
+  target.click();
+  return true;
+})()`;
+
+function findOverlaps(workspace) {
+  const overlaps = [];
+  for (let a = 0; a < workspace.boxes.length; a += 1) {
+    for (let b = a + 1; b < workspace.boxes.length; b += 1) {
+      const first = workspace.boxes[a];
+      const second = workspace.boxes[b];
+      // A one-pixel tolerance absorbs sub-pixel rounding in the grid maths.
+      const apart =
+        first.right <= second.left + 1 ||
+        second.right <= first.left + 1 ||
+        first.bottom <= second.top + 1 ||
+        second.bottom <= first.top + 1;
+      if (!apart) overlaps.push(`${workspace.types[a] ?? a}/${workspace.types[b] ?? b}`);
+    }
+  }
+  return overlaps;
+}
+
+/**
+ * The preloaded workspace: sixteen panels on a cold start, no overlaps at any
+ * width, and the interactive widgets still holding their own state after a
+ * reload. Runs entirely against the built file, so it needs no server and no
+ * provider — every network-backed panel is exercised while it is failing.
+ */
+export async function runWorkspaceChecks({ port, appUrl, report }) {
+  const page = await openPage(port, 'about:blank');
+  const problems = watchForProblems(page.session);
+  try {
+    await page.session.send('Emulation.setDeviceMetricsOverride', {
+      width: 1400,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+
+    // A cold start: no stored workspace, so the default template is what loads.
+    await page.session.navigate(appUrl);
+    await page.session.evaluate('localStorage.clear()');
+    await page.session.navigate(appUrl);
+    await wait(900);
+
+    const first = await page.session.evaluate(describeWorkspace);
+    report.check('a first visit preloads sixteen panels', first.count === 16, `${first.count} panels`);
+
+    const missing = WORKSPACE_TYPES.filter((type) => !first.types.includes(type));
+    report.check('every preloaded widget type is on the canvas', missing.length === 0, missing.join(', ') || 'all present');
+
+    for (const width of [1680, 1280, 1024, 768, 420]) {
+      await page.session.send('Emulation.setDeviceMetricsOverride', {
+        width,
+        height: 1000,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await wait(500);
+      const layout = await page.session.evaluate(describeWorkspace);
+      const overlaps = findOverlaps(layout);
+      report.check(`sixteen panels stay overlap-free at ${width}px`, overlaps.length === 0, overlaps.slice(0, 3).join(' '));
+    }
+
+    await page.session.send('Emulation.setDeviceMetricsOverride', {
+      width: 1400,
+      height: 1000,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await wait(400);
+
+    // A task: added, completed, and still there after a reload.
+    const typed = await page.session.evaluate(typeInto('[data-widget-type="tasks"] input[placeholder^="Add a task"]', 'Water the plants'));
+    await wait(400);
+    const taskText = await page.session.evaluate(cardText('tasks'));
+    report.check('a task can be typed into the list', typed && /Water the plants/.test(taskText ?? ''), (taskText ?? '').slice(0, 48));
+
+    const ticked = await page.session.evaluate(clickIn('tasks', 'input[type="checkbox"]'));
+    await wait(400);
+    await page.session.navigate(appUrl);
+    await wait(900);
+    const tasksAfter = await page.session.evaluate(cardText('tasks'));
+    const stillTicked = await page.session.evaluate(`(() => {
+      const box = document.querySelector('[data-widget-type="tasks"] input[type="checkbox"]');
+      return box ? box.checked : null;
+    })()`);
+    report.check('the task survives a reload', /Water the plants/.test(tasksAfter ?? ''), (tasksAfter ?? '').slice(0, 48));
+    report.check('its completed state survives too', ticked && stillTicked === true, String(stillTicked));
+
+    // The focus timer: running state is derived from timestamps, so it must
+    // survive the reload as a running phase.
+    const started = await page.session.evaluate(clickIn('timer', 'button[aria-label="Start timer"]'));
+    await wait(2000);
+    const running = await page.session.evaluate(cardText('timer'));
+    report.check('the focus timer starts', started && /0[0-9]:[0-9]{2}/.test(running ?? ''), (running ?? '').slice(0, 40));
+
+    await page.session.navigate(appUrl);
+    await wait(900);
+    const resumed = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="timer"]');
+      return card ? card.innerText || '' : null;
+    })()`);
+    const paused = await page.session.evaluate(`Boolean(document.querySelector('[data-widget-type="timer"] button[aria-label="Pause timer"]'))`);
+    report.check('a running timer carries on across a reload', paused, (resumed ?? '').slice(0, 40));
+
+    // Habits: add one, tick today, expect a one-day streak that persists.
+    const habitTyped = await page.session.evaluate(typeInto('[data-widget-type="habits"] input[placeholder^="Add a habit"]', 'Stretch'));
+    await wait(500);
+    const habitTicked = await page.session.evaluate(clickIn('habits', '[role="switch"], input[type="checkbox"]'));
+    await wait(400);
+    const habitsText = await page.session.evaluate(cardText('habits'));
+    report.check('a habit can be added and ticked off', habitTyped && habitTicked && /Stretch/.test(habitsText ?? ''), (habitsText ?? '').slice(0, 48));
+
+    await page.session.navigate(appUrl);
+    await wait(900);
+    const habitsAfter = await page.session.evaluate(cardText('habits'));
+    report.check(
+      'the habit and its one-day streak survive a reload',
+      /Stretch/.test(habitsAfter ?? '') && /1 day/.test(habitsAfter ?? ''),
+      (habitsAfter ?? '').replace(/\n+/g, ' · ').slice(0, 70),
+    );
+
+    // The two purely local panels that need no provider at all.
+    const countdown = await page.session.evaluate(cardText('countdown'));
+    report.check('the countdown shows its seeded date', /New Year/.test(countdown ?? ''), (countdown ?? '').slice(0, 40));
+
+    const calendar = await page.session.evaluate(cardText('calendar'));
+    const monthName = new Date().toLocaleString('en-GB', { month: 'long' });
+    const weekdayHits = await page.session.evaluate(`(() => {
+      const card = document.querySelector('[data-widget-type="calendar"]');
+      if (!card) return 0;
+      const text = card.innerText || '';
+      return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].filter((day) => text.includes(day)).length;
+    })()`);
+    report.check('the calendar shows the month and its seven columns', (calendar ?? '').includes(monthName) && weekdayHits === 7, `${monthName} · ${weekdayHits}/7 weekdays`);
+  } finally {
+    report.check('no console errors with sixteen panels mounted', problems.consoleErrors.length === 0, problems.consoleErrors.slice(0, 3).join(' | '));
+    report.check('no uncaught exceptions with sixteen panels mounted', problems.exceptions.length === 0, problems.exceptions.slice(0, 2).join(' | '));
+    await page.close();
+  }
+}

@@ -114,7 +114,7 @@ export function ImportDialog() {
               })}
               {result.document.widgets.length === 0 ? (
                 <li className="text-sm text-slate-500 dark:text-slate-400">
-                  No widgets — this would leave you with an empty dashboard.
+                  No widgets in this file, so restoring it would leave you with an empty dashboard.
                 </li>
               ) : null}
             </ul>
@@ -147,8 +147,8 @@ export function ImportDialog() {
             <p className="mt-1.5 text-[11px] leading-relaxed text-sky-700/90 dark:text-sky-300/90">
               {detectedAs === 'saved-dashboard-html' ? (
                 <>
-                  <strong>Save to file</strong> froze your whole dashboard into a standalone HTML page. Open that file
-                  — double-click it, or drag it into a browser tab — and the dashboard inside it comes back.
+                  <strong>Save to file</strong> wrote your whole dashboard into a standalone HTML page. Double-click
+                  that file, or drag it into a browser tab, and the dashboard inside comes back.
                 </>
               ) : (
                 <>Restoring expects the <code>.json</code> file written by <strong>Save a backup (.json)</strong>.</>

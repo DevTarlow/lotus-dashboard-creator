@@ -9,8 +9,8 @@ architecture that makes adding the twenty-first a single file.
 Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zustand 5
 · react-grid-layout 2**.
 
-**Just want a dashboard?** Skip to [Use it](#use-it) — one file, nothing to
-install. Everything below that is for people working on the code.
+**Just want a dashboard?** Start with [Use it](#use-it). Everything after that
+section is for people working on the code.
 
 ---
 
@@ -44,8 +44,8 @@ install. Everything below that is for people working on the code.
 - Lock the layout to stop accidental drags, or hit **Tidy up** to close every
   gap.
 - Add, duplicate, rename, reconfigure and remove individual widgets.
-- A first visit starts on a **six-panel starter** — clock, weather, links, tasks,
-  calendar, notes — and says so in a one-time welcome panel; the full
+- A first visit starts on a **six-panel starter** (clock, weather, links, tasks,
+  calendar, notes) and explains itself in a one-time welcome panel. The full
   sixteen-panel **Complete workspace** is one click away in Templates, along with
   five more desks and a blank canvas.
 
@@ -54,10 +54,10 @@ install. Everything below that is for people working on the code.
 - Automatic `localStorage` persistence (debounced by zustand's `persist`
   middleware) — the dashboard is exactly as you left it after a reload, including
   the theme.
-- The footer says where the work actually is: *Saved in this browser — use Save to
-  file to keep the file up to date*, or *Saved to `<name>`* once the file is
-  linked. The remembered file is scoped per document, so a second dashboard
-  opened in the same browser can never save into the first one's file.
+- The footer says where the work actually is: *Saved in this browser. Save to
+  file to update the file too*, or *Saved to `<name>`* once the file is linked.
+  The remembered file is scoped per document, so a second dashboard opened in the
+  same browser can never save into the first one's file.
 - **Save to file** writes the dashboard into the HTML file it was opened from
   (proposing that file's own name), with *Save a copy…* and *Forget this file* for
   the other two cases.
@@ -67,8 +67,8 @@ install. Everything below that is for people working on the code.
 - Undo/redo (`⌘/Ctrl + Z`) for every structural change: adding, removing,
   duplicating, dragging, resizing, tidying, applying templates, importing and
   resetting. Rapid edits are coalesced into a single history step.
-- Removing a widget asks first (and the dialog's switch turns the question off for
-  next time, applied with the answer), so nothing is destroyed by a stray click.
+- Removing a widget asks first, and the dialog's switch turns the question off
+  for next time. Nothing is destroyed by a stray click.
 
 **Widgets**
 
@@ -134,24 +134,24 @@ install. Everything below that is for people working on the code.
 
 ## Use it
 
-No install, no account, no server. Lotus Dashboard Creator is **one HTML file**:
-the whole app, its styles and every image inside it.
+Lotus Dashboard Creator is one HTML file: the whole app, its styles and every
+image inside it. There is nothing to install and no account to create.
 
-1. **Get the file.** Download `lotus-dashboard.html` from the
+1. Get the file. Download `lotus-dashboard.html` from the
    [releases page](https://github.com/DevTarlow/lotus-dashboard-creator/releases),
-   or build it yourself with `npm run build:single` (see
-   [Build it](#build-it)) and use `dist-single/index.html`.
-2. **Put it somewhere you will find again** — Documents, not Downloads.
-3. **Double-click it.** It opens in your browser and works offline.
-4. **Press `Ctrl+S` (⌘S on macOS), or use `⋯ → Save to file`.** Your changes are
+   or build it yourself with `npm run build:single` (see [Build it](#build-it))
+   and use `dist-single/index.html`.
+2. Put it somewhere you will find it again, in Documents rather than Downloads.
+3. Double-click it. It opens in your browser and works offline.
+4. Press `Ctrl+S` (`⌘S` on macOS), or use `⋯ → Save to file`. Your changes are
    kept in the browser as you work; this writes them *into the file*, which is
-   the copy you keep and the copy you send. On Chrome and Edge the same file is
-   rewritten in place; elsewhere each save downloads a fresh copy.
-5. **To share your dashboard, send the file.** To keep a spare, copy it.
+   the copy you keep and the copy you send. Chrome and Edge rewrite the same
+   file, and other browsers download a fresh copy each time.
+5. To share your dashboard, send the file. To keep a spare, copy it.
 
-The first time a dashboard opens it explains all of this itself, and
-**Help** (the `?` key, or the button in the footer) brings that explanation back
-at any time.
+The first time a dashboard opens it explains all of this itself, and **Help**
+(the `?` key, or the button in the footer) brings that explanation back whenever
+you want it.
 
 ![Lotus Dashboard Creator, dark theme](docs/dashboard-dark.png)
 
@@ -409,8 +409,8 @@ app, its styles and every image inlined into one portable file. There is nothing
 to install and no server to run: double-click it. Below is how your data travels
 with it.
 
-The built file also **explains itself**: a readable note sits just after the
-doctype (a comment *above* it would put the page into quirks mode), a `<noscript>`
+The built file also explains itself. A readable note sits just after the doctype
+(a comment *above* it would put the page into quirks mode), a `<noscript>`
 fallback says what the page needs and which browsers can open it, and the tab,
 bookmark and history entry are named after the dashboard rather than always
 reading "Lotus Dashboard Creator".
@@ -421,8 +421,8 @@ file again — on any machine, in any browser, offline — restores that exact
 dashboard. Where the [File System Access
 API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) is
 available (Chrome, Edge) the app remembers the file you chose and overwrites it in
-place, so saving is one keystroke; elsewhere it downloads a copy — and the footer
-says which of the two is in effect. **Save a backup (.json)**
+place, so saving is one keystroke. Other browsers download a copy each time, and
+the footer says which of the two is happening. **Save a backup (.json)**
 (`⌘/Ctrl + Shift + S`) is still there for a plain, diffable copy.
 
 Two details exist because getting them wrong loses work:
@@ -435,10 +435,10 @@ Two details exist because getting them wrong loses work:
   dashboard title. Otherwise editing a dashboard someone sent you dropped a
   renamed copy in Downloads and left the file they sent untouched.
 
-**Save a copy…** exists for the deliberate case, and **Forget this file** unlinks
-the remembered target so the next save asks again. A write that fails (the file
-was moved, renamed or deleted) forgets the handle too, so `⌘S` recovers by asking
-for a location instead of failing the same way forever.
+Use **Save a copy…** when you want the dashboard in a second file, and **Forget
+this file** to unlink the one it writes to so the next save asks again. If a write
+fails because the file was moved, renamed or deleted, the link is dropped too, so
+`⌘S` recovers by asking where to put it instead of failing every time.
 
 The `.html` and the `.json` are not interchangeable: the `.html` is an app to
 *open*, the `.json` is a backup to *restore*. Picking a saved `.html` in
@@ -826,8 +826,8 @@ surfaces actually differ.
   applies when nothing is stored for the document.
 - **Weather, sun and air ask for a city** instead of defaulting to Lisbon. The
   weather card takes the city inline; the other two point at their settings. The
-  temperature unit is guessed from the browser's locale (metric unless the region
-  is one that uses Fahrenheit), which is one click to change.
+  temperature unit comes from the browser's locale (metric unless the region is
+  one that uses Fahrenheit), and one click changes it.
 - Removing a widget **asks first**, and the dialog's switch turns the question off
   for next time — applied together with the answer, so the dialog never vanishes
   mid-question. Undo history lives in memory (deliberately not persisted), so

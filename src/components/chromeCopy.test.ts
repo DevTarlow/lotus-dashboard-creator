@@ -34,6 +34,10 @@ const SHELL_FILES = [
   'src/components/modals/ConfirmDialog.tsx',
   'src/hooks/useDashboardActions.ts',
   'src/lib/validation.ts',
+  'src/lib/resourceStatus.ts',
+  'src/lib/notes.ts',
+  'src/lib/stickyNotes.ts',
+  'src/lib/templates.ts',
 ];
 
 /** Copy that was written for the maintainer rather than for the user. */
@@ -61,6 +65,18 @@ const BANNED: readonly { pattern: RegExp; phrase: string; why: string }[] = [
   { pattern: /Your canvas is empty/, phrase: 'Your canvas is empty', why: 'say what to do, not what is missing' },
   { pattern: /This widget hit an error/, phrase: 'This widget hit an error', why: 'describe the state in plain words' },
   { pattern: /The file is not valid JSON/, phrase: 'The file is not valid JSON', why: 'a parser message is not an explanation' },
+  { pattern: /API key/, phrase: 'API key', why: 'it is a key; the API part is ours to know' },
+  { pattern: /\bsparkline\b/, phrase: 'sparkline', why: 'say what the line shows' },
+  { pattern: /\bECB reference rate\b/, phrase: 'ECB reference rate', why: 'name the rate where it is explained' },
+  {
+    // A spaced dash between two clauses is the habit that makes copy read as
+    // written by a machine: it leaves the relationship between them unstated.
+    // The unspaced kind is left alone, because a lone dash standing in for a
+    // missing value is a table convention rather than a sentence.
+    pattern: /\s[—–]\s/,
+    phrase: 'a dash used as punctuation',
+    why: 'choose a full stop, a comma or a colon',
+  },
 ];
 
 /**
@@ -81,6 +97,8 @@ const REQUIRED = [
   'Help & shortcuts',
   'Add widget',
   'Your changes are saved in this browser as you work',
+  'Saved copy',
+  'Needs a key',
 ];
 
 function source(file: string): string {

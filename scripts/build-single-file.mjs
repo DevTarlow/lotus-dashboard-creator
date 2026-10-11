@@ -53,17 +53,18 @@ function resolveAsset(reference) {
  * this document with string surgery — so the anchor is asserted, not assumed.
  */
 const FILE_NOTICE = `<!--
-  Lotus Dashboard Creator — your dashboard is this one file.
+  Lotus Dashboard Creator: your dashboard is this one file.
 
-  To use it: keep this file somewhere you will find it again (Documents, not
-  Downloads), then double-click it. There is nothing to install and no account
-  to create; it works offline.
+  Keep it somewhere you will find it again, in Documents rather than Downloads,
+  then double-click it. There is nothing to install, no account to create, and
+  it works offline.
 
-  Your changes are kept automatically in this browser, but the copy you keep and
-  the copy you send are this file — so press Ctrl+S (Cmd+S on macOS), or use
-  "Save to file" in the ⋯ menu, to write your changes into it.
+  Your changes are saved in this browser as you work. To put them in this file
+  as well, press Ctrl+S (Cmd+S on macOS), or use "Save to file" in the ⋯ menu.
+  Then the copy you keep and the copy you send are the same one.
 
-  To give someone your dashboard, send them this file. To keep a spare, copy it.
+  To share your dashboard, send someone this file. To keep a spare, copy it.
+
   Full guide: https://github.com/DevTarlow/lotus-dashboard-creator#use-it
 -->
 `;

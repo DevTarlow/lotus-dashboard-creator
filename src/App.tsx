@@ -16,6 +16,7 @@ import {
   WidgetDeleteFlow,
   WidgetSettingsModal,
 } from '@/components/modals';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useTheme } from '@/hooks/useTheme';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -60,10 +61,13 @@ export default function App() {
   useTheme();
   useGlobalShortcuts();
 
+  const title = useDashboardStore((state) => state.title);
   const seedOrigin = useDashboardStore((state) => state.seedOrigin);
   const hasSeenWelcome = usePrefsStore((state) => state.hasSeenWelcome);
   const openWelcome = useUiStore((state) => state.openWelcome);
   const welcomeConsidered = useRef(false);
+
+  useDocumentTitle(title);
 
   // Once per page load: a document with nothing stored for it gets the welcome.
   // `hasSeenWelcome` is a local preference and never travels inside a file, so

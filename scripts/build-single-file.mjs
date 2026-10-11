@@ -43,6 +43,39 @@ function resolveAsset(reference) {
   return existsSync(resolved) ? resolved : null;
 }
 
+/**
+ * The note that tells whoever opens this file what it is.
+ *
+ * It goes *after* the doctype: a comment above it puts the document into quirks
+ * mode, which changes how the app lays out. It is a comment rather than markup
+ * because the app replaces the entire body once JavaScript runs, and because a
+ * data-loss bug in the save path (see `capturePageHtml`) once came from editing
+ * this document with string surgery — so the anchor is asserted, not assumed.
+ */
+const FILE_NOTICE = `<!--
+  Lotus Dashboard Creator — your dashboard is this one file.
+
+  To use it: keep this file somewhere you will find it again (Documents, not
+  Downloads), then double-click it. There is nothing to install and no account
+  to create; it works offline.
+
+  Your changes are kept automatically in this browser, but the copy you keep and
+  the copy you send are this file — so press Ctrl+S (Cmd+S on macOS), or use
+  "Save to file" in the ⋯ menu, to write your changes into it.
+
+  To give someone your dashboard, send them this file. To keep a spare, copy it.
+  Full guide: https://github.com/DevTarlow/lotus-dashboard-creator#use-it
+-->
+`;
+
+/** Insert the notice directly after the doctype, failing loudly if that is gone. */
+function insertFileNotice(html) {
+  const match = /<!doctype[^>]*>\s*/i.exec(html);
+  if (!match) throw new Error('no <!doctype> to anchor the file notice after');
+  const at = match.index + match[0].length;
+  return html.slice(0, at) + FILE_NOTICE + html.slice(at);
+}
+
 /** True when a reference points at something we know how to inline. */
 function isInlinableAsset(reference) {
   if (reference.startsWith('data:')) return false;
@@ -63,6 +96,11 @@ async function main() {
 
   let html = await readFile(indexPath, 'utf8');
   const inlined = { scripts: 0, styles: 0, images: 0 };
+
+  // 0. The human-readable note, while the anchor is still easy to find. Saving a
+  //    dashboard replaces the document wholesale, so a *saved* file carries the
+  //    note too — this is what a fresh build says, not something the app re-adds.
+  html = insertFileNotice(html);
 
   // Every replacement below passes a *function*: a string replacement would let
   // `$&`/`` $` `` sequences inside minified JS or a data URI rewrite the output.

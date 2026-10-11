@@ -1,34 +1,85 @@
 # Lotus Dashboard Creator
 
-A modular, drag-and-drop dashboard builder for the browser. Twenty widgets —
-clocks and daylight, weather and air quality, tasks, habits and a focus timer,
-quick sticky notes, a calendar, markets, news and history, a currency converter,
-a device panel — drop onto a responsive 12-column grid, with a plugin
-architecture that makes adding the twenty-first a single file.
+A dashboard you arrange yourself, in the browser. Twenty widgets drop onto a
+12-column grid: clocks and daylight, weather and air quality, tasks, habits and a
+focus timer, sticky notes, a calendar, market prices, news and history, a
+currency converter, a device panel. A plugin architecture makes adding the
+twenty-first one file.
 
 Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zustand 5
 · react-grid-layout 2**.
 
-**Just want a dashboard?** Start with [Use it](#use-it). Everything after that
-section is for people working on the code.
+**Just want a dashboard?** [Use it](#use-it) is one file and no setup.
+[Build it](#build-it) and everything below it is for people working on the code.
 
 ---
 
 ## Table of contents
 
 - [Use it](#use-it)
-- [Build it](#build-it)
 - [Features](#features)
+- [Build it](#build-it)
 - [Project structure](#project-structure)
 - [Architecture](#architecture)
 - [Writing your own widget](#writing-your-own-widget)
 - [Keyboard shortcuts](#keyboard-shortcuts)
-- [The layout JSON format](#the-layout-json-format)
+- [The backup file format](#the-backup-file-format)
 - [Testing & verification](#testing--verification)
 - [Performance notes](#performance-notes)
 - [Accessibility](#accessibility)
 - [Notes & limitations](#notes--limitations)
 - [License](#license)
+
+## Use it
+
+Lotus Dashboard Creator is one HTML file: the whole app, its styles and every
+image inside it. There is nothing to install and no account to create.
+
+1. Get the file. Download `lotus-dashboard.html` from the
+   [latest release](https://github.com/DevTarlow/lotus-dashboard-creator/releases/latest)
+   (under **Assets**), or build it yourself with `npm run build:single` (see
+   [Build it](#build-it)) and use `dist-single/index.html`.
+2. Put it somewhere you will find it again, in Documents rather than Downloads.
+3. Double-click it. It opens in your browser and works offline.
+4. Press `Ctrl+S` (`⌘S` on macOS), or use `⋯ → Save to file`. Your changes are
+   kept in the browser as you work; this writes them *into the file*, which is
+   the copy you keep and the copy you send. Chrome and Edge rewrite the same
+   file, and other browsers download a fresh copy each time.
+5. To share your dashboard, send the file. To keep a spare, copy it.
+
+The first time a dashboard opens it explains all of this itself, and **Help**
+(the `?` key, or the button in the footer) brings that explanation back whenever
+you want it, along with the version and a link to this page. Chrome and Edge are
+the best browsers for it, because they can rewrite the file in place; Firefox and
+Safari work too, and download a copy.
+
+### Where your data goes
+
+The dashboard runs entirely in your browser. There is no server of ours in the
+middle, and nothing to sign up for.
+
+Widgets that show live information fetch it straight from the source: weather
+from wttr.in, crypto prices from CoinGecko, headlines from Hacker News, DEV,
+Spaceflight News and Wikipedia, holidays from Nager.Date, earthquakes from USGS,
+air quality and place lookups from Open-Meteo, currency from Frankfurter. Each
+card says at the bottom whether it is showing live data, a saved copy, or
+nothing at all, and a panel that cannot reach its source says so rather than
+inventing a number. The exceptions are weather, crypto prices and the news feed,
+which fall back to a clearly labelled **Simulated** reading when the network is
+unavailable.
+
+Keys are the exception, and they never leave your browser: a Finnhub key for
+stock prices and an optional GitHub key are stored locally, sent only to their
+own service, and left out of any file you save or send. The one widget that sends
+something about you by design is **System & device**'s address lookup, which is
+off until you turn it on and says what it sends.
+
+![Lotus Dashboard Creator, dark theme](docs/dashboard-dark.png)
+
+<p align="center">
+  <img src="docs/welcome.png" alt="The first-run welcome panel" width="49%" />
+  <img src="docs/widget-gallery.png" alt="The Add widget panel" width="49%" />
+</p>
 
 ## Features
 
@@ -39,8 +90,8 @@ section is for people working on the code.
 - Layout for **every** breakpoint is stored, so a phone layout and a desktop
   layout never fight each other.
 - Live snap placeholder while dragging, resize handles on the south, east and
-  south-east edges, and a **drag a card straight out of the gallery onto the
-  grid** drop flow (mouse _and_ touch).
+  south-east edges, and a **drag a card straight out of the Add widget panel
+  onto the grid** drop flow (mouse _and_ touch).
 - Lock the layout to stop accidental drags, or hit **Tidy up** to close every
   gap.
 - Add, duplicate, rename, reconfigure and remove individual widgets.
@@ -52,8 +103,8 @@ section is for people working on the code.
 **Persistence & portability**
 
 - Automatic `localStorage` persistence (debounced by zustand's `persist`
-  middleware) — the dashboard is exactly as you left it after a reload, including
-  the theme.
+  middleware), so the dashboard is exactly as you left it after a reload,
+  including the theme.
 - The footer says where the work actually is: *Saved in this browser. Save to
   file to update the file too*, or *Saved to `<name>`* once the file is linked.
   The remembered file is scoped per document, so a second dashboard opened in the
@@ -77,7 +128,7 @@ section is for people working on the code.
 | Widget | Highlights |
 | --- | --- |
 | **Clock** | Live time in any IANA time zone, 12/24h, optional seconds, day-progress bar. |
-| **Weather** | Live forecast from wttr.in (no API key) with hourly outlook and details, falling back to a locally simulated forecast offline. |
+| **Weather** | Live forecast from wttr.in (no key) with an hourly outlook and details. Asks which city you want, and falls back to a simulated forecast offline. |
 
 **Productivity**
 
@@ -86,17 +137,17 @@ section is for people working on the code.
 | **Tasks** | A checklist with priorities, due dates, ↑/↓ reordering, a progress bar and "clear completed"; every edit is one undo step. |
 | **Focus timer** | Pomodoro and stopwatch in one card. Derived from timestamps, so a throttled tab cannot drift and a reload resumes a running phase; sessions are logged with a daily total. |
 | **Habit streaks** | Today's ticks, current and best streaks, and a four-to-twelve week heatmap. A habit you have not done *yet* today never breaks its streak, and weekends are skipped when the schedule says so. |
-| **Calendar** | A month grid with ISO week numbers, local events per day (edited inline) and optional public holidays from Nager.Date — plus the next holiday and how far away it is. |
+| **Calendar** | A month grid with ISO week numbers, local events per day (edited inline) and optional public holidays from Nager.Date, plus the next holiday and how far away it is. |
 | **Countdown** | The dates worth waiting for, with annual rollover (29 February waits for the next leap year) and a ring for the next one. |
 | **Markdown notes** | Multi-note editor with a left file panel (create, switch, delete with confirmation), draggable dividers between the panel and both panes, auto-save with edit / split / preview modes and a dependency-free markdown renderer. |
-| **Sticky notes** | Quick post-it notes in five colours: pin the ones you need to the top, copy one — or the whole list — to the clipboard, edit inline with auto-save, and remove with an undo toast. |
-| **Quick links** | Bookmark launcher with favicons (graceful initial-chip fallback), inline add/edit/remove, and drag — or ↑/↓ — to reorder. |
+| **Sticky notes** | Quick post-it notes in five colours: pin the ones you need to the top, copy a note or the whole list to the clipboard, edit inline with auto-save, and remove with an undo toast. |
+| **Quick links** | Bookmark launcher with site icons (falling back to an initials chip), inline add/edit/remove, and reordering by drag or with ↑/↓. |
 
 **Markets**
 
 | Widget | Highlights |
 | --- | --- |
-| **Market ticker** | Live crypto quotes (CoinGecko, keyless) and live stock quotes (Finnhub, your own free key) with sparklines and per-symbol add/remove. |
+| **Market ticker** | Live crypto prices (CoinGecko, no key) and live stock prices (your own free Finnhub key), with a price line for crypto, and add or remove for each symbol. |
 
 **News**
 
@@ -109,7 +160,7 @@ section is for people working on the code.
 
 | Widget | Highlights |
 | --- | --- |
-| **Sun & moon** | Sunrise, sunset, solar noon, golden hour, civil twilight and the day's change in daylight — computed locally from a NOAA solar model, with the moon phase beside it. Nothing about it needs the network. |
+| **Sun & moon** | Sunrise, sunset, solar noon, golden hour, civil twilight and the day's change in daylight, all computed locally from a NOAA solar model, with the moon phase beside it. The solar maths needs no network at all; only the city lookup asks for one. |
 | **Air quality & UV** | US AQI with its band wording, a twelve-hour strip, the UV index and peak, and pollen where the model covers it (Open-Meteo, keyless). |
 | **Seismic watch** | Recent earthquakes from the USGS feeds, by magnitude threshold and window, optionally filtered to a radius around a city, with the feed's own generation time so the timestamps stay honest. |
 
@@ -119,46 +170,19 @@ section is for people working on the code.
 | --- | --- |
 | **World clock** | Several time zones at once, with each zone's offset, date rollover, office-hours tint and a 24-hour strip showing the windows you share. |
 | **Converter** | Eleven categories of unit conversion (with affine temperature scales) and currency at the ECB reference rate, with a 30-day rate history. |
-| **System & device** | Connection, battery, browser storage, screen, platform and uptime, read locally — plus an opt-in public-address lookup that tells you exactly what it sends. |
-| **Repository** | Stars, forks, issues, the latest release and the newest workflow run for a GitHub repository, with the hourly quota shown and an optional token for a higher limit. |
+| **System & device** | Connection, battery, browser storage, screen, platform and uptime, read locally, plus an opt-in public-address lookup that tells you exactly what it sends. |
+| **Repository** | Stars, forks, issues, the latest release and the newest workflow run for a GitHub repository, with the hourly quota shown and an optional key for a higher limit. |
 
 **Polish**
 
-- Ten palette presets — warm, cool, neutral and bold — on top of light / dark /
+- Ten palette presets (warm, cool, neutral and bold) on top of light / dark /
   system, each with an optional custom accent colour and neutral warmth, applied
   with no flash of the wrong palette on load.
 - Toast notifications with undo actions, per-widget error boundaries, an empty
-  state that explains what to do next, and a keyboard shortcut cheat sheet.
-- Zero console errors or warnings — verified in a real browser (see
+  state that explains what to do next, and a **Help** panel with the
+  getting-started steps and every shortcut.
+- Zero console errors or warnings, verified in a real browser (see
   [Testing & verification](#testing--verification)).
-
-## Use it
-
-Lotus Dashboard Creator is one HTML file: the whole app, its styles and every
-image inside it. There is nothing to install and no account to create.
-
-1. Get the file. Download `lotus-dashboard.html` from the
-   [releases page](https://github.com/DevTarlow/lotus-dashboard-creator/releases),
-   or build it yourself with `npm run build:single` (see [Build it](#build-it))
-   and use `dist-single/index.html`.
-2. Put it somewhere you will find it again, in Documents rather than Downloads.
-3. Double-click it. It opens in your browser and works offline.
-4. Press `Ctrl+S` (`⌘S` on macOS), or use `⋯ → Save to file`. Your changes are
-   kept in the browser as you work; this writes them *into the file*, which is
-   the copy you keep and the copy you send. Chrome and Edge rewrite the same
-   file, and other browsers download a fresh copy each time.
-5. To share your dashboard, send the file. To keep a spare, copy it.
-
-The first time a dashboard opens it explains all of this itself, and **Help**
-(the `?` key, or the button in the footer) brings that explanation back whenever
-you want it.
-
-![Lotus Dashboard Creator, dark theme](docs/dashboard-dark.png)
-
-<p align="center">
-  <img src="docs/welcome.png" alt="The first-run welcome panel" width="49%" />
-  <img src="docs/widget-gallery.png" alt="Widget gallery drawer" width="49%" />
-</p>
 
 ## Build it
 
@@ -183,21 +207,21 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (968 tests, 45 files). |
+| `npm test` | Vitest unit suite (972 tests, 45 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
 
-The app is entirely client-side: no backend, and no API key needed for anything
-except stock prices and an optional GitHub token. Every network call degrades
+The app is entirely client-side: no backend, and no key needed for anything
+except stock prices and an optional GitHub key. Every network call degrades
 gracefully: the weather widget uses
 [wttr.in](https://wttr.in) and falls back to a simulated forecast, the market
 ticker prices crypto through [CoinGecko](https://www.coingecko.com/en/api)
 (keyless) and falls back to simulated crypto, the news feed reads four keyless
 providers and falls back to a simulated feed labelled **Simulated**, and the
-quick-links favicon lookup falls back to an initials chip. The newer panels use
-keyless, CORS-enabled sources and — deliberately — **no simulated fallback at
-all**: cities are resolved by
+quick-links favicon lookup falls back to an initials chip. The newer panels use keyless,
+CORS-enabled sources and deliberately have **no simulated fallback at all**.
+Cities are resolved by
 [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api), air quality
 and UV by [Open-Meteo](https://open-meteo.com/en/docs/air-quality-api), currency
 by [Frankfurter](https://frankfurter.dev) (ECB reference rates), holidays by
@@ -206,14 +230,38 @@ by [Frankfurter](https://frankfurter.dev) (ECB reference rates), holidays by
 "on this day" by the [Wikimedia feeds](https://api.wikimedia.org/). When one of
 those fails the panel says so and offers a retry, because a made-up reading in a
 card that looks live is worse than an empty one. Stock quotes are the one thing
-that *needs* a key, from [Finnhub](https://finnhub.io/register) — a free key the
-user pastes into the widget's settings — and GitHub takes an optional token to
-raise its anonymous limit. Neither is ever simulated or embedded in a saved file
-(see the notes below).
+that *needs* a key, from [Finnhub](https://finnhub.io/register): a free one the
+user pastes into the widget's settings. GitHub takes an optional key to raise its
+anonymous limit. Neither is ever simulated or embedded in a saved file (see the
+notes below).
+
+### Releasing
+
+The file the [Use it](#use-it) steps point at is built, then attached to a
+GitHub release:
+
+```bash
+# 1. bump the version in package.json and src/constants/app.ts, then:
+npm run verify
+
+# 2. build the portable file and give it the name the instructions use
+npm run build:single
+cp dist-single/index.html lotus-dashboard.html
+
+# 3. tag it and attach the file
+git tag v1.0.0 && git push origin v1.0.0
+gh release create v1.0.0 lotus-dashboard.html --title v1.0.0 --notes "..."
+```
+
+The app shows its own version in **Help**, so a version that drifts from the tag
+is visible rather than silent.
 
 ## Project structure
 
 ```
+.agents/
+└── skills/humanizer/           # the copy-editing rules the UI text is written to
+
 scripts/
 ├── build-single-file.mjs       # inlines script/style/images into one HTML file
 ├── verify-browser.mjs          # real-Chrome checks for what unit tests cannot reach
@@ -307,7 +355,7 @@ src/
 | Store | Responsibility | Persisted |
 | --- | --- | --- |
 | `dashboardStore` | Dashboard title, widget instances, per-breakpoint layouts, lock flag, undo/redo | ✅ `localStorage` |
-| `prefsStore` | Colour scheme and palette, custom accent/warmth, grid hints, delete confirmation, optional Finnhub key | ✅ `localStorage` |
+| `prefsStore` | Colour scheme and palette, custom accent/warmth, grid dots, asking before a removal, the "welcome seen" flag, optional Finnhub and GitHub keys | ✅ `localStorage` |
 | `uiStore` | Open overlay, settings target, pending import, drag payload | ❌ |
 | `toastStore` | Transient notifications | ❌ |
 
@@ -485,11 +533,13 @@ entries.
 Two independent axes. `theme` is `light | dark | system`, applied as a class on
 `<html>` (Tailwind v4 is configured with a class-based `dark` variant, and all
 widgets use `dark:` utilities rather than runtime colour logic). `themeId` is the
-palette preset — ten of them, grouped in the picker by temperature rather than by
-who they are "for" — and the user can layer a custom accent colour and a neutral
-hue on top ([`lib/theme.ts`](./src/lib/theme.ts)).
+palette preset (ten of them, grouped in the picker by temperature rather than by
+who they are "for"), and the user can layer a custom accent colour and a neutral
+hue on top ([`lib/theme.ts`](./src/lib/theme.ts)). The dialog behind it also
+carries the **Show the grid dots** switch and a **Reset colours** button that
+returns the palette, the accent and the warmth to the preset.
 
-A preset does not touch a single call site. The app is written with ~1,300
+A preset does not touch a single call site. The app is written with ~1,200
 hardcoded `slate-*` and `violet-*` utilities, and Tailwind v4 compiles
 `bg-slate-900` to `background-color: var(--color-slate-900)`; so the theme engine
 writes those custom properties (plus `--color-accent-fg`) onto the root element
@@ -600,21 +650,22 @@ up automatically.
 
 | Shortcut | Action |
 | --- | --- |
-| `⌘/Ctrl + K` | Open the widget gallery |
+| `⌘/Ctrl + K` | Add a widget (opens the same panel as **Add widget**) |
 | `⌘/Ctrl + Z` | Undo |
 | `⌘/Ctrl + ⇧ + Z` / `⌘/Ctrl + Y` | Redo |
 | `⌘/Ctrl + S` | Save the dashboard into its file |
-| `⌘/Ctrl + ⇧ + S` | Save a backup copy (`.json`) |
+| `⌘/Ctrl + ⇧ + S` | Save a backup (`.json`) |
 | `⌘/Ctrl + ⇧ + D` | Toggle light / dark |
-| `?` | Shortcut cheat sheet |
+| `?` | Open **Help** (getting started and every shortcut) |
 | `Esc` | Close dialogs, drawers and menus |
 
 Shortcuts never fire while you are typing in an input, so text editing keeps its
 native behaviour (including `⌘/Ctrl + Z` inside a field).
 
-## The layout JSON format
+## The backup file format
 
-Exports are pretty-printed, self-describing and diff-friendly:
+**Save a backup (.json)** writes a pretty-printed, self-describing file that is
+easy to diff and easy to read:
 
 ```jsonc
 {
@@ -636,22 +687,23 @@ Exports are pretty-printed, self-describing and diff-friendly:
 }
 ```
 
-On import the file is validated and normalised before it touches your workspace:
+On restore the file is validated and tidied before it touches your dashboard:
 
 - a missing `format` marker is accepted with a warning (compatibility mode);
 - a newer `version` is rejected with an explanation;
 - coordinates are clamped to the grid, malformed entries are dropped;
-- widgets whose plugin is missing are **kept** and shown as unavailable;
-- widgets with no layout entry are placed automatically;
+- cards for widgets this copy of the app does not have are **kept**, so a newer
+  build can still show them;
+- cards with no layout entry are placed automatically;
 - duplicated ids are made unique instead of losing data;
-- a **saved dashboard file** (the `.html` written by *Save to file*) is recognised
-  and explained — it is a standalone dashboard to open, not a layout to import,
-  so you get that message instead of a raw JSON syntax error.
+- a **saved dashboard file** (the `.html` written by *Save to file*) is
+  recognised and explained: it is a standalone dashboard to open, not a backup to
+  restore, so you get that message instead of a raw syntax error.
 
 ## Testing & verification
 
 ```bash
-npm test          # 968 unit tests, 45 files
+npm test          # 972 unit tests, 45 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -672,7 +724,7 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/color.test.ts` | sRGB ↔ OKLCH round trips and the CSS-spec reference values, WCAG relative luminance and contrast ratios against known boundaries, alpha compositing, and clamping of out-of-gamut or out-of-range input. |
 | `lib/storageKeys.test.ts` | Key scoping: untouched on the web, per-document on `file://`, and matching the expression the inline theme script evaluates. |
 | `lib/fileHandle.test.ts` | The remembered save target: scoped per document on `file://` so two dashboards cannot share one, global on the web, stable for a path, and the whole module degrading quietly without IndexedDB or the File System Access API. |
-| `lib/singleFile.test.ts` | The name a save proposes — the file you opened on disk, the dashboard title on the web — plus `</script>` handling and the snapshot round trip. |
+| `lib/singleFile.test.ts` | The name a save proposes (the file you opened on disk, the dashboard title on the web), plus `</script>` handling and the snapshot round trip. |
 | `components/chromeCopy.test.ts` | A scan of the shell sources for the copy that was removed (grid vocabulary, `localStorage`, "schema v1", parser messages) and for the copy the app is built on, so the wording cannot drift back. |
 | `lib/utils.test.ts` | `moveItem` — forward/backward moves, clamping, no-ops, and never mutating the input. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
@@ -797,10 +849,10 @@ surfaces actually differ.
 - Markdown is parsed in a `useMemo` and only re-parsed when the text changes.
 - `cn()` uses `tailwind-merge`, so component classes can be overridden safely
   without specificity tricks.
-- Production bundle: **~196 kB gzipped JS / ~14 kB gzipped CSS** for all twenty
+- Production bundle: **~204 kB gzipped JS / ~16 kB gzipped CSS** for all twenty
   widgets (React 19 + zustand + react-grid-layout, with no icon, chart, markdown
-  or QR dependency). The single-file build — bundle, styles and images inlined —
-  is ~247 kB gzipped.
+  or QR dependency). The single-file build, with the bundle, styles and images
+  inlined, is ~256 kB gzipped.
 - A screen full of live panels still makes **one request per provider per
   refresh window**, not one per widget: identical requests are de-duplicated in
   flight and cached across the session, at most four are open at once, and a
@@ -833,8 +885,10 @@ surfaces actually differ.
   mid-question. Undo history lives in memory (deliberately not persisted), so
   undoing a removal is gone after a reload; the toast's own **Undo** is the
   immediate safety net.
-- Weather is **live** from [wttr.in](https://wttr.in), which needs no API key or
-  signup and allows browser requests from any origin. It is a free community
+- Weather is **live** from [wttr.in](https://wttr.in), which needs no key or
+  signup and allows browser requests from any origin. There is no default city:
+  the card asks for one, because guessing where someone is turned out to be worse
+  than asking. It is a free community
   service, so the widget refreshes on a 15 minute window, debounces typing, and
   falls back to the deterministic simulated forecast (labelled **Simulated**)
   whenever a lookup fails. wttr.in serves cached upstream readings, so the footer

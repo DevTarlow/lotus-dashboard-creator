@@ -1,7 +1,11 @@
 import { KeyboardIcon, SparklesIcon } from '@/components/icons';
 import { Kbd, Modal } from '@/components/ui';
 import { GettingStarted } from '@/components/modals/GettingStarted';
+import { APP_NAME, APP_VERSION } from '@/constants/app';
 import { useUiStore } from '@/store/uiStore';
+
+/** Project home, so a dashboard someone was sent can be traced back. */
+const PROJECT_URL = 'https://github.com/DevTarlow/lotus-dashboard-creator';
 
 interface ShortcutRow {
   keys: readonly string[];
@@ -16,7 +20,7 @@ const SHORTCUTS: readonly { group: string; rows: readonly ShortcutRow[] }[] = [
       { keys: ['⌘', 'Z'], label: 'Undo the last change' },
       { keys: ['⌘', '⇧', 'Z'], label: 'Redo (Ctrl + Y also works)' },
       { keys: ['⌘', 'S'], label: 'Save the dashboard into this file' },
-      { keys: ['⌘', '⇧', 'S'], label: 'Save a backup copy (.json)' },
+      { keys: ['⌘', '⇧', 'S'], label: 'Save a backup (.json)' },
       { keys: ['⌘', '⇧', 'D'], label: 'Switch light / dark' },
       { keys: ['?'], label: 'Show this help' },
       { keys: ['Esc'], label: 'Close dialogs and menus' },
@@ -80,6 +84,17 @@ export function HelpDialog() {
         ))}
         <p className="text-[11px] text-slate-400 dark:text-slate-500">
           The modifier key is ⌘ on macOS and Ctrl everywhere else.
+        </p>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          {APP_NAME} {APP_VERSION} ·{' '}
+          <a
+            href={PROJECT_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300"
+          >
+            Project home
+          </a>
         </p>
       </div>
     </Modal>

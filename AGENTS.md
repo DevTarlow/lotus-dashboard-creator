@@ -21,12 +21,12 @@ the git policy.
 | `npm run dev` | Vite dev server with HMR. Port **5173 is pinned** — if it is busy the server refuses to start rather than hopping to 5174, because `localStorage` is per-origin and a port change looks like data loss. | instant |
 | `npm run typecheck` | `tsc --noEmit`, strict. | ~2 s |
 | `npm run lint` | ESLint (flat config, TS + React hooks rules). | ~2 s |
-| `npm test` | Vitest, single run (920 tests, 43 files). | ~2 s |
+| `npm test` | Vitest, single run (968 tests, 45 files). | ~2 s |
 | `npm run test:watch` | Vitest watch mode — use while iterating on pure logic. | — |
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
 | `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
-| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (90 checks; 137 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~20 s |
+| `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (115 checks; 162 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~25 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 
@@ -101,7 +101,10 @@ Things that must stay true:
 - **Key scoping.** `src/lib/storageKeys.ts` suffixes the keys with
   `location.pathname` on `file:`, because every `file://` document shares one
   origin. The inline theme script in `index.html` duplicates that expression
-  (it runs before the bundle) — change one and you must change the other.
+  (it runs before the bundle) — change one and you must change the other. **The
+  remembered File System Access handle is scoped by the same helper**
+  (`lib/fileHandle.ts`): a single global IndexedDB key meant the second dashboard
+  opened in a browser saved over the first one's file.
 - **The pre-paint palette.** The same script replays the resolved theme tokens
   from preferences, because it cannot import `src/lib/theme.ts`. The token
   prefixes and the `data-theme` attribute are therefore duplicated too;

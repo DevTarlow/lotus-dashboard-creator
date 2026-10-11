@@ -9,19 +9,16 @@ architecture that makes adding the twenty-first a single file.
 Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zustand 5
 · react-grid-layout 2**.
 
-![Lotus Dashboard Creator, dark theme](docs/dashboard-dark.png)
-
-<p align="center">
-  <img src="docs/dashboard-light.png" alt="Light theme" width="49%" />
-  <img src="docs/widget-gallery.png" alt="Widget gallery drawer" width="49%" />
-</p>
+**Just want a dashboard?** Skip to [Use it](#use-it) — one file, nothing to
+install. Everything below that is for people working on the code.
 
 ---
 
 ## Table of contents
 
+- [Use it](#use-it)
+- [Build it](#build-it)
 - [Features](#features)
-- [Quick start](#quick-start)
 - [Project structure](#project-structure)
 - [Architecture](#architecture)
 - [Writing your own widget](#writing-your-own-widget)
@@ -47,24 +44,31 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 - Lock the layout to stop accidental drags, or hit **Tidy up** to close every
   gap.
 - Add, duplicate, rename, reconfigure and remove individual widgets.
-- A first visit preloads a **complete sixteen-panel workspace** instead of an
-  empty canvas; *Reset dashboard* brings it back, and five more templates cover
-  calmer or more specialised desks.
+- A first visit starts on a **six-panel starter** — clock, weather, links, tasks,
+  calendar, notes — and says so in a one-time welcome panel; the full
+  sixteen-panel **Complete workspace** is one click away in Templates, along with
+  five more desks and a blank canvas.
 
 **Persistence & portability**
 
 - Automatic `localStorage` persistence (debounced by zustand's `persist`
   middleware) — the dashboard is exactly as you left it after a reload, including
   the theme.
-- **Export** the whole workspace as a self-describing JSON file, import it back
-  from the file picker *or* by dropping the file onto the canvas, with a preview
-  of what will change before anything is replaced.
+- The footer says where the work actually is: *Saved in this browser — use Save to
+  file to keep the file up to date*, or *Saved to `<name>`* once the file is
+  linked. The remembered file is scoped per document, so a second dashboard
+  opened in the same browser can never save into the first one's file.
+- **Save to file** writes the dashboard into the HTML file it was opened from
+  (proposing that file's own name), with *Save a copy…* and *Forget this file* for
+  the other two cases.
+- **Save a backup** (`.json`) exports the whole workspace as a self-describing
+  file, restored from the picker *or* by dropping it onto the canvas, with a
+  preview of what will change before anything is replaced.
 - Undo/redo (`⌘/Ctrl + Z`) for every structural change: adding, removing,
   duplicating, dragging, resizing, tidying, applying templates, importing and
   resetting. Rapid edits are coalesced into a single history step.
-- Six starter templates — the complete workspace, a markets desk, a wellness
-  week, an engineer desk, a focus desk and a minimal pair — plus a one-click
-  reset to the default workspace.
+- Removing a widget asks first (and the dialog's switch turns the question off for
+  next time, applied with the answer), so nothing is destroyed by a stray click.
 
 **Widgets**
 
@@ -128,7 +132,35 @@ Built with **Vite 8 · React 19 · TypeScript (strict) · Tailwind CSS 4 · Zust
 - Zero console errors or warnings — verified in a real browser (see
   [Testing & verification](#testing--verification)).
 
-## Quick start
+## Use it
+
+No install, no account, no server. Lotus Dashboard Creator is **one HTML file**:
+the whole app, its styles and every image inside it.
+
+1. **Get the file.** Download `lotus-dashboard.html` from the
+   [releases page](https://github.com/DevTarlow/lotus-dashboard-creator/releases),
+   or build it yourself with `npm run build:single` (see
+   [Build it](#build-it)) and use `dist-single/index.html`.
+2. **Put it somewhere you will find again** — Documents, not Downloads.
+3. **Double-click it.** It opens in your browser and works offline.
+4. **Press `Ctrl+S` (⌘S on macOS), or use `⋯ → Save to file`.** Your changes are
+   kept in the browser as you work; this writes them *into the file*, which is
+   the copy you keep and the copy you send. On Chrome and Edge the same file is
+   rewritten in place; elsewhere each save downloads a fresh copy.
+5. **To share your dashboard, send the file.** To keep a spare, copy it.
+
+The first time a dashboard opens it explains all of this itself, and
+**Help** (the `?` key, or the button in the footer) brings that explanation back
+at any time.
+
+![Lotus Dashboard Creator, dark theme](docs/dashboard-dark.png)
+
+<p align="center">
+  <img src="docs/welcome.png" alt="The first-run welcome panel" width="49%" />
+  <img src="docs/widget-gallery.png" alt="Widget gallery drawer" width="49%" />
+</p>
+
+## Build it
 
 Requirements: **Node.js `^20.19` or `>=22.12`** and npm (or pnpm/yarn — the
 lockfile is npm's).
@@ -151,7 +183,7 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (920 tests, 43 files). |
+| `npm test` | Vitest unit suite (968 tests, 45 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
@@ -192,33 +224,38 @@ src/
 ├── main.tsx                    # React root, global CSS imports
 ├── assets/                     # logo + icons, imported so they can be inlined
 ├── components/
-│   ├── feedback/               # ErrorBoundary, StorageNotice, ToastViewport
+│   ├── feedback/               # ErrorBoundary, StorageNotice, SeedNotice,
+│   │                           # ToastViewport
 │   ├── forms/SettingsForm.tsx  # schema-driven settings renderer
 │   ├── icons.tsx               # ~57 inline SVG icons
 │   ├── layout/                 # HeaderBar, StatusBar, DashboardCanvas,
 │   │                           # WidgetFrame, ImportDropZone
 │   ├── modals/                 # AddWidgetDrawer, WidgetSettingsModal,
-│   │                           # TemplatesDialog, AppearanceDialog,
-│   │                           # TemplatesDialog, ImportDialog, ShortcutsDialog…
+│   │                           # TemplatesDialog, AppearanceDialog, ImportDialog,
+│   │                           # WelcomeDialog, HelpDialog, GettingStarted,
+│   │                           # ConfirmDialog, WidgetDeleteFlow…
 │   └── ui/                     # Button, Modal, Drawer, Dropdown, Field, Markdown,
 │                               # Ring, ProgressBar, StatTile, SourceBadge, tone…
 ├── constants/                  # app + grid constants (breakpoints, row height…)
 ├── hooks/                      # useInterval, useNow, useResource, useWeather, useNews,
 │                               # useQuotes, useDebouncedValue, useSaveDashboardFile,
-│                               # useHotkeys, useTheme, useFocusTrap…
+│                               # useHotkeys, useTheme, useDocumentTitle, useFocusTrap…
 ├── lib/
 │   ├── grid.ts                 # pure layout maths (placement, packing, diffing)
 │   ├── markdown.ts             # tokenising markdown parser
 │   ├── validation.ts           # import/export validation & normalisation
 │   ├── document.ts             # dashboard document building/serialising
-│   ├── templates.ts            # six starter templates
+│   ├── templates.ts            # seven starter templates (the six-panel Starter
+│   │                           # is the default; the showcase is a choice)
 │   ├── theme.ts                # theme presets, ramps, contrast solver, tokens
 │   ├── color.ts                # sRGB ↔ OKLCH and WCAG contrast maths
 │   ├── storage.ts              # safe localStorage adapter (memory fallback)
-│   ├── storageKeys.ts          # per-document key scoping on file://
+│   ├── storageKeys.ts          # per-document key scoping on file:// (the
+│   │                           # file-handle key is scoped by the same helper)
 │   ├── embedded.ts             # the snapshot carried inside a saved HTML file
 │   ├── singleFile.ts           # serialising the running app to one file
-│   ├── fileHandle.ts           # File System Access + remembered file handle
+│   ├── fileHandle.ts           # File System Access + a save target remembered
+│   │                           # per document, so dashboards cannot cross-save
 │   ├── http.ts                 # shared fetch: de-duplication, TTL cache, queue
 │   ├── resourceStatus.ts       # Live / Cached / Offline / Key required vocabulary
 │   ├── prefs.ts                # the shareable preference slice (never a key)
@@ -339,21 +376,31 @@ the same behaviour.
 and degrades to an in-memory map when storage is blocked, full or absent. That
 fallback used to be invisible — the app looked fine until the next refresh wiped
 everything — so the shell now says so: a banner explains the risk and the status
-bar reads **Not saved — storage blocked** instead of claiming the opposite.
+bar says **Can't save in this browser — use Save to file** instead of claiming
+the opposite.
 
 Keys are namespaced per document when the page is opened from disk. Every
 `file://` document shares the single origin `file://`, so without that suffix two
 different dashboard files would read and overwrite each other's state. On the web
-the origin already separates apps and the keys are left alone.
+the origin already separates apps and the keys are left alone. **The same scoping
+applies to the remembered File System Access handle** in `lib/fileHandle.ts` — the
+storage keys and the save target have to agree, or a second dashboard saves into
+the first one's file.
 
 Every rehydration runs through the same validator as an import
 (`sanitizeWorkspace` → `validateDashboardDocument`), so a stale or hand-edited
 payload can never produce a broken canvas: unknown widget types are kept,
 out-of-range coordinates are clamped, missing layouts are generated, and unknown
-layout entries are dropped.
+layout entries are dropped. `sanitizeWorkspace` reports whether it had to fall
+back, and `merge` turns that into the store's `seedOrigin`; an entry that cannot
+be parsed at all is dropped before hydration so the embedded snapshot in a saved
+file is still read.
 
 Documents carry `format: "lotus-dashboard/v1"` and a `version`. Newer versions are
-rejected with a readable message; older ones are migrated with a warning.
+rejected with a readable message; older ones are migrated with a warning. The
+messages themselves are written for the person reading them — "That file was made
+by a newer version of Lotus Dashboard Creator (version 2). Update the app, then
+open it again." — and a scanned test keeps the vocabulary honest.
 
 ### Your dashboard is one file
 
@@ -362,18 +409,41 @@ app, its styles and every image inlined into one portable file. There is nothing
 to install and no server to run: double-click it. Below is how your data travels
 with it.
 
+The built file also **explains itself**: a readable note sits just after the
+doctype (a comment *above* it would put the page into quirks mode), a `<noscript>`
+fallback says what the page needs and which browsers can open it, and the tab,
+bookmark and history entry are named after the dashboard rather than always
+reading "Lotus Dashboard Creator".
+
 **Save to file** (`⌘/Ctrl + S`) writes the current dashboard *into that HTML*,
 as a JSON snapshot in a `<script type="application/json">` element. Opening the
 file again — on any machine, in any browser, offline — restores that exact
 dashboard. Where the [File System Access
 API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) is
 available (Chrome, Edge) the app remembers the file you chose and overwrites it in
-place, so saving is one keystroke; elsewhere it downloads a copy. **Export layout
-as JSON** (`⌘/Ctrl + Shift + S`) is still there for a plain, diffable backup.
+place, so saving is one keystroke; elsewhere it downloads a copy — and the footer
+says which of the two is in effect. **Save a backup (.json)**
+(`⌘/Ctrl + Shift + S`) is still there for a plain, diffable copy.
 
-The two are not interchangeable: the `.html` is an app to *open*, the `.json` is a
-layout to *import*. Picking a saved `.html` in **Import layout from JSON** is
-allowed, and tells you exactly that instead of failing with a JSON syntax error.
+Two details exist because getting them wrong loses work:
+
+- The remembered file is **scoped to the document** it was chosen from, using the
+  same helper as `localStorage` (`storageScope`). Every `file://` page shares one
+  origin *and therefore one IndexedDB*, so a single global key meant that opening
+  a second dashboard and pressing `⌘S` wrote it over the first one's file.
+- The picker proposes the **file you opened**, not a name derived from the
+  dashboard title. Otherwise editing a dashboard someone sent you dropped a
+  renamed copy in Downloads and left the file they sent untouched.
+
+**Save a copy…** exists for the deliberate case, and **Forget this file** unlinks
+the remembered target so the next save asks again. A write that fails (the file
+was moved, renamed or deleted) forgets the handle too, so `⌘S` recovers by asking
+for a location instead of failing the same way forever.
+
+The `.html` and the `.json` are not interchangeable: the `.html` is an app to
+*open*, the `.json` is a backup to *restore*. Picking a saved `.html` in
+**Restore from a backup (.json)** is allowed, and explains exactly that instead of
+failing with a JSON syntax error.
 
 There are two layers, and it is worth knowing which is which:
 
@@ -386,9 +456,16 @@ On load the app takes **whichever is newer**. So an edit you have not saved yet
 survives a refresh, and a file someone sends you is not ignored in favour of
 stale local state. Saving is what promotes your work into the durable layer.
 
+The store records **where the workspace came from** — `fresh`, `browser`, `file`
+or `recovered`. That is what decides whether the welcome appears, and a stored
+dashboard that could not be read now says so instead of looking like a first
+visit; an unparseable `localStorage` entry is dropped rather than left to abort
+hydration, so a snapshot inside the file can still win.
+
 The Finnhub API key is deliberately **never** embedded: `prefsStore` promises it
 stays in `localStorage` and goes nowhere but Finnhub, and a file is shareable.
-Theme and the other preferences do travel with the file.
+Theme and the other preferences do travel with the file — but *"you have seen the
+welcome"* does not, so the person you send it to still gets the explanation.
 
 ### Undo/redo
 
@@ -400,6 +477,10 @@ entries.
 ### Theming
 
 ![The themes & colours picker, listing the ten palette presets](docs/themes.png)
+
+<p align="center">
+  <img src="docs/dashboard-light.png" alt="The same dashboard in the light theme" width="72%" />
+</p>
 
 Two independent axes. `theme` is `light | dark | system`, applied as a class on
 `<html>` (Tailwind v4 is configured with a class-based `dark` variant, and all
@@ -522,7 +603,8 @@ up automatically.
 | `⌘/Ctrl + K` | Open the widget gallery |
 | `⌘/Ctrl + Z` | Undo |
 | `⌘/Ctrl + ⇧ + Z` / `⌘/Ctrl + Y` | Redo |
-| `⌘/Ctrl + S` | Export the layout as JSON |
+| `⌘/Ctrl + S` | Save the dashboard into its file |
+| `⌘/Ctrl + ⇧ + S` | Save a backup copy (`.json`) |
 | `⌘/Ctrl + ⇧ + D` | Toggle light / dark |
 | `?` | Shortcut cheat sheet |
 | `Esc` | Close dialogs, drawers and menus |
@@ -569,7 +651,7 @@ On import the file is validated and normalised before it touches your workspace:
 ## Testing & verification
 
 ```bash
-npm test          # 920 unit tests, 43 files
+npm test          # 968 unit tests, 45 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -584,14 +666,17 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/weather.test.ts` | The live wttr.in provider against a mocked `fetch`: the full published condition-code table, region/observation parsing, coordinate-derived slot placement, day rollover, host fallback, unknown-city and HTML responses, aborts, and malformed payloads. |
 | `lib/market.test.ts` | The live market providers: the curated symbol→id map (and its refusal to guess), 24h change maths, end-anchored sparkline resampling, CoinGecko batching and the empty-array-on-unknown-id trap, Finnhub field mapping and its zeroes-for-unknown-ticker quirk, missing/invalid key handling, both rate limits, and partial-success behaviour. |
 | `lib/news.test.ts` | The live news providers against a routed `fetch` stub: each provider's payload mapping and malformed-input tolerance, the wikitext-to-prose parser (wiki links, refs, templates, citation labels), nested-sub-bullet de-duplication, summary collapsing/capping, day-page URL building, round-robin merging so one provider cannot crowd out a topic, partial failure, total failure and cancellation. |
-| `lib/templates.test.ts` | Every template builds a self-consistent workspace on all five breakpoints with unique ids and registered widget types. |
+| `lib/templates.test.ts` | Every template builds a self-consistent workspace on all five breakpoints with unique ids and registered widget types; the first visit starts on the six-panel Starter and bakes in no city; the sixteen-panel showcase is still available. |
 | `lib/embedded.test.ts` | The embedded snapshot: format marker, `</script>` escaping in a widget's text, foreign/corrupt payloads rejected without throwing, the newer-wins precedence rule, and the sanitising of a preference block that arrived from someone else's file. |
 | `lib/theme.test.ts` | The preset roster and the token engine: the reference ramps pinned against Tailwind's published scales, a complete well-formed token set per preset, the contrast invariants for every preset and across the whole hue circle, custom-accent behaviour, input normalisation, token sanitising (including `__proto__` and injected CSS), and the pinning of the inline pre-paint script. |
 | `lib/color.test.ts` | sRGB ↔ OKLCH round trips and the CSS-spec reference values, WCAG relative luminance and contrast ratios against known boundaries, alpha compositing, and clamping of out-of-gamut or out-of-range input. |
 | `lib/storageKeys.test.ts` | Key scoping: untouched on the web, per-document on `file://`, and matching the expression the inline theme script evaluates. |
+| `lib/fileHandle.test.ts` | The remembered save target: scoped per document on `file://` so two dashboards cannot share one, global on the web, stable for a path, and the whole module degrading quietly without IndexedDB or the File System Access API. |
+| `lib/singleFile.test.ts` | The name a save proposes — the file you opened on disk, the dashboard title on the web — plus `</script>` handling and the snapshot round trip. |
+| `components/chromeCopy.test.ts` | A scan of the shell sources for the copy that was removed (grid vocabulary, `localStorage`, "schema v1", parser messages) and for the copy the app is built on, so the wording cannot drift back. |
 | `lib/utils.test.ts` | `moveItem` — forward/backward moves, clamping, no-ops, and never mutating the input. |
 | `store/dashboardStore.test.ts` | Add/remove/duplicate/undo/redo, history coalescing, tidy, template application, import/export round trip, registry invariants. |
-| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences — including the palette preset and colour overrides; a cached palette is recomputed rather than trusted; corrupt, foreign or unknown stored payloads fall back to defaults; the palette comes from a newer dashboard file and not from an older one. |
+| `store/persistence.test.ts` | A simulated refresh restores widget config, title, lock flag and preferences — including the palette preset and colour overrides; a cached palette is recomputed rather than trusted; corrupt, foreign or unknown stored payloads fall back to defaults; the palette comes from a newer dashboard file and not from an older one; the four seed origins, including a saved file outranking an unreadable browser copy, and the "ask before removing" default. |
 | `lib/http.test.ts` | The shared fetch layer: in-flight de-duplication, TTL reuse and expiry, the concurrency cap, timeouts, offline fast-fail, one retry on a 429/5xx, and that a failure is never cached. |
 | `lib/time.test.ts` | Day keys and day counting across DST changes, month matrices (leap years, either week start), ISO week numbers, zone offsets across a transition, duration formatting. |
 | `lib/solar.test.ts`, `lib/moon.test.ts` | Sunrise, sunset, twilight and golden hour against published USNO values in both hemispheres, polar day and night, and the lunar cycle's periodicity and illumination. |
@@ -614,7 +699,7 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `widgets/registry.test.tsx` | Registry invariants: unique, well-formed metadata; settings fields that write somewhere real; and a server render of every registered widget from its own defaults. |
 
 **Browser verification.** The app was driven through a real Chrome (DevTools
-protocol) in both dev and production builds: 39 assertions covering initial
+protocol) in both dev and production builds: assertions covering initial
 render, gallery add, drag (including the snap placeholder and the persisted
 result), resize, undo, theme switching, reload persistence, JSON export (a real
 file download) and JSON import (a real file upload, preview and apply) — with
@@ -632,8 +717,14 @@ npm run verify:browser -- --dev   # also checks a server you already have runnin
 
 It launches headless Chrome on a scratch profile with an OS-assigned debug port,
 so it never collides with a dev server and always starts from empty storage. The
-single-file checks need no server at all. 90 assertions there — 137 with a server —
-cover rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
+single-file checks need no server at all. 115 assertions there — 162 with a server —
+cover the first run (the welcome appears once and each of its four points is
+really there, the six-panel starter, the weather asking for a city, the honest
+footer line, the tab named after the dashboard, no grid vocabulary in the chrome,
+the settings gear and resize corner visible without hovering, the removal
+question surviving being answered, Help bringing the guidance back, the blank
+canvas, and the readable note plus `<noscript>` fallback in the built file),
+rendering, assets, console cleanliness, storage-key scoping, drag-to-reorder
 persistence, theme presets and custom colours (the applied tokens, the painted
 colours of real elements, mode independence, the warmth slider, the solved accent
 foreground, persistence across a reload, and the palette applied before the
@@ -648,13 +739,15 @@ matters most: the saved file is reopened **from a different path**, so a differe
 snapshot. That check caught a genuine bug — a string-level `</body>` insertion
 landing inside the minified bundle — which is why the snapshot is now written
 through the DOM. The same group also feeds the freshly saved file back into the
-**Import layout from JSON** picker (a real CDP file-input upload) and asserts the
-dialog explains it is a saved dashboard rather than reporting a JSON syntax error.
+**Restore from a backup (.json)** picker (a real CDP file-input upload) and
+asserts the dialog explains it is a dashboard file rather than reporting a JSON
+syntax error.
 
 The catalogue has its own group, driven against the built file with **no network
 at all** — which is the point: every provider-backed panel is exercised while it
-is failing. It asserts that a first visit preloads sixteen panels, that the
-workspace is overlap-free at five widths from 1680 px down to 420 px, that a task
+is failing. It takes the sixteen-panel showcase from the welcome's own example —
+the click a user makes — and asserts that the workspace is overlap-free at five
+widths from 1680 px down to 420 px, that a task
 typed into the list survives a reload with its completed state, that a running
 focus timer is still running after one, that a habit and its one-day streak come
 back, and that the seeded countdown and the calendar's seven columns render. Zero
@@ -726,6 +819,20 @@ surfaces actually differ.
 
 ## Notes & limitations
 
+- **A first visit starts on six panels** — clock, weather, links, tasks, calendar,
+  notes — with a one-time welcome panel, rather than on the sixteen-panel
+  showcase. The showcase is the *Show an example* button in that panel, or the
+  first row of **Templates…**. Existing dashboards are untouched: the starter only
+  applies when nothing is stored for the document.
+- **Weather, sun and air ask for a city** instead of defaulting to Lisbon. The
+  weather card takes the city inline; the other two point at their settings. The
+  temperature unit is guessed from the browser's locale (metric unless the region
+  is one that uses Fahrenheit), which is one click to change.
+- Removing a widget **asks first**, and the dialog's switch turns the question off
+  for next time — applied together with the answer, so the dialog never vanishes
+  mid-question. Undo history lives in memory (deliberately not persisted), so
+  undoing a removal is gone after a reload; the toast's own **Undo** is the
+  immediate safety net.
 - Weather is **live** from [wttr.in](https://wttr.in), which needs no API key or
   signup and allows browser requests from any origin. It is a free community
   service, so the widget refreshes on a 15 minute window, debounces typing, and

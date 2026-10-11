@@ -236,6 +236,9 @@ export const DASHBOARD_TEMPLATES: readonly DashboardTemplate[] = [
 /** The template used for a first visit and for "Reset dashboard". */
 export const DEFAULT_TEMPLATE_ID = 'personal';
 
+/** The full sixteen-panel showcase, offered as an example on a first visit. */
+export const COMPLETE_TEMPLATE_ID = 'personal';
+
 export function getTemplate(id: string): DashboardTemplate | undefined {
   return DASHBOARD_TEMPLATES.find((template) => template.id === id);
 }

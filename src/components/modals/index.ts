@@ -6,5 +6,6 @@ export { AppearanceDialog } from './AppearanceDialog';
 export { ImportDialog } from './ImportDialog';
 export { ConfirmDialog, DeleteWidgetDialog } from './ConfirmDialog';
 export type { ConfirmDialogProps, DeleteWidgetDialogProps } from './ConfirmDialog';
-export { ShortcutsDialog } from './ShortcutsDialog';
+export { HelpDialog } from './HelpDialog';
+export { WelcomeDialog } from './WelcomeDialog';
 export { WidgetDeleteFlow } from './WidgetDeleteFlow';

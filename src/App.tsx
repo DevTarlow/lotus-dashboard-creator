@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AlertIcon, RefreshIcon } from '@/components/icons';
 import { Button } from '@/components/ui';
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary';
@@ -9,13 +10,17 @@ import {
   AddWidgetDrawer,
   AppearanceDialog,
   ImportDialog,
-  ShortcutsDialog,
+  HelpDialog,
   TemplatesDialog,
+  WelcomeDialog,
   WidgetDeleteFlow,
   WidgetSettingsModal,
 } from '@/components/modals';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useTheme } from '@/hooks/useTheme';
+import { useDashboardStore } from '@/store/dashboardStore';
+import { usePrefsStore } from '@/store/prefsStore';
+import { useUiStore } from '@/store/uiStore';
 
 /** Last resort screen: the shell itself failed to render. */
 function CrashScreen({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -55,6 +60,20 @@ export default function App() {
   useTheme();
   useGlobalShortcuts();
 
+  const seedOrigin = useDashboardStore((state) => state.seedOrigin);
+  const hasSeenWelcome = usePrefsStore((state) => state.hasSeenWelcome);
+  const openWelcome = useUiStore((state) => state.openWelcome);
+  const welcomeConsidered = useRef(false);
+
+  // Once per page load: a document with nothing stored for it gets the welcome.
+  // `hasSeenWelcome` is a local preference and never travels inside a file, so
+  // someone who receives a dashboard still sees it.
+  useEffect(() => {
+    if (welcomeConsidered.current) return;
+    welcomeConsidered.current = true;
+    if (seedOrigin === 'fresh' && !hasSeenWelcome) openWelcome();
+  }, [seedOrigin, hasSeenWelcome, openWelcome]);
+
   return (
     <ErrorBoundary
       fallback={(error, reset) => (
@@ -83,7 +102,8 @@ export default function App() {
       <AppearanceDialog />
       <ImportDialog />
       <WidgetDeleteFlow />
-      <ShortcutsDialog />
+      <WelcomeDialog />
+      <HelpDialog />
       <ToastViewport />
     </ErrorBoundary>
   );

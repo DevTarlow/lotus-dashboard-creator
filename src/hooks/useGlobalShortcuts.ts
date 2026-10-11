@@ -15,7 +15,7 @@ export function useGlobalShortcuts(): void {
   const { save } = useSaveDashboardFile();
   const { toggleTheme } = useTheme();
   const openAddWidget = useUiStore((state) => state.openAddWidget);
-  const openShortcuts = useUiStore((state) => state.openShortcuts);
+  const openHelp = useUiStore((state) => state.openHelp);
 
   const hotkeys: HotkeyDefinition[] = [
     {
@@ -71,7 +71,7 @@ export function useGlobalShortcuts(): void {
     },
     {
       combo: '?',
-      handler: () => openShortcuts(),
+      handler: () => openHelp(),
     },
   ];
 

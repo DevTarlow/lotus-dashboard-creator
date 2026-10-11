@@ -58,6 +58,14 @@ export interface PrefsState {
   /** Ask before removing a widget. */
   confirmDelete: boolean;
   /**
+   * `true` once the first-run welcome has been dismissed.
+   *
+   * Kept in this browser only, deliberately: a dashboard file is shareable, and
+   * the person who receives one has never seen the welcome. It is excluded from
+   * `lib/prefs.ts` (the projection a saved file carries) by construction.
+   */
+  hasSeenWelcome: boolean;
+  /**
    * Optional Finnhub API key, supplied by the user, used for live stock quotes.
    *
    * Kept in `localStorage` only — it is never sent anywhere except Finnhub, and
@@ -95,6 +103,7 @@ export interface PrefsState {
   refreshThemeTokens: () => void;
   setShowGridHints: (value: boolean) => void;
   setConfirmDelete: (value: boolean) => void;
+  setHasSeenWelcome: (value: boolean) => void;
   setFinnhubKey: (value: string) => void;
   setGithubToken: (value: string) => void;
 }
@@ -109,6 +118,7 @@ type PersistedPrefs = Pick<
   | 'themeTokens'
   | 'showGridHints'
   | 'confirmDelete'
+  | 'hasSeenWelcome'
   | 'finnhubKey'
   | 'githubToken'
   | 'updatedAt'
@@ -156,6 +166,7 @@ export const usePrefsStore = create<PrefsState>()(
         themeTokens: {},
         showGridHints: true,
         confirmDelete: false,
+        hasSeenWelcome: false,
         finnhubKey: '',
         githubToken: '',
         updatedAt: 0,
@@ -175,6 +186,7 @@ export const usePrefsStore = create<PrefsState>()(
         },
         setShowGridHints: (showGridHints) => set({ showGridHints, updatedAt: Date.now() }),
         setConfirmDelete: (confirmDelete) => set({ confirmDelete, updatedAt: Date.now() }),
+        setHasSeenWelcome: (hasSeenWelcome) => set({ hasSeenWelcome, updatedAt: Date.now() }),
         setFinnhubKey: (finnhubKey) => set({ finnhubKey, updatedAt: Date.now() }),
         setGithubToken: (githubToken) => set({ githubToken, updatedAt: Date.now() }),
       };
@@ -191,6 +203,7 @@ export const usePrefsStore = create<PrefsState>()(
         themeTokens: state.themeTokens,
         showGridHints: state.showGridHints,
         confirmDelete: state.confirmDelete,
+        hasSeenWelcome: state.hasSeenWelcome,
         finnhubKey: state.finnhubKey,
         githubToken: state.githubToken,
         updatedAt: state.updatedAt,

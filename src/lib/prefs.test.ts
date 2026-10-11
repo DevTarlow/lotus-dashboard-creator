@@ -47,6 +47,15 @@ describe('shareablePrefs', () => {
     expect(serialised).not.toContain('updatedAt');
   });
 
+  it('never carries "you have seen the welcome", so a recipient still gets one', () => {
+    // A file is something you send someone. If this flag travelled, the person
+    // who received it would be dropped into a dashboard with no explanation.
+    const shared = shareablePrefs({ ...SHAREABLE, hasSeenWelcome: true } as ShareablePrefsInput);
+
+    expect(shared).not.toHaveProperty('hasSeenWelcome');
+    expect(JSON.stringify(shared)).not.toContain('hasSeenWelcome');
+  });
+
   it('keeps the palette so the file restores the look it was saved with', () => {
     const shared = shareablePrefs(SHAREABLE);
     expect(shared.themeId).toBe('rose-quartz');

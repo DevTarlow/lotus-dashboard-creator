@@ -111,7 +111,7 @@ export function HeaderBar() {
   const canRedo = useDashboardStore(selectCanRedo);
   const openAppearance = useUiStore((state) => state.openAppearance);
   const openTemplates = useUiStore((state) => state.openTemplates);
-  const openShortcuts = useUiStore((state) => state.openShortcuts);
+  const openHelp = useUiStore((state) => state.openHelp);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onPickFile = useCallback(
@@ -280,11 +280,11 @@ export function HeaderBar() {
                 onSelect: actions.resetDashboard,
               },
               {
-                id: 'shortcuts',
-                label: 'Keyboard shortcuts',
+                id: 'help',
+                label: 'Help & shortcuts',
                 icon: <KeyboardIcon className="h-4 w-4" />,
                 shortcut: '?',
-                onSelect: openShortcuts,
+                onSelect: openHelp,
               },
             ]}
           />
@@ -319,7 +319,7 @@ export function HeaderBar() {
 export function StatusBar() {
   const widgetCount = useDashboardStore((state) => state.widgets.length);
   const locked = useDashboardStore((state) => state.locked);
-  const openShortcuts = useUiStore((state) => state.openShortcuts);
+  const openHelp = useUiStore((state) => state.openHelp);
   const { linkedFileName, canWriteInPlace } = useSaveDashboardFile();
   // Constant for the lifetime of the page.
   const persistent = isPersistentStorage();
@@ -351,11 +351,11 @@ export function StatusBar() {
         {locked ? <span>Layout locked</span> : null}
         <button
           type="button"
-          onClick={openShortcuts}
+          onClick={openHelp}
           className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-300"
         >
           <KeyboardIcon className="h-3 w-3" />
-          Shortcuts
+          Help
           <span className="ml-1 rounded border border-slate-200 px-1 dark:border-slate-700">?</span>
         </button>
       </div>

@@ -17,8 +17,10 @@ export interface UiState {
   templatesOpen: boolean;
   /** Palette and colour picker. */
   appearanceOpen: boolean;
-  /** Keyboard shortcut cheat sheet. */
-  shortcutsOpen: boolean;
+  /** Help panel: getting started and the keyboard shortcut sheet. */
+  helpOpen: boolean;
+  /** First-run welcome panel. */
+  welcomeOpen: boolean;
   /** Widget id whose settings modal is open. */
   settingsWidgetId: string | null;
   /** Widget id pending a delete confirmation. */
@@ -34,8 +36,10 @@ export interface UiState {
   closeTemplates: () => void;
   openAppearance: () => void;
   closeAppearance: () => void;
-  openShortcuts: () => void;
-  closeShortcuts: () => void;
+  openHelp: () => void;
+  closeHelp: () => void;
+  openWelcome: () => void;
+  closeWelcome: () => void;
   openSettings: (id: string) => void;
   closeSettings: () => void;
   requestDelete: (id: string) => void;
@@ -51,7 +55,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   addWidgetOpen: false,
   templatesOpen: false,
   appearanceOpen: false,
-  shortcutsOpen: false,
+  helpOpen: false,
+  welcomeOpen: false,
   settingsWidgetId: null,
   pendingDeleteId: null,
   pendingImport: null,
@@ -63,8 +68,10 @@ export const useUiStore = create<UiState>()((set, get) => ({
   closeTemplates: () => set({ templatesOpen: false }),
   openAppearance: () => set({ appearanceOpen: true }),
   closeAppearance: () => set({ appearanceOpen: false }),
-  openShortcuts: () => set({ shortcutsOpen: true }),
-  closeShortcuts: () => set({ shortcutsOpen: false }),
+  openHelp: () => set({ helpOpen: true }),
+  closeHelp: () => set({ helpOpen: false }),
+  openWelcome: () => set({ welcomeOpen: true }),
+  closeWelcome: () => set({ welcomeOpen: false }),
   openSettings: (settingsWidgetId) => set({ settingsWidgetId }),
   closeSettings: () => set({ settingsWidgetId: null }),
   requestDelete: (pendingDeleteId) => set({ pendingDeleteId }),
@@ -79,7 +86,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
       addWidgetOpen: false,
       templatesOpen: false,
       appearanceOpen: false,
-      shortcutsOpen: false,
+      helpOpen: false,
+      welcomeOpen: false,
       settingsWidgetId: null,
       pendingDeleteId: null,
       pendingImport: null,
@@ -91,7 +99,8 @@ export const selectHasOpenOverlay = (state: UiState): boolean =>
   state.addWidgetOpen ||
   state.templatesOpen ||
   state.appearanceOpen ||
-  state.shortcutsOpen ||
+  state.helpOpen ||
+  state.welcomeOpen ||
   state.settingsWidgetId !== null ||
   state.pendingDeleteId !== null ||
   state.pendingImport !== null;

@@ -1,5 +1,6 @@
-import { KeyboardIcon } from '@/components/icons';
+import { KeyboardIcon, SparklesIcon } from '@/components/icons';
 import { Kbd, Modal } from '@/components/ui';
+import { GettingStarted } from '@/components/modals/GettingStarted';
 import { useUiStore } from '@/store/uiStore';
 
 interface ShortcutRow {
@@ -11,13 +12,13 @@ const SHORTCUTS: readonly { group: string; rows: readonly ShortcutRow[] }[] = [
   {
     group: 'Dashboard',
     rows: [
-      { keys: ['⌘', 'K'], label: 'Open the widget gallery' },
+      { keys: ['⌘', 'K'], label: 'Add a widget' },
       { keys: ['⌘', 'Z'], label: 'Undo the last change' },
-      { keys: ['⌘', '⇧', 'Z'], label: 'Redo' },
-      { keys: ['⌘', 'S'], label: 'Save the dashboard to its file' },
-      { keys: ['⌘', '⇧', 'S'], label: 'Export the layout as JSON' },
-      { keys: ['⌘', '⇧', 'D'], label: 'Toggle light / dark mode' },
-      { keys: ['?'], label: 'Show this shortcut sheet' },
+      { keys: ['⌘', '⇧', 'Z'], label: 'Redo (Ctrl + Y also works)' },
+      { keys: ['⌘', 'S'], label: 'Save the dashboard into this file' },
+      { keys: ['⌘', '⇧', 'S'], label: 'Save a backup copy (.json)' },
+      { keys: ['⌘', '⇧', 'D'], label: 'Switch light / dark' },
+      { keys: ['?'], label: 'Show this help' },
       { keys: ['Esc'], label: 'Close dialogs and menus' },
     ],
   },
@@ -30,20 +31,33 @@ const SHORTCUTS: readonly { group: string; rows: readonly ShortcutRow[] }[] = [
   },
 ];
 
-/** Keyboard shortcut cheat sheet. */
-export function ShortcutsDialog() {
-  const open = useUiStore((state) => state.shortcutsOpen);
-  const close = useUiStore((state) => state.closeShortcuts);
+/**
+ * Help: how to get started, plus the keyboard shortcut sheet.
+ *
+ * Reachable at any time (the `?` key, the status bar and the ⋯ menu), because
+ * the first-run welcome is dismissible and there has to be a way back to it.
+ */
+export function HelpDialog() {
+  const open = useUiStore((state) => state.helpOpen);
+  const close = useUiStore((state) => state.closeHelp);
 
   return (
     <Modal
       open={open}
       onClose={close}
-      title="Keyboard shortcuts"
-      description="Modifier key is ⌘ on macOS and Ctrl everywhere else."
-      size="sm"
+      title="Help"
+      description="Getting started, and every keyboard shortcut."
+      size="md"
     >
-      <div className="space-y-5">
+      <div className="space-y-6">
+        <section>
+          <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <SparklesIcon className="h-3.5 w-3.5" />
+            Getting started
+          </h3>
+          <GettingStarted />
+        </section>
+
         {SHORTCUTS.map((section) => (
           <section key={section.group}>
             <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
@@ -64,6 +78,9 @@ export function ShortcutsDialog() {
             </ul>
           </section>
         ))}
+        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+          The modifier key is ⌘ on macOS and Ctrl everywhere else.
+        </p>
       </div>
     </Modal>
   );

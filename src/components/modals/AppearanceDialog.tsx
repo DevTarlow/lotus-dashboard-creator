@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { CheckIcon, MonitorIcon, MoonIcon, PaletteIcon, RefreshIcon, SunIcon } from '@/components/icons';
-import { Button, Modal, Segmented, TextInput } from '@/components/ui';
+import { Button, Modal, Segmented, Switch, TextInput } from '@/components/ui';
 import { useTheme } from '@/hooks/useTheme';
 import { oklchToRgb, rgbToHex } from '@/lib/color';
 import { buildThemeRamps, getThemePreset, THEME_PRESETS, tokensForPreset, type ThemePreset } from '@/lib/theme';
+import { usePrefsStore } from '@/store/prefsStore';
 import { useUiStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 import type { ThemeMode } from '@/types';
@@ -11,7 +12,7 @@ import type { ThemeMode } from '@/types';
 const MODE_OPTIONS: readonly { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
   { value: 'light', label: 'Light', icon: <SunIcon className="h-3.5 w-3.5" /> },
   { value: 'dark', label: 'Dark', icon: <MoonIcon className="h-3.5 w-3.5" /> },
-  { value: 'system', label: 'System', icon: <MonitorIcon className="h-3.5 w-3.5" /> },
+  { value: 'system', label: 'Match system', icon: <MonitorIcon className="h-3.5 w-3.5" /> },
 ];
 
 const GROUPS: readonly ThemePreset['group'][] = ['neutral', 'warm', 'cool', 'bold'];
@@ -107,6 +108,10 @@ export function AppearanceDialog() {
   } = useTheme();
   /** Typed hex, kept separate so a half-finished value is not applied. */
   const [hexDraft, setHexDraft] = useState<string | null>(null);
+  /** Show the "that is not a colour" hint only once the field has been left. */
+  const [hexBlurred, setHexBlurred] = useState(false);
+  const showGridHints = usePrefsStore((state) => state.showGridHints);
+  const setShowGridHints = usePrefsStore((state) => state.setShowGridHints);
 
   const preset = getThemePreset(themeId);
 
@@ -121,10 +126,11 @@ export function AppearanceDialog() {
   );
   const accentHex = customAccentHex || presetAccentHex;
   const neutralHue = customNeutralHue ?? Math.round(preset.neutral.hue);
-  const customised = themeId !== 'lotus' || customAccentHex !== '' || customNeutralHue !== null;
+  const hexInvalid = hexDraft !== null && !/^#[0-9a-f]{6}$/i.test(hexDraft.trim());
 
   const onPickAccent = (value: string) => {
     setHexDraft(null);
+    setHexBlurred(false);
     setCustomAccentHex(value);
   };
 
@@ -133,17 +139,12 @@ export function AppearanceDialog() {
       open={open}
       onClose={close}
       title="Themes & colours"
-      description="Pick a palette, then fine-tune it. Themes travel with a saved dashboard."
+      description="Pick a palette, then adjust it if you like. Your colours travel with a saved dashboard."
       size="lg"
       footer={
         <>
-          <Button
-            variant="secondary"
-            icon={<RefreshIcon className="h-4 w-4" />}
-            onClick={resetAppearance}
-            disabled={!customised}
-          >
-            Reset appearance
+          <Button variant="secondary" icon={<RefreshIcon className="h-4 w-4" />} onClick={resetAppearance}>
+            Reset colours
           </Button>
           <Button variant="primary" onClick={close}>
             Done
@@ -154,7 +155,7 @@ export function AppearanceDialog() {
       <div className="space-y-6">
         <section>
           <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
-            Colour scheme
+            Light or dark
           </h3>
           <div className="flex flex-wrap items-center gap-3">
             <Segmented
@@ -173,7 +174,7 @@ export function AppearanceDialog() {
         <section>
           <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
             <PaletteIcon className="h-3.5 w-3.5" />
-            Palette
+            Colour palette
           </h3>
           <div className="space-y-4">
             {GROUPS.map((group) => {
@@ -205,7 +206,7 @@ export function AppearanceDialog() {
 
         <section>
           <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
-            Fine-tune
+            Fine-tune the colours
           </h3>
 
           <div className="space-y-3">
@@ -214,7 +215,7 @@ export function AppearanceDialog() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Accent colour</p>
                   <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                    Your hue is used at the palette's own lightness steps, so text on it stays readable.
+                    Your colour is used at the palette's own shades, so text on it stays readable.
                   </p>
                 </div>
               </div>
@@ -230,24 +231,37 @@ export function AppearanceDialog() {
                   value={hexDraft ?? accentHex}
                   spellCheck={false}
                   maxLength={7}
-                  aria-label="Accent colour hex value"
+                  aria-label="Accent colour value, for example #4f46e5"
+                  aria-invalid={hexInvalid && hexBlurred}
                   className="w-28 font-mono text-xs"
                   onChange={(event) => {
                     const next = event.target.value;
                     setHexDraft(next);
+                    setHexBlurred(false);
                     if (/^#[0-9a-f]{6}$/i.test(next.trim())) setCustomAccentHex(next.trim());
                   }}
-                  onBlur={() => setHexDraft(null)}
+                  onBlur={() => {
+                    // Never quietly discard what was typed: say what is wrong and
+                    // leave the text there so it can be corrected.
+                    if (hexInvalid) setHexBlurred(true);
+                    else setHexDraft(null);
+                  }}
                 />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onPickAccent('')}
-                  disabled={customAccentHex === ''}
-                >
-                  Use palette accent
-                </Button>
+                {customAccentHex === '' ? (
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                    Using the palette's own accent
+                  </span>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => onPickAccent('')}>
+                    Use the palette's accent
+                  </Button>
+                )}
               </div>
+              {hexInvalid && hexBlurred ? (
+                <p role="alert" className="mt-2 text-[11px] text-rose-600 dark:text-rose-400">
+                  Use a 6-digit colour like #4f46e5.
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700/70">
@@ -267,15 +281,26 @@ export function AppearanceDialog() {
                   className="theme-hue-slider w-full"
                   style={{ backgroundImage: HUE_GRADIENT }}
                 />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setCustomNeutralHue(null)}
-                  disabled={customNeutralHue === null}
-                >
-                  Use palette warmth
-                </Button>
+                {customNeutralHue === null ? (
+                  <span className="shrink-0 text-[11px] text-slate-400 dark:text-slate-500">
+                    Using the palette's own warmth
+                  </span>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setCustomNeutralHue(null)}>
+                    Use the palette's warmth
+                  </Button>
+                )}
               </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700/70">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Show the grid dots</p>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                  A faint dot grid behind your widgets, for lining them up.
+                </p>
+              </div>
+              <Switch checked={showGridHints} onChange={setShowGridHints} label="Show the grid dots" />
             </div>
 
             {/* Real components on the applied palette: the honest preview. */}
@@ -284,10 +309,10 @@ export function AppearanceDialog() {
                 Preview
               </p>
               <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
-                Canvas, panels, borders and text all follow the palette.
+                Background, cards, borders and text all follow the palette.
               </p>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Muted text sits on the same neutral ramp.
+                Faded text is tinted the same way.
               </p>
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 <Button variant="primary" size="sm">

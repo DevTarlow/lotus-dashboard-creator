@@ -12,7 +12,9 @@ import { isPersistentStorage } from '@/lib/storage';
  * gone. That silence is the trap this banner removes.
  *
  * Rendered once, above the canvas. Dismissible, because the user may have no
- * control over the policy and should not be nagged forever.
+ * control over the policy and should not be nagged forever. The dismissal is
+ * per-session on purpose: it cannot be persisted, because persisting anything is
+ * exactly what is unavailable here.
  */
 export function StorageNotice() {
   const [dismissed, setDismissed] = useState(false);
@@ -28,15 +30,15 @@ export function StorageNotice() {
       <div className="mx-auto flex max-w-[1800px] items-start gap-3 px-4 py-2.5 text-xs sm:px-6 lg:px-8">
         <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
         <p className="min-w-0 flex-1">
-          <span className="font-semibold">This browser is blocking local storage</span>, so your layout and
-          settings will be lost when you refresh or close the tab.{' '}
+          <span className="font-semibold">This browser won't let the dashboard save here</span>, so your changes
+          will be lost when you refresh or close the tab.{' '}
           <span className="text-amber-800/90 dark:text-amber-200/80">
-            Use <strong>Save to file</strong> to keep your dashboard in a single HTML file you can reopen — or{' '}
-            <strong>Export layout as JSON</strong> for a portable backup.
+            Use <strong>Save to file</strong> in the ⋯ menu (top right) to keep your dashboard in a file you can
+            reopen — or <strong>Save a backup (.json)</strong> for a portable copy.
           </span>
         </p>
         <IconButton
-          label="Dismiss storage warning"
+          label="Dismiss this warning"
           size="icon-sm"
           variant="ghost"
           className="-mr-1 -mt-0.5 shrink-0 text-amber-800 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-500/20"

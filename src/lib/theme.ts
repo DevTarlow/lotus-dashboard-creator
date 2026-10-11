@@ -160,7 +160,7 @@ const PRESETS = [
   {
     id: 'lotus',
     name: 'Lotus',
-    description: 'The original violet on cool slate.',
+    description: 'The original purple, on cool grey.',
     group: 'neutral',
     accent: { hue: 292.717, chromaFactor: 1 },
     neutral: { hue: 257.417, chromaFactor: 1 },
@@ -168,7 +168,7 @@ const PRESETS = [
   {
     id: 'graphite',
     name: 'Graphite',
-    description: 'Near-monochrome steel, barely tinted.',
+    description: 'Almost no colour at all — just grey.',
     group: 'neutral',
     accent: { hue: 265, chromaFactor: 0.5 },
     neutral: { hue: 265, chromaFactor: 0.4 },
@@ -176,7 +176,7 @@ const PRESETS = [
   {
     id: 'rose-quartz',
     name: 'Rose Quartz',
-    description: 'Soft pink over warm blush greys.',
+    description: 'Soft pink, on warm greys.',
     group: 'warm',
     accent: { hue: 354, chromaFactor: 0.76 },
     neutral: { hue: 20, chromaFactor: 1.4 },
@@ -184,7 +184,7 @@ const PRESETS = [
   {
     id: 'lavender-haze',
     name: 'Lavender Haze',
-    description: 'Lilac accent with lilac-washed surfaces.',
+    description: 'Lilac, with lilac-tinted cards.',
     group: 'warm',
     accent: { hue: 300, chromaFactor: 0.68 },
     neutral: { hue: 300, chromaFactor: 1.3 },
@@ -192,7 +192,7 @@ const PRESETS = [
   {
     id: 'peach-fizz',
     name: 'Peach Fizz',
-    description: 'Coral accent on warm cream neutrals.',
+    description: 'Coral, on warm cream.',
     group: 'warm',
     accent: { hue: 35, chromaFactor: 0.64 },
     neutral: { hue: 60, chromaFactor: 1.3 },
@@ -200,7 +200,7 @@ const PRESETS = [
   {
     id: 'fuchsia-bloom',
     name: 'Fuchsia Bloom',
-    description: 'Hot magenta with plum-tinted darks.',
+    description: 'Bright magenta over deep plum.',
     group: 'bold',
     accent: { hue: 330, chromaFactor: 1.08 },
     neutral: { hue: 320, chromaFactor: 1.2 },
@@ -208,7 +208,7 @@ const PRESETS = [
   {
     id: 'cobalt',
     name: 'Cobalt',
-    description: 'Deep blue on cool steel surfaces.',
+    description: 'Deep blue, on cool grey.',
     group: 'cool',
     accent: { hue: 262, chromaFactor: 0.88 },
     neutral: { hue: 265, chromaFactor: 1.2 },
@@ -216,7 +216,7 @@ const PRESETS = [
   {
     id: 'emerald-slate',
     name: 'Emerald Slate',
-    description: 'Green accent, cool grey everywhere else.',
+    description: 'Green, with cool grey everywhere else.',
     group: 'cool',
     accent: { hue: 155, chromaFactor: 0.64 },
     neutral: { hue: 160, chromaFactor: 1 },
@@ -224,7 +224,7 @@ const PRESETS = [
   {
     id: 'amber-forge',
     name: 'Amber Forge',
-    description: 'Amber accent over warm graphite.',
+    description: 'Amber over warm charcoal.',
     group: 'bold',
     accent: { hue: 70, chromaFactor: 0.68 },
     neutral: { hue: 45, chromaFactor: 1.5 },
@@ -232,7 +232,7 @@ const PRESETS = [
   {
     id: 'crimson-carbon',
     name: 'Crimson Carbon',
-    description: 'Red accent with near-neutral carbon surfaces.',
+    description: 'Red, with near-grey cards.',
     group: 'bold',
     accent: { hue: 25, chromaFactor: 0.88 },
     neutral: { hue: 20, chromaFactor: 0.8 },

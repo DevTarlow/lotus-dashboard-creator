@@ -58,7 +58,7 @@ export function useDashboardActions(): DashboardActions {
     });
     const fileName = suggestedFileName(document.dashboard.title);
     downloadTextFile(fileName, serializeDashboardDocument(document));
-    success('Layout exported', { description: fileName });
+    success('Backup saved', { description: `${fileName} — keep it somewhere safe.` });
   }, [success]);
 
   const copyJson = useCallback(() => {
@@ -70,7 +70,7 @@ export function useDashboardActions(): DashboardActions {
       layouts: state.layouts,
     });
     void copyToClipboard(serializeDashboardDocument(document)).then((ok) => {
-      if (ok) success('Layout JSON copied to the clipboard');
+      if (ok) success('Backup copied to the clipboard');
       else error('Could not access the clipboard', { description: 'Your browser blocked clipboard access.' });
     });
   }, [error, success]);
@@ -81,7 +81,7 @@ export function useDashboardActions(): DashboardActions {
         const text = await readFileAsText(file);
         stageImport({ fileName: file.name, text });
       } catch {
-        error('Could not read that file', { description: file.name });
+        error('Could not open that file', { description: file.name });
       }
     },
     [error, stageImport],
@@ -92,7 +92,9 @@ export function useDashboardActions(): DashboardActions {
       const definition = getWidgetDefinition(type);
       const id = addWidgetToStore(type);
       if (!id) {
-        error('Unknown widget', { description: `No plugin is registered for “${type}”.` });
+        error('That widget is not in this copy of the app', {
+          description: `Nothing here can display a “${type}” card.`,
+        });
         return;
       }
       notify({
@@ -130,7 +132,7 @@ export function useDashboardActions(): DashboardActions {
 
   const tidy = useCallback(() => {
     tidyLayout();
-    success('Layout tidied', { description: 'Gaps were closed on every breakpoint.' });
+    success('Tidied up', { description: 'The gaps between your widgets are closed.' });
   }, [success, tidyLayout]);
 
   const undo = useCallback(() => {
@@ -150,8 +152,10 @@ export function useDashboardActions(): DashboardActions {
     setLocked(next);
     notify({
       tone: 'info',
-      title: next ? 'Layout locked' : 'Layout unlocked',
-      description: next ? 'Widgets can no longer be moved or resized.' : 'Drag and resize are enabled again.',
+      title: next ? 'The layout is locked' : 'The layout is unlocked',
+      description: next
+        ? 'Widgets stay where they are until you unlock them.'
+        : 'You can drag and resize widgets again.',
     });
   }, [notify, setLocked]);
 
@@ -159,7 +163,7 @@ export function useDashboardActions(): DashboardActions {
     (template: DashboardTemplate) => {
       applyTemplateToStore(template);
       success(`Applied “${template.name}”`, {
-        description: 'Press ⌘/Ctrl + Z to restore your previous dashboard.',
+        description: 'Your previous dashboard is one undo away (⌘/Ctrl + Z).',
         duration: 7000,
         action: { label: 'Undo', onClick: () => useDashboardStore.getState().undo() },
       });

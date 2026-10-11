@@ -80,7 +80,7 @@ export function Modal({
               <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{description}</p>
             ) : null}
           </div>
-          <IconButton label="Close dialog" icon={<CloseIcon className="h-4.5 w-4.5" />} onClick={onClose} />
+          <IconButton label="Close" icon={<CloseIcon className="h-4.5 w-4.5" />} onClick={onClose} />
         </header>
 
         {toolbar ? (

@@ -165,7 +165,7 @@ export function SettingsForm({ definition, config, onChange }: SettingsFormProps
   if (fields.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
-        This widget has no settings — its content is edited directly on the canvas.
+        There is nothing to set up here — this widget is edited in place, on the card itself.
       </p>
     );
   }

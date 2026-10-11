@@ -63,7 +63,7 @@ function coerceWidget(value: unknown, options: ValidateOptions, warnings: string
   if (!isRecord(value)) return null;
   const type = asString(value.type).trim();
   if (type === '') {
-    warnings.push('Skipped a widget without a "type" field.');
+    warnings.push('One entry did not name a widget type, so it was skipped.');
     return null;
   }
   const defaults = options.defaultConfigFor?.(type);
@@ -74,7 +74,7 @@ function coerceWidget(value: unknown, options: ValidateOptions, warnings: string
   const createdAt = asNumber(value.createdAt, Date.now());
 
   if (options.isKnownType && !options.isKnownType(type)) {
-    warnings.push(`Widget type "${type}" is not installed — it will be shown as unavailable until you add the plugin.`);
+    warnings.push(`“${type}” is not part of this copy of the app — that card will show as unavailable, and your data for it is kept.`);
   }
 
   return { id, type, title: title === '' ? fallbackTitle : title, config, createdAt };
@@ -86,30 +86,32 @@ export function validateDashboardDocument(input: unknown, options: ValidateOptio
   const columns = options.columns ?? GRID_COLUMNS;
 
   if (!isRecord(input)) {
-    return { ok: false, errors: ['The file does not contain a dashboard object.'] };
+    return { ok: false, errors: ['That file does not contain a dashboard.'] };
   }
 
   const format = asString(input.format).trim();
   if (format !== '' && format !== DASHBOARD_FORMAT) {
-    return { ok: false, errors: [`Unsupported format "${format}". Expected "${DASHBOARD_FORMAT}".`] };
+    return { ok: false, errors: [`That file was written by a different app (it names the format “${format}”).`] };
   }
   if (format === '') {
-    warnings.push('The file has no format marker — imported in compatibility mode.');
+    warnings.push('That file does not say what wrote it, so it was read as best it could be.');
   }
 
   const version = asNumber(input.version, 0);
   if (version > SCHEMA_VERSION) {
     return {
       ok: false,
-      errors: [`This file was created by a newer version of ${APP_NAME} (schema v${version}). Please update the app.`],
+      errors: [
+        `That file was made by a newer version of ${APP_NAME} (version ${version}). Update the app, then open it again.`,
+      ],
     };
   }
   if (version < SCHEMA_VERSION) {
-    warnings.push(`Migrated the file from schema v${version || 'unknown'} to v${SCHEMA_VERSION}.`);
+    warnings.push(`That file is from an older version, and was updated to this one (v${SCHEMA_VERSION}).`);
   }
 
   if (!Array.isArray(input.widgets)) {
-    return { ok: false, errors: ['The file is missing the "widgets" array.'] };
+    return { ok: false, errors: ['That file has no widgets in it.'] };
   }
 
   const widgets: StoredWidgetInstance[] = [];
@@ -119,7 +121,7 @@ export function validateDashboardDocument(input: unknown, options: ValidateOptio
     if (!widget) continue;
     if (seenIds.has(widget.id)) {
       widget.id = createId(widget.type);
-      warnings.push('A duplicated widget id was replaced with a new one.');
+      warnings.push('Two widgets were using the same identifier, so one was given a new one.');
     }
     seenIds.add(widget.id);
     widgets.push(widget);
@@ -164,8 +166,14 @@ export function validateDashboardDocument(input: unknown, options: ValidateOptio
     columns,
   );
 
-  if (droppedItems > 0) warnings.push(`Ignored ${droppedItems} malformed layout ${droppedItems === 1 ? 'entry' : 'entries'}.`);
-  if (unknownItems > 0) warnings.push(`Removed ${unknownItems} layout ${unknownItems === 1 ? 'entry' : 'entries'} for unknown widgets.`);
+  if (droppedItems > 0)
+    warnings.push(
+      `Ignored ${droppedItems} placement ${droppedItems === 1 ? 'entry that did not make sense' : 'entries that did not make sense'}.`,
+    );
+  if (unknownItems > 0)
+    warnings.push(
+      `Removed ${unknownItems} placement ${unknownItems === 1 ? 'entry' : 'entries'} that belonged to no widget.`,
+    );
 
   const dashboard = asRecord(input.dashboard);
   const title = asString(dashboard.title).trim();
@@ -208,12 +216,12 @@ function findImportedSize(layouts: LayoutsByBreakpoint, id: string) {
 export function parseDashboardJson(text: string, options: ValidateOptions = {}): ImportResult {
   const trimmed = text.trim();
   if (trimmed === '') {
-    return { ok: false, errors: ['The file is empty.'] };
+    return { ok: false, errors: ['That file is empty.'] };
   }
   let parsed: unknown;
   try {
     parsed = JSON.parse(trimmed);
-  } catch (error) {
+  } catch {
     // A file this app saved with "Save to file" is a whole HTML page, not JSON.
     // Saying so is far more useful than the raw `Unexpected token '<'`.
     const detectedAs = detectMarkupFile(trimmed);
@@ -222,7 +230,7 @@ export function parseDashboardJson(text: string, options: ValidateOptions = {}):
         ok: false,
         detectedAs,
         errors: [
-          'This is a saved dashboard file, not a layout JSON. Open it in your browser to use the dashboard inside it.',
+          'That is a dashboard file, not a backup. Open it in your browser to use the dashboard inside it.',
         ],
       };
     }
@@ -230,12 +238,14 @@ export function parseDashboardJson(text: string, options: ValidateOptions = {}):
       return {
         ok: false,
         detectedAs,
-        errors: ['This is a web page, not a layout JSON file.'],
+        errors: ['That is a web page, not a dashboard backup.'],
       };
     }
     return {
       ok: false,
-      errors: [`The file is not valid JSON: ${error instanceof Error ? error.message : 'unknown error'}.`],
+      // The parser's own text ("Unexpected token '<'") tells the user nothing
+      // they can act on, so the message says what the file probably is instead.
+      errors: ['That file could not be read as a dashboard backup.'],
     };
   }
   return validateDashboardDocument(parsed, options);

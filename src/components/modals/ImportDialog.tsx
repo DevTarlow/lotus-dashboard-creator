@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { AlertIcon, CheckIcon, DownloadIcon, InfoIcon, UploadIcon } from '@/components/icons';
 import { Badge, Button, Modal } from '@/components/ui';
+import { SCHEMA_VERSION } from '@/constants/app';
 import { parseDashboardJson } from '@/lib/validation';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { useToastStore } from '@/store/toastStore';
@@ -33,17 +34,17 @@ export function ImportDialog() {
   // `detectMarkupFile`) gets an explanation instead of the generic error list.
   const detectedAs = result.ok ? null : (result.detectedAs ?? null);
   const title = result.ok
-    ? 'Import this layout?'
+    ? 'Restore this backup?'
     : detectedAs === 'saved-dashboard-html'
-      ? 'This is a saved dashboard, not a layout file'
+      ? "That's a dashboard file, not a backup"
       : detectedAs
-        ? 'This is not a layout file'
-        : 'This file cannot be imported';
+        ? "That isn't a backup file"
+        : "That file can't be opened";
 
   const apply = () => {
     if (!result.ok) return;
     loadDocument(result.document);
-    success('Layout imported', {
+    success('Backup restored', {
       description: `${result.document.widgets.length} widgets restored from ${pendingImport.fileName}.`,
       duration: 7000,
       action: { label: 'Undo', onClick: () => useDashboardStore.getState().undo() },
@@ -83,10 +84,12 @@ export function ImportDialog() {
                 {result.document.dashboard.title}
               </h3>
               <Badge tone="violet">{result.document.widgets.length} widgets</Badge>
-              <Badge tone="slate">schema v{result.document.version}</Badge>
+              {result.document.version < SCHEMA_VERSION ? (
+                <Badge tone="slate">made with an older version</Badge>
+              ) : null}
             </div>
             <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-              Exported {new Date(result.document.exportedAt).toLocaleString()} by {result.document.generator.name}{' '}
+              Saved {new Date(result.document.exportedAt).toLocaleString()} by {result.document.generator.name}{' '}
               {result.document.generator.version}
             </p>
           </div>
@@ -104,13 +107,15 @@ export function ImportDialog() {
                     {definition ? (
                       <Badge tone={definition.accent}>{definition.name}</Badge>
                     ) : (
-                      <Badge tone="amber">plugin missing</Badge>
+                      <Badge tone="amber">not included here</Badge>
                     )}
                   </li>
                 );
               })}
               {result.document.widgets.length === 0 ? (
-                <li className="text-sm text-slate-500 dark:text-slate-400">No widgets — this would clear the canvas.</li>
+                <li className="text-sm text-slate-500 dark:text-slate-400">
+                  No widgets — this would leave you with an empty dashboard.
+                </li>
               ) : null}
             </ul>
           </div>
@@ -146,15 +151,15 @@ export function ImportDialog() {
                   — double-click it, or drag it into a browser tab — and the dashboard inside it comes back.
                 </>
               ) : (
-                <>Import expects the JSON written by <strong>Export layout as JSON</strong>.</>
+                <>Restoring expects the <code>.json</code> file written by <strong>Save a backup (.json)</strong>.</>
               )}
             </p>
           </div>
           <p className="flex items-start gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
             <UploadIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            To move a layout between dashboards, use <strong>Export layout as JSON</strong> (
+            To move a dashboard to another computer, use <strong>Save a backup (.json)</strong> (
             <kbd className="rounded border border-slate-300 px-1 dark:border-slate-600">⌘/Ctrl + Shift + S</kbd>), then
-            import the <code>.json</code> file it downloads.
+            restore from the <code>.json</code> file it downloads.
           </p>
         </div>
       ) : (
@@ -172,7 +177,7 @@ export function ImportDialog() {
           </div>
           <p className="flex items-start gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
             <UploadIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Export a layout from Lotus Dashboard Creator to get a file in the expected format, then import that file.
+            Use <strong>Save a backup (.json)</strong> in the ⋯ menu to make a file you can restore from later.
           </p>
         </div>
       )}

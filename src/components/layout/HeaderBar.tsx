@@ -21,8 +21,7 @@ import {
   SparklesIcon,
 } from '@/components/icons';
 import { Badge, Button, Dropdown, IconButton } from '@/components/ui';
-import { GRID_COLUMNS } from '@/constants/grid';
-import { APP_NAME, IMPORT_ACCEPT } from '@/constants/app';
+import { IMPORT_ACCEPT } from '@/constants/app';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
 import { useSaveDashboardFile } from '@/hooks/useSaveDashboardFile';
 import { useTheme } from '@/hooks/useTheme';
@@ -105,7 +104,6 @@ export function HeaderBar() {
   const { theme, resolved, setTheme } = useTheme();
   const widgetCount = useDashboardStore((state) => state.widgets.length);
   const locked = useDashboardStore((state) => state.locked);
-  const activeBreakpoint = useDashboardStore((state) => state.activeBreakpoint);
   const canUndo = useDashboardStore(selectCanUndo);
   const canRedo = useDashboardStore(selectCanRedo);
   const openAppearance = useUiStore((state) => state.openAppearance);
@@ -137,9 +135,9 @@ export function HeaderBar() {
                 {widgetCount} {widgetCount === 1 ? 'widget' : 'widgets'}
               </Badge>
             </div>
-            <p className="hidden px-2 text-[11px] text-slate-400 sm:block dark:text-slate-500">
-              {APP_NAME} · {activeBreakpoint} · {GRID_COLUMNS[activeBreakpoint]} cols
-            </p>
+            {/* The app name, the grid breakpoint and the column count used to sit
+                here. None of it helps someone arrange a dashboard; the name is on
+                the logo and in Help, and the grid measures itself. */}
           </div>
         </div>
 
@@ -175,7 +173,7 @@ export function HeaderBar() {
           </div>
 
           <Dropdown
-            label="Colour theme"
+            label="Themes & colours"
             trigger={
               <span className="inline-flex items-center gap-1.5">
                 {themeIcon}
@@ -185,7 +183,10 @@ export function HeaderBar() {
                   className="h-2.5 w-2.5 rounded-full border border-slate-900/10 bg-violet-500 dark:border-white/20"
                   aria-hidden="true"
                 />
-                <span className="hidden capitalize md:inline">{theme}</span>
+                <span className="hidden md:inline">{
+                  // One name per setting: the dialog says "Match system" too.
+                  theme === 'system' ? 'Match system' : theme === 'dark' ? 'Dark' : 'Light'
+                }</span>
               </span>
             }
             items={[

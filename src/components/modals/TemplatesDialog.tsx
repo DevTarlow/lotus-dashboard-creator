@@ -35,7 +35,7 @@ function TemplatePreview({ layouts }: { layouts: LayoutsByBreakpoint }) {
 
 interface TemplateRowProps {
   template: DashboardTemplate;
-  /** Marks the template that "Reset to default" applies. */
+  /** Marks the template that "Restore the starter dashboard" brings back. */
   isDefault: boolean;
   onApply: (template: DashboardTemplate) => void;
 }

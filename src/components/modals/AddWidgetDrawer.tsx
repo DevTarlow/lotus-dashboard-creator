@@ -17,7 +17,7 @@ interface WidgetCardProps {
   onDragging: (type: string | null) => void;
 }
 
-/** Gallery card — click to add, or drag straight onto the canvas. */
+/** Gallery card — click to add, or drag straight onto the dashboard. */
 function WidgetCard({ definition, justAdded, onAdd, onDragging }: WidgetCardProps) {
   const Icon = definition.icon;
   const { w, h } = definition.defaultSize;

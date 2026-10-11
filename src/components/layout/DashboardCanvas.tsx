@@ -148,8 +148,8 @@ export function DashboardCanvas() {
         <div className="flex min-h-[60vh] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 dark:border-slate-700 dark:bg-slate-900/30">
           <EmptyState
             icon={<GridIcon className="h-5 w-5" />}
-            title="Your canvas is empty"
-            description="Add widgets from the gallery, or drag one straight onto the grid. Everything is saved in your browser automatically."
+            title="Nothing here yet"
+            description="Add a widget to get started — a clock, the weather, your tasks, a notebook. Your changes are kept in this browser automatically."
             action={
               <Button variant="primary" icon={<PlusIcon className="h-4 w-4" />} onClick={openAddWidget}>
                 Add your first widget

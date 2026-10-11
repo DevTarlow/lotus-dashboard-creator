@@ -95,8 +95,8 @@ export const WidgetFrame = memo(
           <EmptyState
             size="sm"
             icon={<PlugIcon className="h-4 w-4" />}
-            title="Widget unavailable"
-            description={`No plugin is registered for “${instance.type}”. The layout entry was kept, so installing the widget brings it back.`}
+            title="This widget isn't in this copy of the app"
+            description={`Nothing here can display a “${instance.type}” card. Your data for it is kept, so it comes back in a newer copy of the app.`}
             action={
               <Button
                 size="sm"
@@ -104,7 +104,7 @@ export const WidgetFrame = memo(
                 icon={<TrashIcon className="h-3.5 w-3.5" />}
                 onClick={() => requestDelete(instance.id)}
               >
-                Remove
+                Remove widget
               </Button>
             }
           />
@@ -223,24 +223,36 @@ export const WidgetFrame = memo(
               <EmptyState
                 size="sm"
                 icon={<AlertIcon className="h-4 w-4 text-rose-500" />}
-                title="This widget hit an error"
-                description={error.message}
+                title="This widget could not start"
+                /* The technical message is kept, but underneath the buttons: a raw
+                   error as the body of a card reads as breakage. */
+                description="Trying again usually fixes it."
                 action={
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      icon={<RefreshIcon className="h-3.5 w-3.5" />}
-                      onClick={() => {
-                        resetWidgetConfig(instance.id);
-                        reset();
-                      }}
-                    >
-                      Reset widget
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={reset}>
-                      Retry
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={reset}>
+                        Try again
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={<RefreshIcon className="h-3.5 w-3.5" />}
+                        onClick={() => {
+                          resetWidgetConfig(instance.id);
+                          reset();
+                        }}
+                      >
+                        Reset this widget
+                      </Button>
+                    </div>
+                    <details className="text-left">
+                      <summary className="cursor-pointer text-[11px] text-slate-400 dark:text-slate-500">
+                        Details
+                      </summary>
+                      <span className="mt-1 block break-words font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                        {error.message}
+                      </span>
+                    </details>
                   </div>
                 }
               />

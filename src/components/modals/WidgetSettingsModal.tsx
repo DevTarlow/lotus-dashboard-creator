@@ -47,13 +47,13 @@ function WidgetSettingsBody({ widget, onDone, onRemove }: BodyProps) {
               {definition?.name ?? widget.type}
             </p>
             <p className="truncate text-[11px] text-slate-400 dark:text-slate-500">
-              id {widget.id} · added {new Date(widget.createdAt).toLocaleDateString()}
+              Added {new Date(widget.createdAt).toLocaleDateString()}
             </p>
           </div>
           {definition ? (
             <Badge tone={definition.accent}>{definition.category}</Badge>
           ) : (
-            <Badge tone="amber">missing plugin</Badge>
+            <Badge tone="amber">not included here</Badge>
           )}
         </div>
 
@@ -83,8 +83,8 @@ function WidgetSettingsBody({ widget, onDone, onRemove }: BodyProps) {
           </div>
         ) : (
           <p className="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-3 text-xs text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/5 dark:text-amber-300">
-            The plugin for this widget is not installed, so it has no editable options. Its data is preserved in your
-            saved layout.
+            This widget isn't part of this copy of the app, so there is nothing to configure. Your saved content for it
+            is kept.
           </p>
         )}
       </div>
@@ -101,20 +101,20 @@ function WidgetSettingsBody({ widget, onDone, onRemove }: BodyProps) {
             }
           }}
         >
-          Duplicate
+          Duplicate widget
         </Button>
         <Button
           variant="ghost"
           icon={<RefreshIcon className="h-4 w-4" />}
           onClick={() => {
             resetWidgetConfig(widget.id);
-            notify('Widget reset', { description: 'Settings are back to their defaults.' });
+            notify('Widget reset', { description: `${widget.title} is back to its default settings.` });
           }}
         >
-          Reset
+          Reset this widget
         </Button>
         <Button variant="danger" icon={<TrashIcon className="h-4 w-4" />} onClick={onRemove}>
-          Remove
+          Remove widget
         </Button>
         <Button variant="primary" onClick={onDone}>
           Done

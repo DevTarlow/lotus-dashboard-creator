@@ -58,7 +58,7 @@ describe('document import', () => {
     const result = parseDashboardJson('{ not json');
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.errors[0]).toContain('not valid JSON');
+    expect(result.errors[0]).toContain('could not be read as a dashboard backup');
     // Ordinary bad JSON is *not* reported as a recognised file kind.
     expect(result.detectedAs).toBeUndefined();
   });
@@ -74,7 +74,7 @@ describe('document import', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.detectedAs).toBe('saved-dashboard-html');
-    expect(result.errors[0]).toContain('saved dashboard file');
+    expect(result.errors[0]).toContain('dashboard file, not a backup');
     expect(result.errors[0]).not.toContain('Unexpected token');
   });
 
@@ -90,7 +90,7 @@ describe('document import', () => {
     expect(parseDashboardJson('   ').ok).toBe(false);
     const foreign = validateDashboardDocument({ format: 'other/v9', widgets: [], layouts: {} });
     expect(foreign.ok).toBe(false);
-    if (!foreign.ok) expect(foreign.errors[0]).toContain('Unsupported format');
+    if (!foreign.ok) expect(foreign.errors[0]).toContain('different app');
   });
 
   it('rejects documents from a newer schema', () => {
@@ -117,7 +117,7 @@ describe('document import', () => {
     if (!result.ok) return;
     const item = result.document.layouts.lg?.[0];
     expect(item).toMatchObject({ i: 'a', x: 0, y: 0, w: 12, h: 1 });
-    expect(result.warnings.some((warning) => warning.includes('malformed'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('did not make sense'))).toBe(true);
   });
 
   it('keeps unknown widget types but warns about them', () => {
@@ -134,7 +134,7 @@ describe('document import', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.document.widgets).toHaveLength(1);
-    expect(result.warnings.some((warning) => warning.includes('not installed'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('not part of this copy'))).toBe(true);
   });
 
   it('merges widget defaults underneath the imported config', () => {
@@ -151,7 +151,7 @@ describe('document import', () => {
     expect(result.document.widgets[0]?.config).toEqual({ hour12: true, showSeconds: true });
     expect(result.document.widgets[0]?.title).toBe('Clock');
     // Missing format marker is tolerated, with a warning.
-    expect(result.warnings.some((warning) => warning.includes('compatibility'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('does not say what wrote it'))).toBe(true);
   });
 
   it('places widgets that have no layout entry', () => {
@@ -180,6 +180,6 @@ describe('document import', () => {
     if (!result.ok) return;
     const ids = result.document.widgets.map((entry) => entry.id);
     expect(new Set(ids).size).toBe(2);
-    expect(result.warnings.some((warning) => warning.includes('duplicated'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('same identifier'))).toBe(true);
   });
 });

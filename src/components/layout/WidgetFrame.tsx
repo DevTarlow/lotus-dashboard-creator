@@ -16,6 +16,16 @@ import type { StoredWidgetInstance } from '@/types';
 import { cn } from '@/lib/utils';
 import { getWidgetDefinition } from '@/widgets/registry';
 
+/**
+ * When the lock notice was last shown.
+ *
+ * "Nothing happens when I drag" is the worst kind of dead end, but a card that
+ * shouts on every pointer-down is worse. Once every few seconds is enough to
+ * explain it.
+ */
+const LOCKED_NOTICE_INTERVAL_MS = 8000;
+let lockedNoticeAt = 0;
+
 export interface WidgetFrameProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   instance: StoredWidgetInstance;
   /**
@@ -55,7 +65,8 @@ export const WidgetFrame = memo(
     const duplicateWidget = useDashboardStore((state) => state.duplicateWidget);
     const openSettings = useUiStore((state) => state.openSettings);
     const requestDelete = useUiStore((state) => state.requestDelete);
-    const notify = useToastStore((state) => state.success);
+    const notifySuccess = useToastStore((state) => state.success);
+    const notify = useToastStore((state) => state.notify);
 
     const updateConfig = useCallback(
       (patch: Record<string, unknown>) => updateWidgetConfig(instance.id, patch),
@@ -122,6 +133,21 @@ export const WidgetFrame = memo(
             'widget-drag-handle flex shrink-0 items-center gap-2.5 border-b border-slate-100 px-3 py-2 dark:border-slate-800',
             locked ? 'cursor-default' : 'cursor-grab active:cursor-grabbing',
           )}
+          title={locked ? 'The layout is locked — unlock it in the status bar' : undefined}
+          onPointerDown={
+            locked
+              ? () => {
+                  const now = Date.now();
+                  if (now - lockedNoticeAt < LOCKED_NOTICE_INTERVAL_MS) return;
+                  lockedNoticeAt = now;
+                  notify({
+                    tone: 'info',
+                    title: 'The layout is locked',
+                    description: 'Unlock it in the status bar to move or resize widgets again.',
+                  });
+                }
+              : undefined
+          }
         >
           <IconChip tone={definition.accent} className="h-7 w-7">
             <definition.icon className="h-4 w-4" />
@@ -142,47 +168,52 @@ export const WidgetFrame = memo(
             </Badge>
           ) : null}
 
-          {/* Actions: always visible on touch, revealed on hover for pointers. */}
-          <div className="widget-no-drag flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/widget:opacity-100 sm:focus-within:opacity-100">
+          {/* The settings gear is always on screen: the options behind it (which
+              city a weather card is showing, for instance) are the first thing a
+              new user looks for, and hover-only made it look absent. The ⋮ menu
+              stays out of the way until the card is hovered or focused. */}
+          <div className="widget-no-drag flex shrink-0 items-center gap-0.5">
             <IconButton
               label={`Settings for ${instance.title}`}
               size="icon-sm"
               icon={<GearIcon className="h-3.5 w-3.5" />}
               onClick={() => openSettings(instance.id)}
             />
-            <Dropdown
-              label={`Actions for ${instance.title}`}
-              trigger={<MoreIcon className="h-2 w-2" />}
-              triggerClassName="h-7 w-7 px-0 justify-center"
-              items={[
-                {
-                  id: 'duplicate',
-                  label: 'Duplicate widget',
-                  icon: <CopyIcon className="h-4 w-4" />,
-                  onSelect: () => {
-                    const id = duplicateWidget(instance.id);
-                    if (id) notify('Widget duplicated');
+            <div className="transition-opacity sm:opacity-0 sm:group-hover/widget:opacity-100 sm:focus-within:opacity-100">
+              <Dropdown
+                label={`Actions for ${instance.title}`}
+                trigger={<MoreIcon className="h-2 w-2" />}
+                triggerClassName="h-7 w-7 px-0 justify-center"
+                items={[
+                  {
+                    id: 'duplicate',
+                    label: 'Duplicate widget',
+                    icon: <CopyIcon className="h-4 w-4" />,
+                    onSelect: () => {
+                      const id = duplicateWidget(instance.id);
+                      if (id) notifySuccess('Widget duplicated');
+                    },
                   },
-                },
-                {
-                  id: 'reset',
-                  label: 'Reset to defaults',
-                  icon: <RefreshIcon className="h-4 w-4" />,
-                  onSelect: () => {
-                    resetWidgetConfig(instance.id);
-                    notify('Widget reset', { description: `${instance.title} is back to its default settings.` });
+                  {
+                    id: 'reset',
+                    label: 'Reset this widget',
+                    icon: <RefreshIcon className="h-4 w-4" />,
+                    onSelect: () => {
+                      resetWidgetConfig(instance.id);
+                      notifySuccess('Widget reset', { description: `${instance.title} is back to its default settings.` });
+                    },
                   },
-                },
-                { id: 'sep', separator: true },
-                {
-                  id: 'remove',
-                  label: 'Remove widget',
-                  icon: <TrashIcon className="h-4 w-4" />,
-                  danger: true,
-                  onSelect: () => requestDelete(instance.id),
-                },
-              ]}
-            />
+                  { id: 'sep', separator: true },
+                  {
+                    id: 'remove',
+                    label: 'Remove widget',
+                    icon: <TrashIcon className="h-4 w-4" />,
+                    danger: true,
+                    onSelect: () => requestDelete(instance.id),
+                  },
+                ]}
+              />
+            </div>
           </div>
         </header>
 

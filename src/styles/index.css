@@ -174,11 +174,12 @@
   transition: none;
 }
 
-/* Resize affordance: visible on hover, focus and while resizing. */
+/* Resize affordance: a hint at rest, full strength on hover or while resizing.
+   Fully invisible at rest left the corner impossible to find. */
 .react-grid-item > .react-resizable-handle {
   width: 22px;
   height: 22px;
-  opacity: 0;
+  opacity: 0.35;
   transition: opacity 150ms ease;
 }
 

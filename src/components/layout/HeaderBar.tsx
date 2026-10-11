@@ -312,6 +312,7 @@ export function HeaderBar() {
 
 /** Compact footer with persistence status and grid information. */
 export function StatusBar() {
+  const actions = useDashboardActions();
   const widgetCount = useDashboardStore((state) => state.widgets.length);
   const locked = useDashboardStore((state) => state.locked);
   const openHelp = useUiStore((state) => state.openHelp);
@@ -343,7 +344,18 @@ export function StatusBar() {
           <GridIcon className="h-3 w-3" />
           {widgetCount} {widgetCount === 1 ? 'widget' : 'widgets'}
         </span>
-        {locked ? <span>Layout locked</span> : null}
+        {locked ? (
+          /* A dead end made clickable: the only other way to unlock is the
+             padlock icon in the toolbar, whose label is a hover tooltip. */
+          <button
+            type="button"
+            onClick={actions.toggleLock}
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium text-amber-600 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 dark:text-amber-400 dark:hover:bg-amber-500/10"
+          >
+            <LockIcon className="h-3 w-3" />
+            Layout locked — unlock
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={openHelp}

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { PlusIcon, SearchIcon } from '@/components/icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckIcon, PlusIcon, SearchIcon } from '@/components/icons';
 import { Badge, Button, Drawer, EmptyState, IconChip, TextInput } from '@/components/ui';
 import { WIDGET_DRAG_MIME } from '@/constants/app';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
@@ -11,12 +11,14 @@ import { availableCategories, searchWidgetDefinitions } from '@/widgets/registry
 
 interface WidgetCardProps {
   definition: WidgetDefinition;
+  /** `true` for a moment after this card was added, so the click has feedback. */
+  justAdded: boolean;
   onAdd: (type: string) => void;
   onDragging: (type: string | null) => void;
 }
 
 /** Gallery card — click to add, or drag straight onto the canvas. */
-function WidgetCard({ definition, onAdd, onDragging }: WidgetCardProps) {
+function WidgetCard({ definition, justAdded, onAdd, onDragging }: WidgetCardProps) {
   const Icon = definition.icon;
   const { w, h } = definition.defaultSize;
 
@@ -49,11 +51,16 @@ function WidgetCard({ definition, onAdd, onDragging }: WidgetCardProps) {
 
       <div className="mt-auto flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5">
-          <Badge tone="slate">
+          <Badge tone="slate" title={`${w} columns wide, ${h} rows tall`}>
             {w}×{h}
           </Badge>
           {definition.badge ? <Badge tone={definition.accent}>{definition.badge}</Badge> : null}
         </span>
+        {justAdded ? (
+          <Badge tone="emerald" icon={<CheckIcon className="h-3 w-3" />}>
+            Added
+          </Badge>
+        ) : null}
         <Button
           size="sm"
           variant="secondary"
@@ -76,16 +83,39 @@ export function AddWidgetDrawer() {
   const widgetCount = useDashboardStore((state) => state.widgets.length);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<WidgetCategory | 'all'>('all');
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const addedTimer = useRef<number | null>(null);
 
   const results = useMemo(() => searchWidgetDefinitions(query, category), [query, category]);
   const categories = useMemo(() => availableCategories(), []);
+
+  useEffect(
+    () => () => {
+      if (addedTimer.current !== null) window.clearTimeout(addedTimer.current);
+    },
+    [],
+  );
+
+  /**
+   * Add a card and stay open.
+   *
+   * The drawer used to close on every add, so building a dashboard meant
+   * reopening it once per widget. The card confirms the click itself, and the
+   * footer count keeps a running tally.
+   */
+  const handleAdd = (type: string) => {
+    addWidget(type);
+    setJustAdded(type);
+    if (addedTimer.current !== null) window.clearTimeout(addedTimer.current);
+    addedTimer.current = window.setTimeout(() => setJustAdded(null), 1800);
+  };
 
   return (
     <Drawer
       open={open}
       onClose={close}
       title="Add a widget"
-      description="Drag a card onto the grid, or add it with a click."
+      description="Click Add, or drag a card onto your dashboard."
       widthClassName="sm:max-w-lg"
       toolbar={
         <div className="space-y-2.5">
@@ -124,9 +154,14 @@ export function AddWidgetDrawer() {
         </div>
       }
       footer={
-        <p className="text-[11px] text-slate-500 dark:text-slate-400">
-          {widgetCount} widget{widgetCount === 1 ? '' : 's'} on the canvas · drop position is respected when you drag.
-        </p>
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            {widgetCount} widget{widgetCount === 1 ? '' : 's'} on your dashboard · keep adding, then close this panel.
+          </p>
+          <Button size="sm" variant="primary" onClick={close}>
+            Done
+          </Button>
+        </div>
       }
     >
       {results.length === 0 ? (
@@ -153,11 +188,9 @@ export function AddWidgetDrawer() {
             <WidgetCard
               key={definition.type}
               definition={definition}
+              justAdded={justAdded === definition.type}
               onDragging={setDraggingType}
-              onAdd={(type) => {
-                addWidget(type);
-                close();
-              }}
+              onAdd={handleAdd}
             />
           ))}
         </div>

@@ -141,6 +141,7 @@ function DayBody({ day, place, view }: DayBodyProps) {
   const goldenHour = goldenHourLabel(day.times, timeZone);
   const twilight = twilightLabel(day.times, timeZone);
   const showWindows = (view.showGoldenHour && goldenHour !== null) || (view.showTwilight && twilight !== null);
+  const compactDaylight = formatDaylightShort(day.times.daylightMinutes);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5">
@@ -154,18 +155,20 @@ function DayBody({ day, place, view }: DayBodyProps) {
             label="Daylight progress"
             className="@max-[11rem]:!h-[68px] @max-[11rem]:!w-[68px]"
           >
-            <span
-              className="px-1 text-center text-[13px] font-semibold leading-tight"
-              title={`${formatDaylightShort(day.times.daylightMinutes)} of daylight`}
-            >
-              {formatDaylightShort(day.times.daylightMinutes)}
+            <span className="px-1 text-center text-[13px] font-semibold leading-tight" title={`${compactDaylight} of daylight`}>
+              {compactDaylight}
             </span>
           </Ring>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Daylight
             </p>
-            <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{day.daylightLabel}</p>
+            {/* The ring already states the length, so this line only earns its
+                place when the wording differs from it — which is the polar day
+                and night cases, where there is no ring at all. */}
+            {day.daylightLabel === compactDaylight ? null : (
+              <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{day.daylightLabel}</p>
+            )}
             <p
               className={cn(
                 'truncate text-[11px]',

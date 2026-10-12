@@ -45,7 +45,9 @@ image inside it.
 
 1. Get the file. Download `lotus-dashboard.html` from the
    [latest release](https://github.com/DevTarlow/lotus-dashboard-creator/releases/latest)
-   (it is under **Assets**), or build it yourself with `npm run build:single`
+   (it is under **Assets**) or from
+   [itch.io](https://tarlow.itch.io/lotus-dashboard), where it arrives in a ZIP
+   with a short guide, or build it yourself with `npm run build:single`
    (see [Build it](#build-it)) and use `dist-single/index.html`.
 2. Put it somewhere you will find it again, in Documents rather than Downloads.
 3. Double-click it. It opens in your browser and works offline.
@@ -225,10 +227,14 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (972 tests, 45 files). |
+| `npm test` | Vitest unit suite (1010 tests, 47 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
+| `npm run itch:dist` | Builds, packages and verifies the itch.io ZIP in `dist-itch/`. |
+| `npm run itch:preview` | Shows what a butler push would change. Uploads nothing. |
+| `npm run itch:publish` | Uploads the ZIP to itch.io with butler, after asking. |
+| `npm run itch:cover` | Redraws the itch.io cover and banner from `docs/itch/metadata.json`. |
 
 The app is entirely client-side, with no backend. Nothing needs a key except
 stock prices and an optional GitHub token. Every network call has something to
@@ -274,15 +280,43 @@ gh release create v1.0.0 lotus-dashboard.html --title v1.0.0 --notes "..."
 The app shows its own version in **Help**, so a version that drifts from the tag
 is visible rather than silent.
 
+The same file is the itch.io download, as a ZIP with a short guide:
+
+```bash
+npm run itch:dist      # rebuild, package dist-itch/LotusDashboardCreator-<version>.zip, verify it
+npm run itch:preview   # what a butler push would change — uploads nothing
+npm run itch:publish   # asks first, then uploads to tarlow/lotus-dashboard:download
+npm run itch:cover     # redraw the store page's cover and banner
+```
+
+The page is **Downloadable, never HTML Game**. Inside itch's iframe the file
+picker throws `SecurityError`, `clipboard-write` is denied and `scrolling="no"`
+clips the workspace, so a playable build would break **Save to file**, which is
+the whole point of the app. `scripts/butler-push.mjs` refuses the `html5` channel
+by name for that reason. [`docs/itch/RELEASE.md`](docs/itch/RELEASE.md) has the
+measurements, the page copy and the checklist.
+
 ## Project structure
 
 ```
 .agents/
 └── skills/humanizer/           # the copy-editing rules the UI text is written to
 
+docs/
+├── itch/                       # the itch.io release kit: page copy, fields, checklist
+├── media/itch/                 # the cover and banner that kit points at
+└── *.png                       # the screenshots the README and the store page share
+
+packaging/
+└── START HERE.txt              # the plain-language file that ships inside the itch ZIP
+
 scripts/
 ├── build-single-file.mjs       # inlines script/style/images into one HTML file
 ├── verify-browser.mjs          # real-Chrome checks for what unit tests cannot reach
+├── release.mjs                 # the pure decisions the itch scripts share (tested)
+├── build-itch.mjs              # packages and verifies dist-itch/<version>.zip
+├── butler-push.mjs             # previews and publishes that ZIP to itch.io
+├── itch-cover.mjs              # draws the store page's cover and banner
 └── browser/                    # dependency-free CDP client + the checks themselves
 
 src/
@@ -725,7 +759,7 @@ On restore the file is validated and tidied before it touches your dashboard:
 ## Testing & verification
 
 ```bash
-npm test          # 972 unit tests, 45 files
+npm test          # 1010 unit tests, 47 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 
@@ -760,6 +794,8 @@ The unit suite (Vitest, no DOM required) covers the parts where bugs are expensi
 | `lib/currency.test.ts` | Frankfurter mapping, the `base === quote` shortcut, malformed payloads and unknown symbols. |
 | `lib/holidays.test.ts` | Nager.Date mapping, a 404 for an unsupported country, and next-holiday selection. |
 | `lib/earthquake.test.ts` | The USGS GeoJSON mapping, including the `[longitude, latitude, depth]` trap, plus radius filtering and magnitude bands. |
+| `scripts/release.test.mjs` | The itch release's decisions: the version pair agreeing with the real `package.json` and `src/constants/app.ts`, which three files belong in the ZIP and nothing else, itch's size limits, the staleness rule, the cover and banner plate sizes read from a PNG header, and butler's argv for preview and publish, including the refusal of the `html5` channel. |
+| `scripts/butler-push.test.mjs` | The publisher's argument handling: a mode is required, `--target` must look like `user/project` before it can upload to the wrong page, `ITCH_TARGET` moves the project, and a ZIP older than the source is refused. |
 | `lib/onthisday.test.ts` | The Wikimedia feeds, HTML stripping and the year phrasing. |
 | `lib/github.test.ts` | Repository mapping, optional release and workflow sections, slug normalisation and the bearer header. |
 | `lib/system.test.ts` | Battery, storage and device readings that most browsers do not expose, and the opt-in address lookup. |

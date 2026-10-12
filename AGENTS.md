@@ -21,12 +21,16 @@ the git policy.
 | `npm run dev` | Vite dev server with HMR. Port **5173 is pinned** — if it is busy the server refuses to start rather than hopping to 5174, because `localStorage` is per-origin and a port change looks like data loss. | instant |
 | `npm run typecheck` | `tsc --noEmit`, strict. | ~2 s |
 | `npm run lint` | ESLint (flat config, TS + React hooks rules). | ~2 s |
-| `npm test` | Vitest, single run (968 tests, 45 files). | ~2 s |
+| `npm test` | Vitest, single run (1010 tests, 47 files). | ~2 s |
 | `npm run test:watch` | Vitest watch mode — use while iterating on pure logic. | — |
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |
 | `npm run verify` | typecheck → lint → test → build → build:single. The full gate. | ~8 s |
 | `npm run verify:browser` | Builds the single file and drives it in real headless Chrome (117 checks; 164 with `-- --dev`). Needs Chrome; set `CHROME_PATH` if it is not on PATH. | ~25 s |
+| `npm run itch:dist` | Rebuilds, packages `dist-itch/<name>-<version>.zip` and verifies it. | ~5 s |
+| `npm run itch:preview` | `butler push-preview`: what an upload would change. Uploads nothing. | ~5 s |
+| `npm run itch:publish` | `butler push` to `tarlow/lotus-dashboard:download`, after a confirmation. | ~5 s |
+| `npm run itch:cover` | Redraws the itch cover and banner from `docs/itch/metadata.json`. Needs Chrome. | ~3 s |
 
 Everything is fast here, so there is no excuse for committing a red tree.
 
@@ -37,6 +41,9 @@ Everything is fast here, so there is no excuse for committing a red tree.
 - **Before a push:** always `npm run verify` (typecheck + lint + tests + build).
 - **Tests** are colocated as `src/**/*.test.ts(x)`, run in a `node` environment with
   `src/test/setup.ts` providing an in-memory `localStorage`. No DOM needed.
+  `scripts/**/*.test.mjs` is included too, for the release scripts: they are plain
+  `.mjs` run straight by node, so they cannot import TypeScript helpers from `src/`,
+  and `scripts/release.mjs` holds their decisions as pure functions to be tested.
 - **Add tests for pure logic** — `src/lib/**` (grid maths, validation, markdown,
   providers, templates) and `src/store/**`. Provider tests mock `fetch`; keep that
   pattern rather than adding network-dependent tests.
@@ -45,6 +52,51 @@ Everything is fast here, so there is no excuse for committing a red tree.
   serialisation, drag/paste interactions, persistence, or the single-file build.
   Add `-- --dev` to also exercise a server you have running on 5173.
 - Do not weaken `tsconfig.json` strictness to make something compile.
+
+## The itch.io release
+
+The store page at <https://tarlow.itch.io/lotus-dashboard> serves the same single
+HTML file the README points at, zipped with `packaging/START HERE.txt` and the
+licence. `docs/itch/RELEASE.md` is the kit: page fields, paste-ready copy, artwork,
+pricing and the publish checklist. Page fields also live machine-readably in
+`docs/itch/metadata.json`, which `scripts/itch-cover.mjs` reads to draw the cover
+and banner.
+
+```bash
+npm run itch:dist      # rebuild, package dist-itch/<version>.zip, verify the archive
+npm run itch:preview   # what a butler push would change; uploads nothing
+npm run itch:publish   # asks, then uploads to tarlow/lotus-dashboard:download
+```
+
+**The page is Downloadable, and it must never become `HTML Game`.** itch serves a
+playable build inside its own iframe with `scrolling="no"` and no `sandbox`, and
+three things break there, measured against the built file:
+
+- `showSaveFilePicker()` throws `SecurityError` from a cross-origin subframe, so
+  **Save to file** — the app's whole promise — cannot work;
+- `clipboard-write` is denied by the iframe's permissions policy, so the copy
+  buttons fail;
+- the app is taller than a typical embed and `scrolling="no"` is honoured, so the
+  lower panels cannot be reached.
+
+`scripts/butler-push.mjs` refuses the `html5` channel by name. If a playable demo
+is ever wanted it needs those three fixed first, in `src/`, with browser checks.
+
+Two invariants the release scripts enforce, and neither should be relaxed:
+
+- the version in `package.json` and `APP_VERSION` in `src/constants/app.ts` must
+  agree, because the ZIP is named after one and the app reports the other;
+- an artifact must be newer than every file it was built from, so a stale
+  `dist-single/` or `dist-itch/` can never be packaged or published.
+
+The shipped file's own gate is the browser suite run against the extracted copy,
+not the build directory:
+
+```bash
+npm run itch:dist
+unzip -q dist-itch/LotusDashboardCreator-<version>.zip -d /tmp/lotus-itch
+npm run verify:browser -- --single=/tmp/lotus-itch/lotus-dashboard.html
+```
 
 ## Git policy
 

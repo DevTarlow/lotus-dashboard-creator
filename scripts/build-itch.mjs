@@ -20,7 +20,8 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, readFile, rm, stat } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -89,8 +90,11 @@ async function main() {
 
   /* --- stage -------------------------------------------------------------- */
 
-  await rm(stageDir, { recursive: true, force: true });
-  await mkdir(stageDir, { recursive: true });
+  // Staged outside the project on purpose. A checkout can be mounted world
+  // writable, and some mounts ignore `chmod` outright, in which case the mode
+  // travels into the ZIP and every visitor extracts an executable file. The OS
+  // temp directory honours the mode; the staging area is transient anyway.
+  const stageDir = await mkdtemp(path.join(os.tmpdir(), 'lotus-itch-'));
   await mkdir(zipDir, { recursive: true });
 
   // Each archive name is paired with the file it must equal, so the same map
@@ -102,22 +106,24 @@ async function main() {
     [ARCHIVE.licence, path.join(root, 'LICENSE')],
   ]);
 
-  for (const [name, source] of staged) {
-    if (!existsSync(source)) throw new Error(`missing ${path.relative(root, source)}`);
-    await copyFile(source, path.join(stageDir, name));
-  }
-
-  /* --- zip ---------------------------------------------------------------- */
-
   const zipPath = path.join(zipDir, releaseZipName(pkg.version));
-  await rm(zipPath, { force: true });
-  // `-X` drops the extra file attributes, so the same inputs give an archive
-  // that does not record which machine built it.
-  run('zip', ['-q', '-r', '-X', zipPath, '.'], { cwd: stageDir });
-
-  /* --- verify the archive, not the staging directory ---------------------- */
 
   try {
+    for (const [name, source] of staged) {
+      if (!existsSync(source)) throw new Error(`missing ${path.relative(root, source)}`);
+      const destination = path.join(stageDir, name);
+      await copyFile(source, destination);
+      await chmod(destination, 0o644);
+    }
+
+    /* --- zip -------------------------------------------------------------- */
+
+    await rm(zipPath, { force: true });
+    // `-X` leaves out the extra fields that record who built the archive.
+    run('zip', ['-q', '-r', '-X', zipPath, '.'], { cwd: stageDir });
+
+    /* --- verify the archive, not the staging directory --------------------- */
+
     const entries = [];
     for (const name of archiveEntries(zipPath)) {
       const contents = archiveContents(zipPath, name);
@@ -140,6 +146,8 @@ async function main() {
     // A broken archive must not sit in dist-itch looking publishable.
     await rm(zipPath, { force: true });
     throw error;
+  } finally {
+    await rm(stageDir, { recursive: true, force: true });
   }
 }
 

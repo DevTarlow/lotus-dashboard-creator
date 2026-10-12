@@ -9,7 +9,7 @@
   "releaseStatus": "Released",
   "platforms": ["Windows", "macOS", "Linux"],
   "mobileFriendly": false,
-  "shortDescription": "Twenty widgets on one screen, in one HTML file. Drag, resize and arrange it the way you work, and your dashboard saves itself into the file you keep.",
+  "shortDescription": "Twenty widgets on one screen, in a file you keep. Move things around until it fits how you work.",
   "pricing": {
     "model": "free",
     "note": "MIT licensed and free on GitHub. itch can take donations; the file stays free either way."

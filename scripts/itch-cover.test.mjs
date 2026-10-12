@@ -3,7 +3,14 @@ import { breakTitle, plateHtml } from './itch-cover.mjs';
 
 const SHOT = 'data:image/png;base64,SHOT';
 const LOGO = 'data:image/png;base64,LOGO';
-const context = { title: 'Lotus Dashboard Creator', shortDescription: 'Twenty widgets.', screenshot: SHOT, logo: LOGO };
+const ICON = 'data:image/png;base64,ICON';
+const context = {
+  title: 'Lotus Dashboard Creator',
+  shortDescription: 'Twenty widgets.',
+  screenshot: SHOT,
+  logo: LOGO,
+  icon: ICON,
+};
 
 const cover = plateHtml({ width: 630, height: 500, ...context });
 const banner = plateHtml({ width: 960, height: 400, ...context });
@@ -26,9 +33,12 @@ describe('plateHtml', () => {
     expect(banner).toContain('align-items: center');
   });
 
-  it('puts the app logo in the cover and leaves it off the banner', () => {
-    // The banner has no empty corner: its words sit beside the screenshot panel.
+  it('gives each plate the lotus its shape can hold', () => {
+    // The poster has an empty corner for the big mark; the banner's words sit
+    // beside the artwork, so it leads them with a small one instead.
     expect(cover.match(/<img class="logo"/g)).toHaveLength(1);
+    expect(cover).not.toContain('<img class="icon"');
+    expect(banner.match(/<img class="icon"/g)).toHaveLength(1);
     expect(banner).not.toContain('<img class="logo"');
   });
 
@@ -39,10 +49,14 @@ describe('plateHtml', () => {
     expect(cover).toMatch(/\.logo \{[^}]*top: -?\d+px/);
   });
 
-  it('omits the logo entirely when none is given', () => {
-    const logoLess = plateHtml({ width: 630, height: 500, ...context, logo: null });
-    expect(logoLess).not.toContain('<img class="logo"');
-    expect(logoLess).not.toContain('undefined');
+  it('falls back to the accent bar when no logo is given', () => {
+    const bare = { ...context, logo: null, icon: null };
+    const coverBare = plateHtml({ width: 630, height: 500, ...bare });
+    const bannerBare = plateHtml({ width: 960, height: 400, ...bare });
+    expect(coverBare).not.toContain('<img class="logo"');
+    expect(bannerBare).not.toContain('<img class="icon"');
+    expect(bannerBare).toContain('<div class="mark"></div>');
+    expect(coverBare).not.toContain('undefined');
   });
 
   it('carries the artwork and the words, with the description escaped', () => {

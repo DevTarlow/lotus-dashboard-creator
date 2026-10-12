@@ -13,9 +13,9 @@
  * come from, so the plate cannot advertise a tagline the store page dropped. The
  * panel art is `docs/dashboard-dark.png`, the screenshot the README already
  * shows, cropped rather than shrunk: at cover size a whole dashboard scaled down
- * is a grey rectangle, while the toolbar and two cards still read. The lotus in
- * the poster's top right corner is the app's own icon, straight from
- * `src/assets/`.
+ * is a grey rectangle, while the toolbar and two cards still read. The lotus is
+ * the app's own icon, straight from `src/assets/`: large in the poster's top right
+ * corner, and small above the banner's words, which have no corner to spare.
  *
  * Written straight over the existing files. If a hand-made cover is ever wanted,
  * delete this script's output path from the run rather than editing the PNG.
@@ -67,6 +67,16 @@ const FONT =
  */
 const LOGO_BOX = { width: 187, top: -3, right: 26 };
 
+/**
+ * The little lotus at the top of the banner's words.
+ *
+ * `src/assets/logo-96.png` is the tight version of the same mark the poster uses,
+ * so it needs no solved box: its artwork fills 90x62 of a 96px square, leaving 17px
+ * of transparent trim above and below. `gapBelow` is 4px, which reads as a 12px gap
+ * once that trim is counted.
+ */
+const ICON = { width: 44, gapBelow: 4 };
+
 function escapeHtml(text) {
   return String(text).replace(
     /[&<>"']/g,
@@ -93,14 +103,27 @@ export function breakTitle(title) {
  * is a poster, so the words sit above the artwork, while 960x400 is a strip, so
  * they sit beside it.
  *
- * The poster puts the app's own logo in its top right corner, which is otherwise
- * empty. The icon is centred in a square with transparent padding (5% at the
- * sides, 20% top and bottom in the 180px asset), so the element is placed by a
- * box that is larger than the mark inside it — `LOGO_BOX` below says by how much,
- * and the numbers come from that asset rather than from taste.
+ * Each plate carries the lotus its shape can hold. The poster puts it in its top
+ * right corner, which is otherwise empty; the banner instead leads its words with
+ * a small one, since the words already run alongside the artwork. In both cases the
+ * icon is centred in a square with transparent padding (5% at the sides, 20% top
+ * and bottom in the 180px asset), so the poster's element is placed by a box larger
+ * than the mark inside it — `LOGO_BOX` says by how much — and the banner's width is
+ * picked so the visible mark comes out just under 36px.
  */
-export function plateHtml({ width, height, title, shortDescription, screenshot, logo = null }) {
+export function plateHtml({
+  width,
+  height,
+  title,
+  shortDescription,
+  screenshot,
+  logo = null,
+  icon = null,
+}) {
   const wide = width / height > 1.5;
+  // Without an icon the accent bar stands in, so a logo-less render still looks
+  // deliberate rather than broken.
+  const lead = wide && icon ? `<img class="icon" src="${icon}" alt="">` : '<div class="mark"></div>';
   return `<!doctype html>
 <html><head><meta charset="utf-8"><style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -135,6 +158,7 @@ export function plateHtml({ width, height, title, shortDescription, screenshot, 
       ? `
   .plate { align-items: center; gap: 34px; padding: 0 0 0 46px; }
   .words { width: 372px; flex: none; }
+  .icon { display: block; width: ${ICON.width}px; height: auto; margin-bottom: ${ICON.gapBelow}px; }
   h1 { font-size: 37px; line-height: 1.08; }
   p { font-size: 14.5px; line-height: 1.45; margin-top: 14px; }
   .shot {
@@ -158,7 +182,7 @@ export function plateHtml({ width, height, title, shortDescription, screenshot, 
   <div class="plate">
     ${logo && !wide ? `<img class="logo" src="${logo}" alt="">` : ''}
     <div class="words">
-      <div class="mark"></div>
+      ${lead}
       <div class="eyebrow">One HTML file &middot; nothing to install</div>
       <h1>${breakTitle(title)}</h1>
       <p>${escapeHtml(shortDescription)}</p>
@@ -199,7 +223,9 @@ async function main() {
   const screenshot = `data:image/png;base64,${(await readFile(screenshotPath)).toString('base64')}`;
   const logoPath = path.join(root, 'src', 'assets', 'apple-touch-icon.png');
   const logo = `data:image/png;base64,${(await readFile(logoPath)).toString('base64')}`;
-  const context = { title: kit.title, shortDescription: kit.shortDescription, screenshot, logo };
+  const iconPath = path.join(root, 'src', 'assets', 'logo-96.png');
+  const icon = `data:image/png;base64,${(await readFile(iconPath)).toString('base64')}`;
+  const context = { title: kit.title, shortDescription: kit.shortDescription, screenshot, logo, icon };
 
   await mkdir(artDir, { recursive: true });
 

@@ -42,7 +42,7 @@ frame carrying itch's real attributes (`scrolling="no"`, no `sandbox`):
 |---|---|
 | **Title** | Lotus Dashboard Creator |
 | **Project URL** | `lotus-dashboard` → <https://tarlow.itch.io/lotus-dashboard> |
-| **Short description / tagline** | Twenty widgets on one screen, in one HTML file. Drag, resize and arrange it the way you work, and your dashboard saves itself into the file you keep. |
+| **Short description / tagline** | Twenty widgets on one screen, in a file you keep. Move things around until it fits how you work. |
 | **Classification** | Tool |
 | **Kind of Game** | **Downloadable** (see §1) |
 | **Genre** | leave unset — itch's genre list is a game taxonomy |

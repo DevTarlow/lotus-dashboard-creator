@@ -74,108 +74,95 @@ itch accepts a limited HTML subset: headings, paragraphs, lists, bold, italic, l
 This is written for that subset.
 
 ```html
-<h2>Twenty widgets on one screen</h2>
+<h2>Everything you check all day, on one screen</h2>
 
 <p>
-  Most of us keep the day scattered across a dozen tabs: the weather in one, a checklist in
-  another, prices, headlines, and the thing you meant to do at four. <strong>Lotus Dashboard
-  Creator</strong> gives you one screen to put them on, and you decide what goes where.
+  Most days end up spread across a dozen tabs: the weather in one, a checklist in another, prices,
+  headlines, and the thing you meant to do at four. <strong>Lotus Dashboard Creator</strong> puts
+  all of that on one page, and you decide what goes where.
 </p>
 
 <p>
-  Drag a card to move it. Pull its right or bottom edge to resize it and the cards around it close
-  the gap. If the weather panel is the one you actually look at, make it wide and push the rest
-  out of the way. Each screen size keeps its own arrangement, so the layout you make on a laptop
-  never overwrites the one you made on a monitor.
+  Drag a card to move it. Pull its right or bottom edge to resize it, and the cards around it close
+  the gap. If the weather panel is the one you actually look at, make it wide and push the rest out
+  of the way.
+</p>
+
+<p>
+  Each screen size keeps its own arrangement. Lay things out on a laptop, then plug in a bigger
+  monitor and arrange that one however you like. The laptop layout is still there when you go back
+  to it.
 </p>
 
 <h3>One file, and it stays yours</h3>
 
 <p>
-  The whole app is a single HTML file, about 840 kB. Download it, put it somewhere you will find
-  it again, and double-click it. There is nothing to install and no account to make, and after
-  that first download it works with the wifi switched off.
+  The whole app is a single HTML file, a little under a megabyte. Download it, put it somewhere
+  you'll find it again, and double-click it. There's nothing to install and no account to make, and
+  once you have the file it works with the wifi switched off.
 </p>
 
 <p>
-  Your work is kept in the browser as you go. Press Ctrl+S (Cmd+S on macOS), or use <strong>Save
-  to file</strong>, and the dashboard is written into the file as well. That file is the copy you
-  keep and the copy you send someone. Chrome and Edge rewrite the file you already have; Firefox
-  and Safari download a fresh copy.
+  Your dashboard is saved in the browser as you go. Press Ctrl+S (Cmd+S on a Mac), or use
+  <strong>Save to file</strong>, and it's written into the file too. That file is the copy you keep
+  and the copy you send to someone else. Chrome and Edge save over the file you already have;
+  Firefox and Safari download a fresh copy.
 </p>
 
 <h3>What you can put on it</h3>
 
-<ul>
-  <li><strong>Clock</strong> and <strong>World clock</strong>: live time in any time zone, and
-      several zones at once with each one's offset, the date it is on, an office-hours tint and a
-      24-hour strip showing the windows you share.</li>
-  <li><strong>Weather</strong>: a live forecast from wttr.in with no key needed, an hourly outlook
-      and the details. It asks which city you want.</li>
-  <li><strong>Sun &amp; moon</strong>: sunrise, sunset, solar noon, golden hour, civil twilight and
-      how much daylight you gained or lost, worked out on your own machine, with the moon phase
-      beside it.</li>
-  <li><strong>Tasks</strong>: a checklist with priorities, due dates, reordering, a progress bar
-      and "clear completed". Every edit is one undo step.</li>
-  <li><strong>Focus timer</strong>: pomodoro and stopwatch in one card. It counts from timestamps
-      rather than ticking a counter, so a background tab cannot make it drift and a reload resumes
-      a running phase.</li>
-  <li><strong>Habit streaks</strong>: today's ticks, current and best streaks, and a heatmap
-      covering four to twelve weeks. A habit you have not done yet today never breaks its streak.</li>
-  <li><strong>Calendar</strong> and <strong>Countdown</strong>: a month grid with ISO week numbers,
-      events you edit inline and optional public holidays; and the dates worth waiting for, with
-      annual rollover.</li>
-  <li><strong>Markdown notes</strong> and <strong>Sticky notes</strong>: a multi-note editor with a
-      file panel, draggable dividers and edit / split / preview modes; and quick post-its in five
-      colours you can pin, copy and recolour.</li>
-  <li><strong>Quick links</strong>: a bookmark launcher with site icons, which fall back to an
-      initials chip when there is no icon. Add, edit, remove and reorder inline.</li>
-  <li><strong>Market ticker</strong>: live crypto prices from CoinGecko with no key needed, and
-      live stock prices through your own free Finnhub key.</li>
-  <li><strong>News feed</strong> and <strong>On this day</strong>: headlines from Hacker News, DEV
-      Community, Spaceflight News and Wikipedia's current-events desk; and curated highlights for
-      today's date from the Wikimedia feeds.</li>
-  <li><strong>Air quality &amp; UV</strong> and <strong>Seismic watch</strong>: the US AQI with a
-      twelve-hour strip, the UV index and its peak; and recent earthquakes from the USGS feeds,
-      filtered by magnitude, time window and radius.</li>
-  <li><strong>Converter</strong>: eleven categories of unit conversion, temperature scales
-      included, and currency at the ECB reference rate with a 30-day history.</li>
-  <li><strong>System &amp; device</strong> and <strong>Repository</strong>: connection, battery,
-      browser storage, screen and uptime, read locally; and stars, forks, issues and the latest
-      release for a GitHub repository.</li>
-</ul>
-
-<h3>Where the live data comes from</h3>
+<p>
+  There are twenty widgets, and you add only the ones you want. The time ones cover a clock, a
+  world clock for other cities, a month calendar, a countdown to the dates you're waiting for, and
+  sunrise, sunset and the moon for where you live. Weather gives you a live forecast with an hourly
+  outlook, and there are cards for air quality, UV and recent earthquakes if you like watching the
+  world.
+</p>
 
 <p>
-  Weather comes from wttr.in, crypto from CoinGecko, headlines from Hacker News, DEV, Spaceflight
-  News and Wikipedia, holidays from Nager.Date, earthquakes from USGS, air quality and place
-  lookups from Open-Meteo, and currency rates from Frankfurter. None of those need a key. Each card
-  says along its bottom edge whether it is showing live data, a saved copy, or nothing at all, and
-  a panel that cannot reach its source says so rather than inventing a number.
+  For getting things done there's a checklist with due dates and priorities, a pomodoro timer and
+  stopwatch, and habit streaks with a heatmap of the last few weeks. Notes come in two kinds: a
+  markdown editor for the long ones, and sticky notes in five colours for the quick ones. Quick
+  links keeps the sites you open every day one click away.
+</p>
+
+<p>
+  The rest watch the outside world or your own machine: crypto and stock prices, headlines from a
+  few tech and science feeds, a little history for today's date, a converter for units and
+  currency, and a card showing your connection, battery, screen and browser storage. There's one
+  for a GitHub project too, if you follow one.
+</p>
+
+<h3>Where the numbers come from</h3>
+
+<p>
+  The weather, crypto prices, headlines, holidays and earthquake reports all come from free public
+  services, and none of them need an account or a key. Stock prices are the one exception: those
+  use a free Finnhub key that you get and paste in yourself. Along the bottom of every card it says
+  whether you're looking at live data, a saved copy, or nothing at all.
 </p>
 
 <h3>Offline, and what stays on your machine</h3>
 
 <p>
-  There is no server of ours in the middle and nothing to sign up for. Weather, prices and the news
-  feed show a reading clearly marked <strong>Simulated</strong> when they cannot reach their
-  source. A Finnhub key for stock prices and an optional GitHub key are kept in your browser, sent
-  only to that one service, and left out of any file you save or send. The one widget that sends
-  something about you is <strong>System &amp; device</strong>'s public-address lookup, which is off
-  until you turn it on and says what it sends.
+  There's no server of ours in the middle and nothing to sign up for. When a panel can't reach its
+  source, it says so and shows a reading clearly marked <strong>Simulated</strong> instead of
+  inventing a number. Keys you add are kept in your browser and sent only to that one service, and
+  they're left out of any file you save or send. The only widget that sends anything about you is
+  <strong>System &amp; device</strong>'s public address lookup, which is off until you turn it on
+  and tells you what it sends.
 </p>
 
-<h3>Requirements</h3>
+<h3>What you need</h3>
 
 <p>
-  Chrome, Edge, Firefox or Safari, on Windows, macOS or Linux. The dashboard is a 12-column grid,
-  so it wants a window with some width to it. It runs from the file itself: there is nothing to
-  keep updated, and no service of ours that can go down.
+  Chrome, Edge, Firefox or Safari, on Windows, macOS or Linux. It's built for a desktop or laptop
+  screen, so give it a window with some width to it. It runs from the file itself, and there's
+  nothing to keep updated and no service of ours that can go down.
 </p>
 
 <p>
-  MIT licensed, and the dashboards you build are yours to use however you like.
+  It's free and MIT licensed, and the dashboards you build are yours to use however you like.
 </p>
 ```
 
@@ -221,36 +208,38 @@ product at the top of it.
 <h2>Lotus Dashboard Creator 1.0.0 is out</h2>
 
 <p>
-  It is one HTML file you download, double-click, and use from then on. Twenty widgets, one screen,
+  It's one HTML file you download, double-click, and use from then on. Twenty widgets, one screen,
   and no account anywhere.
 </p>
 
 <p>
   Put a clock, the weather, your tasks, a calendar, notes, prices and headlines on the same page,
-  then arrange them until it suits you. Drag a card to move it, pull an edge to resize it, and the
-  cards around it close the gap.
+  then move them around until it fits the way you work. Drag a card to move it, pull an edge to
+  resize it, and the cards around it close the gap.
 </p>
 
-<h3>What is in 1.0.0</h3>
+<h3>What's in 1.0.0</h3>
 
 <ul>
   <li>Twenty widgets: clock and world clock, weather, sun and moon, tasks, focus timer, habit
-      streaks, calendar, countdown, markdown notes, sticky notes, quick links, market ticker, news
-      feed, on this day, air quality and UV, seismic watch, converter, system and device, and
-      repository.</li>
-  <li>Drag, resize and reorder on a 12-column grid, with a separate layout for every screen size.</li>
-  <li>Seven saved templates, from a six-panel starter to a sixteen-panel workspace, plus a blank
-      canvas.</li>
-  <li>Seven themes in light and dark, with a contrast solver for the colours you pick yourself.</li>
+      streaks, calendar, countdown, markdown notes, sticky notes, quick links, market prices, news,
+      on this day, air quality and UV, earthquakes, a unit converter, your device, and a GitHub
+      project.</li>
+  <li>Drag, resize and rearrange on a grid, with a separate layout for each screen size.</li>
+  <li>Seven ready-made templates, from a six-panel starter up to a sixteen-panel workspace, plus a
+      blank page.</li>
+  <li>Seven themes in light and dark, and you can pick your own accent colour. The app adjusts the
+      shades so your text stays readable.</li>
   <li>Save to file writes your whole dashboard into the HTML file, so the copy you keep and the copy
       you send are the same one.</li>
-  <li>Works offline, with a clearly marked simulated reading from the panels that need a connection.</li>
-  <li>API keys stay in your browser and never travel inside a saved file.</li>
+  <li>Works offline, with a clearly marked simulated reading from the panels that need a
+      connection.</li>
+  <li>Any key you add stays in your browser and never travels inside a saved file.</li>
 </ul>
 
 <p>
-  It is free, MIT licensed, and the dashboards you build are yours. If it earns a place on your
-  screen, tell me what is missing.
+  It's free and MIT licensed, and the dashboards you build are yours. If it earns a place on your
+  screen, tell me what's missing.
 </p>
 ```
 

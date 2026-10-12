@@ -14,10 +14,10 @@ disagree about the name or the tagline.
 
 ## 1. Downloadable, never "HTML Game"
 
-| Artifact | Built by | Goes to itch as | Who can use it |
-|---|---|---|---|
-| `LotusDashboardCreator-1.0.0.zip` (259 kB) | `npm run itch:dist` | Downloadable file | Anyone |
-| …containing `lotus-dashboard.html` (836 kB) | the same build | the app itself | Anyone |
+| Artifact                                    | Built by            | Goes to itch as   | Who can use it |
+| ------------------------------------------- | ------------------- | ----------------- | -------------- |
+| `LotusDashboardCreator-1.0.0.zip` (259 kB)  | `npm run itch:dist` | Downloadable file | Anyone         |
+| …containing `lotus-dashboard.html` (836 kB) | the same build      | the app itself    | Anyone         |
 
 It ships as one HTML file the reader double-clicks: the whole dashboard, offline, in any browser.
 Nothing to install, no account, no server of ours in the middle.

@@ -13,14 +13,16 @@
  * come from, so the plate cannot advertise a tagline the store page dropped. The
  * panel art is `docs/dashboard-dark.png`, the screenshot the README already
  * shows, cropped rather than shrunk: at cover size a whole dashboard scaled down
- * is a grey rectangle, while the toolbar and two cards still read.
+ * is a grey rectangle, while the toolbar and two cards still read. The lotus in
+ * the poster's top right corner is the app's own icon, straight from
+ * `src/assets/`.
  *
  * Written straight over the existing files. If a hand-made cover is ever wanted,
  * delete this script's output path from the run rather than editing the PNG.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { launchChrome, openPage, wait } from './browser/cdp.mjs';
 import { pngSize } from './release.mjs';
 
@@ -53,6 +55,18 @@ const COLOURS = {
 const FONT =
   "'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
+/**
+ * Where the logo goes on the poster, and how big its (mostly empty) box is.
+ *
+ * `src/assets/apple-touch-icon.png` is the same lotus mark as the header icon at
+ * the largest size, and its artwork sits inside 180x180 with transparent padding:
+ * 9px at each side, 36px top and bottom. Positioning the `<img>` would therefore
+ * put a lot of nothing in the corner, so the box is placed by solving for where
+ * the visible mark lands: a 187px box puts a 168px-wide mark whose top edge is
+ * 34px down and whose right edge is 35px in from the plate's edge.
+ */
+const LOGO_BOX = { width: 187, top: -3, right: 26 };
+
 function escapeHtml(text) {
   return String(text).replace(
     /[&<>"']/g,
@@ -78,8 +92,14 @@ export function breakTitle(title) {
  * The two sizes get different arrangements rather than one scaled design: 630x500
  * is a poster, so the words sit above the artwork, while 960x400 is a strip, so
  * they sit beside it.
+ *
+ * The poster puts the app's own logo in its top right corner, which is otherwise
+ * empty. The icon is centred in a square with transparent padding (5% at the
+ * sides, 20% top and bottom in the 180px asset), so the element is placed by a
+ * box that is larger than the mark inside it — `LOGO_BOX` below says by how much,
+ * and the numbers come from that asset rather than from taste.
  */
-export function plateHtml({ width, height, title, shortDescription, screenshot }) {
+export function plateHtml({ width, height, title, shortDescription, screenshot, logo = null }) {
   const wide = width / height > 1.5;
   return `<!doctype html>
 <html><head><meta charset="utf-8"><style>
@@ -129,12 +149,14 @@ export function plateHtml({ width, height, title, shortDescription, screenshot }
   .shot {
     flex: 1 1 auto; margin: 26px -38px -40px; border-radius: 16px 16px 0 0;
     background-size: 210%; background-position: 0 8%;
-  }`
+  }
+  .logo { position: absolute; top: ${LOGO_BOX.top}px; right: ${LOGO_BOX.right}px; width: ${LOGO_BOX.width}px; }`
   }
 </style></head>
 <body>
   <div class="glow"></div>
   <div class="plate">
+    ${logo && !wide ? `<img class="logo" src="${logo}" alt="">` : ''}
     <div class="words">
       <div class="mark"></div>
       <div class="eyebrow">One HTML file &middot; nothing to install</div>
@@ -175,7 +197,9 @@ async function main() {
 
   const screenshotPath = path.join(root, 'docs', 'dashboard-dark.png');
   const screenshot = `data:image/png;base64,${(await readFile(screenshotPath)).toString('base64')}`;
-  const context = { title: kit.title, shortDescription: kit.shortDescription, screenshot };
+  const logoPath = path.join(root, 'src', 'assets', 'apple-touch-icon.png');
+  const logo = `data:image/png;base64,${(await readFile(logoPath)).toString('base64')}`;
+  const context = { title: kit.title, shortDescription: kit.shortDescription, screenshot, logo };
 
   await mkdir(artDir, { recursive: true });
 
@@ -206,7 +230,17 @@ async function main() {
   console.log('\nthe cover is required by itch; the banner is optional. Both are safe to replace by hand.');
 }
 
-main().catch((error) => {
-  console.error(`\nitch:cover failed — ${error instanceof Error ? error.message : String(error)}`);
-  process.exitCode = 1;
-});
+/**
+ * Only draw when run directly.
+ *
+ * `plateHtml` is exported so the composition can be tested without a browser, and
+ * importing this module must not launch Chrome.
+ */
+const invokedDirectly = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    console.error(`\nitch:cover failed — ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  });
+}

@@ -21,7 +21,7 @@ the git policy.
 | `npm run dev` | Vite dev server with HMR. Port **5173 is pinned** — if it is busy the server refuses to start rather than hopping to 5174, because `localStorage` is per-origin and a port change looks like data loss. | instant |
 | `npm run typecheck` | `tsc --noEmit`, strict. | ~2 s |
 | `npm run lint` | ESLint (flat config, TS + React hooks rules). | ~2 s |
-| `npm test` | Vitest, single run (1010 tests, 47 files). | ~2 s |
+| `npm test` | Vitest, single run (1017 tests, 48 files). | ~2 s |
 | `npm run test:watch` | Vitest watch mode — use while iterating on pure logic. | — |
 | `npm run build` | `tsc --noEmit` + production build to `dist/` (multi-file). | ~2 s |
 | `npm run build:single` | `tsc --noEmit` + `vite build --mode single` + `scripts/build-single-file.mjs` → **one** file, `dist-single/index.html`. | ~3 s |

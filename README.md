@@ -227,7 +227,7 @@ Other scripts:
 | `npm run preview` | Serves the production build on http://localhost:4173. |
 | `npm run typecheck` | TypeScript only. |
 | `npm run lint` | ESLint (flat config, TypeScript + React hooks rules). |
-| `npm test` | Vitest unit suite (1010 tests, 47 files). |
+| `npm test` | Vitest unit suite (1017 tests, 48 files). |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run verify` | typecheck → lint → test → build → build:single. |
 | `npm run verify:browser` | Builds the one-file dashboard and drives it in a real Chrome (add `-- --dev` to also check a running server). |
@@ -759,7 +759,7 @@ On restore the file is validated and tidied before it touches your dashboard:
 ## Testing & verification
 
 ```bash
-npm test          # 1010 unit tests, 47 files
+npm test          # 1017 unit tests, 48 files
 npm run verify    # typecheck + lint + unit tests + both production builds
 ```
 

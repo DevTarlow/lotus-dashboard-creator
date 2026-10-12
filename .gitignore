@@ -29,3 +29,7 @@ dist-ssr
 
 # Test output
 coverage
+
+# Release output
+dist-itch
+.itch-stage

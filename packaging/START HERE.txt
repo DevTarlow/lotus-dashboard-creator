@@ -1,0 +1,70 @@
+LOTUS DASHBOARD CREATOR
+=======================
+
+HOW TO OPEN IT
+--------------
+Double-click the file called "lotus-dashboard.html".
+
+It opens in your browser. There is nothing to install and no account to make.
+
+If you get a blank screen instead, right-click the file, choose "Open with",
+and pick Chrome, Edge, Firefox or Safari. Chrome and Edge handle saving best.
+
+
+WHAT IT IS
+----------
+Twenty widgets you can put on one screen and arrange however you like: a clock,
+the weather, share prices, headlines, a to-do list, notes, a calendar, and more.
+Drag a card to move it. Pull its right or bottom edge to resize it, and the
+cards around it close the gap.
+
+The first time you open it you get a six-panel dashboard and an explanation of
+how the file works. Press "?" whenever you want to read that again.
+
+
+IT WORKS OFFLINE
+----------------
+Everything the app needs is inside that one file, so it opens on a plane or with
+the wifi switched off. The cards that show live information need a connection.
+Each one says along its bottom edge whether it is showing live data, a saved
+copy, or nothing at all, and weather, prices and the news feed show a reading
+marked Simulated when they cannot reach their source. A card that cannot reach
+its source says so rather than inventing a number.
+
+Your keys stay yours. A Finnhub key for stock prices and an optional GitHub key
+are kept in your browser, sent only to that one service, and left out of any file
+you save or send. The one card that sends something about you is System &
+device's address lookup, and it is off until you turn it on.
+
+
+SAVING YOUR WORK
+----------------
+Your dashboard is saved in the browser as you work, so closing the tab and
+coming back later brings it up exactly as you left it.
+
+Press Ctrl+S (Cmd+S on macOS), or use "Save to file" in the menu at the top
+right, to write it into the file as well. Chrome and Edge rewrite the file you
+already have. Firefox and Safari download a fresh copy each time, so you may want
+to keep that in one place and replace the old one.
+
+Keep the file somewhere you will find it again. Documents is a better home for it
+than Downloads.
+
+
+SHARING IT
+----------
+To send someone your dashboard, send them the file. Everything you arranged is
+inside it, so it opens on their machine looking the way it looks on yours. To
+keep a spare, copy the file.
+
+
+LICENCE
+-------
+Lotus Dashboard Creator is released under the MIT licence. See LICENSE.txt.
+
+The dashboards you build with it are yours.
+
+
+SUPPORT
+-------
+tarlow@mossaistudio.com

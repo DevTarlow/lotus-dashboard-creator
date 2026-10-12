@@ -317,9 +317,9 @@ check it; later pushes to the same channel must omit it.
 - [x] `npm run itch:preview` green — the `download` channel is still empty, so all three entries
       are new.
 - [x] `npm run itch:cover` green — 630×500 and 960×400, checked from the PNG headers.
-- [ ] Page created, and **Kind of Game is `Downloadable`**.
-- [ ] Description, tags, screenshots and both plates are on the page.
-- [ ] Price is free, and `tarlow@mossaistudio.com` is visible on the page.
-- [ ] `npm run itch:publish`, then download the ZIP from the page, unzip it, double-click
+- [x] Page created, and **Kind of Game is `Downloadable`**.
+- [x] Description, tags, screenshots and both plates are on the page.
+- [x] Price is free, and `tarlow@mossaistudio.com` is visible on the page.
+- [x] `npm run itch:publish`, then download the ZIP from the page, unzip it, double-click
       `lotus-dashboard.html`, move a widget, press Ctrl+S, reopen it, and check the change came
       back. This one needs a person, and it is the last thing between the build and a visitor.

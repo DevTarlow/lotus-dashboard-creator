@@ -21,7 +21,8 @@
     "verify:browser": "npm run build:single && node scripts/verify-browser.mjs",
     "itch:dist": "npm run build:single && node scripts/build-itch.mjs",
     "itch:preview": "node scripts/butler-push.mjs preview",
-    "itch:publish": "node scripts/butler-push.mjs publish"
+    "itch:publish": "node scripts/butler-push.mjs publish",
+    "itch:cover": "node scripts/itch-cover.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

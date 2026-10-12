@@ -1,0 +1,49 @@
+{
+  "title": "Lotus Dashboard Creator",
+  "urlSlug": "lotus-dashboard",
+  "itchTarget": "tarlow/lotus-dashboard",
+  "channel": "download",
+  "classification": "Tool",
+  "kindOfGame": "Downloadable",
+  "genre": null,
+  "releaseStatus": "Released",
+  "platforms": ["Windows", "macOS", "Linux"],
+  "mobileFriendly": false,
+  "shortDescription": "Twenty widgets on one screen, in one HTML file. Drag, resize and arrange it the way you work, and your dashboard saves itself into the file you keep.",
+  "pricing": {
+    "model": "free",
+    "note": "MIT licensed and free on GitHub. itch can take donations; the file stays free either way."
+  },
+  "support": "tarlow@mossaistudio.com",
+  "refundPolicy": "Nothing to refund: the download is free.",
+  "tags": ["dashboard", "productivity", "tool", "widgets", "offline", "browser", "html", "no-install"],
+  "cover": "docs/media/itch/cover-630x500.png",
+  "banner": "docs/media/itch/banner-960x400.png",
+  "screenshots": [
+    {
+      "file": "docs/dashboard-dark.png",
+      "size": "1680x1050",
+      "caption": "The dashboard as it opens: a six-panel starter with the clock, weather, quick links, tasks, a calendar and notes."
+    },
+    {
+      "file": "docs/widget-gallery.png",
+      "size": "1680x1050",
+      "caption": "The Add widget panel: twenty widgets, a live preview of each, and the size you want to drop it at."
+    },
+    {
+      "file": "docs/themes.png",
+      "size": "1680x1050",
+      "caption": "Seven themes in light and dark, and a contrast solver for the colours you pick yourself."
+    },
+    {
+      "file": "docs/welcome.png",
+      "size": "1680x1050",
+      "caption": "The first-run welcome, which explains where your dashboard is kept. Press ? to bring it back at any time."
+    },
+    {
+      "file": "docs/dashboard-light.png",
+      "size": "1680x1050",
+      "caption": "The same workspace in the light theme."
+    }
+  ]
+}
